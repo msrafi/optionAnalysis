@@ -9,6 +9,21 @@ export interface OptionData {
   bidAskSpread: number;
   timestamp: string;
   sweepType: string;
+  sourceFile?: string; // Track which file this data came from
+}
+
+export interface MergedDataInfo {
+  totalFiles: number;
+  totalRecords: number;
+  dateRange: {
+    earliest: Date | null;
+    latest: Date | null;
+  };
+  files: {
+    filename: string;
+    recordCount: number;
+    timestamp: Date;
+  }[];
 }
 
 export interface TickerSummary {
@@ -37,7 +52,7 @@ export interface HighestVolumeData {
   openInterest: number;
 }
 
-export function parseCSVData(csvText: string): OptionData[] {
+export function parseCSVData(csvText: string, sourceFile?: string): OptionData[] {
   const lines = csvText.split('\n');
   const data: OptionData[] = [];
   
@@ -76,7 +91,8 @@ export function parseCSVData(csvText: string): OptionData[] {
           openInterest,
           bidAskSpread,
           timestamp,
-          sweepType
+          sweepType,
+          sourceFile
         });
       }
     } catch (error) {
@@ -289,4 +305,132 @@ export function formatPremium(premium: number): string {
     return `$${(premium / 1000).toFixed(1)}K`;
   }
   return `$${premium.toFixed(0)}`;
+}
+
+/**
+ * Merge data from multiple CSV files
+ */
+export function mergeDataFromFiles(fileData: Array<{filename: string, data: string, timestamp: Date}>): {
+  mergedData: OptionData[];
+  info: MergedDataInfo;
+} {
+  const mergedData: OptionData[] = [];
+  const fileInfo: MergedDataInfo['files'] = [];
+  let earliestDate: Date | null = null;
+  let latestDate: Date | null = null;
+  
+  // Sort files by timestamp (most recent first)
+  const sortedFiles = fileData.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  
+  sortedFiles.forEach(file => {
+    const parsedData = parseCSVData(file.data, file.filename);
+    mergedData.push(...parsedData);
+    
+    fileInfo.push({
+      filename: file.filename,
+      recordCount: parsedData.length,
+      timestamp: file.timestamp
+    });
+    
+    // Update date range
+    if (!earliestDate || file.timestamp < earliestDate) {
+      earliestDate = file.timestamp;
+    }
+    if (!latestDate || file.timestamp > latestDate) {
+      latestDate = file.timestamp;
+    }
+  });
+  
+  const info: MergedDataInfo = {
+    totalFiles: fileData.length,
+    totalRecords: mergedData.length,
+    dateRange: {
+      earliest: earliestDate,
+      latest: latestDate
+    },
+    files: fileInfo
+  };
+  
+  return { mergedData, info };
+}
+
+/**
+ * Get data summary for the merged dataset
+ */
+export function getDataSummary(data: OptionData[]): {
+  totalTickers: number;
+  totalVolume: number;
+  totalCalls: number;
+  totalPuts: number;
+  uniqueExpiries: number;
+  dateRange: {
+    earliest: Date | null;
+    latest: Date | null;
+  };
+  sourceFiles: string[];
+} {
+  const tickers = new Set<string>();
+  const expiries = new Set<string>();
+  const sourceFiles = new Set<string>();
+  let totalVolume = 0;
+  let totalCalls = 0;
+  let totalPuts = 0;
+  let earliestDate: Date | null = null;
+  let latestDate: Date | null = null;
+  
+  data.forEach(option => {
+    tickers.add(option.ticker);
+    expiries.add(option.expiry);
+    if (option.sourceFile) sourceFiles.add(option.sourceFile);
+    
+    totalVolume += option.volume;
+    if (option.optionType === 'Call') {
+      totalCalls += option.volume;
+    } else {
+      totalPuts += option.volume;
+    }
+    
+    const timestamp = new Date(option.timestamp);
+    if (!earliestDate || timestamp < earliestDate) {
+      earliestDate = timestamp;
+    }
+    if (!latestDate || timestamp > latestDate) {
+      latestDate = timestamp;
+    }
+  });
+  
+  return {
+    totalTickers: tickers.size,
+    totalVolume,
+    totalCalls,
+    totalPuts,
+    uniqueExpiries: expiries.size,
+    dateRange: {
+      earliest: earliestDate,
+      latest: latestDate
+    },
+    sourceFiles: Array.from(sourceFiles)
+  };
+}
+
+/**
+ * Filter data by time range
+ */
+export function filterDataByTimeRange(
+  data: OptionData[], 
+  startDate: Date, 
+  endDate: Date
+): OptionData[] {
+  return data.filter(option => {
+    const timestamp = new Date(option.timestamp);
+    return timestamp >= startDate && timestamp <= endDate;
+  });
+}
+
+/**
+ * Get data from the last N hours
+ */
+export function getRecentData(data: OptionData[], hours: number = 24): OptionData[] {
+  const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+  return filterDataByTimeRange(data, cutoff, new Date());
 }

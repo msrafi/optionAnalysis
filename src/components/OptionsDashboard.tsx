@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, Calendar, Filter } from 'lucide-react';
+import { ArrowLeft, Calendar, Filter, Database, Clock, FileText } from 'lucide-react';
 import TickerList from './TickerList';
 import VolumeProfileChart from './VolumeProfileChart';
 import { 
-  parseCSVData, 
+  mergeDataFromFiles,
+  getDataSummary,
   getTickerSummaries, 
   getVolumeProfileForTicker, 
   getExpiryDatesForTicker,
@@ -11,8 +12,10 @@ import {
   OptionData,
   TickerSummary,
   VolumeProfileData,
-  HighestVolumeData
+  HighestVolumeData,
+  MergedDataInfo
 } from '../utils/dataParser';
+import { loadAllDataFiles, LoadedFileData } from '../utils/fileLoader';
 
 // We'll load the CSV data via fetch instead of import
 
@@ -20,27 +23,53 @@ const OptionsDashboard: React.FC = () => {
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [selectedExpiry, setSelectedExpiry] = useState<string | null>(null);
   const [optionData, setOptionData] = useState<OptionData[]>([]);
+  const [dataInfo, setDataInfo] = useState<MergedDataInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadCSVData = async () => {
+    const loadAllData = async () => {
       try {
-        const response = await fetch('/discord.csv');
-        const csvText = await response.text();
-        const parsedData = parseCSVData(csvText);
-        setOptionData(parsedData);
+        setLoading(true);
+        setError(null);
+        
+        // Load all CSV files from the data directory
+        const loadedFiles = await loadAllDataFiles();
+        
+        if (loadedFiles.length === 0) {
+          throw new Error('No data files found in the data directory');
+        }
+        
+        // Merge data from all files
+        const { mergedData, info } = mergeDataFromFiles(
+          loadedFiles.map(file => ({
+            filename: file.filename,
+            data: file.data,
+            timestamp: file.timestamp
+          }))
+        );
+        
+        setOptionData(mergedData);
+        setDataInfo(info);
         setLoading(false);
+        
+        console.log(`Loaded ${info.totalFiles} files with ${info.totalRecords} total records`);
       } catch (error) {
-        console.error('Error loading CSV data:', error);
+        console.error('Error loading data files:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load data');
         setLoading(false);
       }
     };
 
-    loadCSVData();
+    loadAllData();
   }, []);
 
   const tickerSummaries = useMemo(() => {
     return getTickerSummaries(optionData);
+  }, [optionData]);
+
+  const dataSummary = useMemo(() => {
+    return getDataSummary(optionData);
   }, [optionData]);
 
   const expiryDates = useMemo(() => {
@@ -76,13 +105,54 @@ const OptionsDashboard: React.FC = () => {
     return (
       <div className="dashboard-loading">
         <div className="loading-spinner"></div>
-        <p>Loading options data...</p>
+        <p>Loading options data from multiple files...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="dashboard-error">
+        <div className="error-icon">⚠️</div>
+        <h3>Error Loading Data</h3>
+        <p>{error}</p>
+        <button 
+          className="retry-button" 
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </button>
       </div>
     );
   }
 
   return (
     <div className="options-dashboard">
+      {/* Data Summary Header */}
+      {dataInfo && (
+        <div className="data-summary-header">
+          <div className="summary-stats">
+            <div className="summary-stat">
+              <Database className="stat-icon" />
+              <span className="stat-label">Files Loaded</span>
+              <span className="stat-value">{dataInfo.totalFiles}</span>
+            </div>
+            <div className="summary-stat">
+              <FileText className="stat-icon" />
+              <span className="stat-label">Total Records</span>
+              <span className="stat-value">{dataInfo.totalRecords.toLocaleString()}</span>
+            </div>
+            <div className="summary-stat">
+              <Clock className="stat-icon" />
+              <span className="stat-label">Latest Data</span>
+              <span className="stat-value">
+                {dataInfo.dateRange.latest?.toLocaleString() || 'Unknown'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {!selectedTicker ? (
         <TickerList 
           tickers={tickerSummaries} 
