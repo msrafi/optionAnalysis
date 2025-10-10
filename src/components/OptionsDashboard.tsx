@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ArrowLeft, Calendar, Filter, Database, Clock, FileText } from 'lucide-react';
 import TickerList from './TickerList';
 import VolumeProfileChart from './VolumeProfileChart';
+import TradeList from './TradeList';
 import { 
   mergeDataFromFiles,
   getDataSummary,
@@ -85,6 +86,14 @@ const OptionsDashboard: React.FC = () => {
   const highestVolumeData = useMemo(() => {
     if (!selectedTicker) return null;
     return getHighestVolumeData(optionData, selectedTicker, selectedExpiry || undefined);
+  }, [optionData, selectedTicker, selectedExpiry]);
+
+  const tickerTrades = useMemo(() => {
+    if (!selectedTicker) return [];
+    return optionData.filter(option => 
+      option.ticker === selectedTicker && 
+      (!selectedExpiry || option.expiry === selectedExpiry)
+    );
   }, [optionData, selectedTicker, selectedExpiry]);
 
   const handleTickerSelect = useCallback((ticker: string) => {
@@ -236,6 +245,17 @@ const OptionsDashboard: React.FC = () => {
               <h4>Open Interest</h4>
               <p>{volumeProfileData.reduce((sum, item) => sum + item.openInterest, 0).toLocaleString()}</p>
             </div>
+          </div>
+
+          {/* Trade List */}
+          <div className="trade-list-section">
+            <h3>Trade History for {selectedTicker}</h3>
+            <p>Found {tickerTrades.length} trades</p>
+            <TradeList 
+              trades={tickerTrades}
+              ticker={selectedTicker}
+              expiry={selectedExpiry || undefined}
+            />
           </div>
         </div>
       )}
