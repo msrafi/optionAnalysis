@@ -111,7 +111,9 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
     
     const totalItems = filteredData.length;
     const spacing = 100 / (totalItems + 1); // Even spacing with padding
-    return spacing * (index + 1);
+    // Reverse the positioning so lowest prices appear at top
+    const reversedIndex = totalItems - 1 - index;
+    return spacing * (reversedIndex + 1);
   }, [filteredData, filteredChartData]);
 
   // Calculate dynamic height based on number of strike prices
