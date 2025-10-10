@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { VolumeProfileData, HighestVolumeData, formatVolume } from '../utils/dataParser';
 
 interface VolumeProfileChartProps {
@@ -9,7 +9,7 @@ interface VolumeProfileChartProps {
   chartType: 'callput' | 'total';
 }
 
-const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({ 
+const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({ 
   data, 
   highestVolumeData,
   ticker, 
@@ -19,25 +19,38 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
   const chartData = useMemo(() => {
     if (!data.length) return { maxVolume: 0, minStrike: 0, maxStrike: 0, maxTotalVolume: 0 };
     
-    const maxVolume = Math.max(...data.map(d => Math.max(d.callVolume, d.putVolume)));
-    const maxTotalVolume = Math.max(...data.map(d => d.totalVolume));
-    const strikes = data.map(d => d.strike);
-    const minStrike = Math.min(...strikes);
-    const maxStrike = Math.max(...strikes);
+    // Use for loop for better performance
+    let maxVolume = 0;
+    let maxTotalVolume = 0;
+    let minStrike = Infinity;
+    let maxStrike = -Infinity;
     
-    return { maxVolume, minStrike, maxStrike, maxTotalVolume };
+    for (let i = 0; i < data.length; i++) {
+      const d = data[i];
+      maxVolume = Math.max(maxVolume, Math.max(d.callVolume, d.putVolume));
+      maxTotalVolume = Math.max(maxTotalVolume, d.totalVolume);
+      minStrike = Math.min(minStrike, d.strike);
+      maxStrike = Math.max(maxStrike, d.strike);
+    }
+    
+    return { 
+      maxVolume, 
+      minStrike: minStrike === Infinity ? 0 : minStrike, 
+      maxStrike: maxStrike === -Infinity ? 0 : maxStrike, 
+      maxTotalVolume 
+    };
   }, [data]);
 
-  const getBarWidth = (volume: number, maxVolume: number) => {
+  const getBarWidth = useCallback((volume: number, maxVolume: number) => {
     if (maxVolume === 0) return 0;
     // Scale to 80% of available space to prevent overflow
     return Math.min((volume / maxVolume) * 80, 80);
-  };
+  }, []);
 
-  const getStrikePosition = (strike: number) => {
+  const getStrikePosition = useCallback((strike: number) => {
     if (chartData.maxStrike === chartData.minStrike) return 50;
     return ((strike - chartData.minStrike) / (chartData.maxStrike - chartData.minStrike)) * 100;
-  };
+  }, [chartData.maxStrike, chartData.minStrike]);
 
   if (!data.length) {
     return (
@@ -246,6 +259,8 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
       </div>
     </div>
   );
-};
+});
+
+VolumeProfileChart.displayName = 'VolumeProfileChart';
 
 export default VolumeProfileChart;

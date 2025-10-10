@@ -48,6 +48,7 @@
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
+  will-change: transform;
 }
 
 @keyframes spin {
@@ -138,6 +139,52 @@
   font-size: 1rem;
 }
 
+/* Error Boundary Styles */
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 2rem;
+  color: white;
+}
+
+.error-content {
+  text-align: center;
+  max-width: 600px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 2rem;
+  backdrop-filter: blur(10px);
+}
+
+.error-content h2 {
+  color: #ff6b9d;
+  margin-bottom: 1rem;
+}
+
+.error-details {
+  margin: 1rem 0;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.error-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.error-details pre {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 /* Options Dashboard Styles */
 .options-dashboard {
   padding: 1rem;
@@ -208,6 +255,7 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
   transition: all 0.3s ease;
+  will-change: transform, box-shadow;
 }
 
 .ticker-card:hover {
@@ -435,6 +483,8 @@
   height: 500px;
   display: flex;
   flex-direction: column;
+  contain: layout style paint;
+  will-change: transform;
 }
 
 .chart-header {

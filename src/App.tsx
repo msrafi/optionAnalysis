@@ -1,5 +1,6 @@
 import React from 'react'
 import OptionsDashboard from './components/OptionsDashboard'
+import ErrorBoundary from './components/ErrorBoundary'
 import './App.css'
 
 function App() {
@@ -11,7 +12,9 @@ function App() {
       </header>
       
       <main>
-        <OptionsDashboard />
+        <ErrorBoundary>
+          <OptionsDashboard />
+        </ErrorBoundary>
       </main>
     </div>
   )

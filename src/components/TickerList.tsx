@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo, useCallback } from 'react';
 import { TrendingUp, TrendingDown, Calendar, DollarSign, Clock } from 'lucide-react';
 import { TickerSummary, formatVolume, formatPremium } from '../utils/dataParser';
 
@@ -33,7 +33,7 @@ const getTimeAgo = (timestamp: string): string => {
   }
 };
 
-const TickerList: React.FC<TickerListProps> = ({ tickers, onTickerSelect }) => {
+const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect }) => {
   return (
     <div className="ticker-list">
       <div className="ticker-list-header">
@@ -91,6 +91,8 @@ const TickerList: React.FC<TickerListProps> = ({ tickers, onTickerSelect }) => {
       </div>
     </div>
   );
-};
+});
+
+TickerList.displayName = 'TickerList';
 
 export default TickerList;

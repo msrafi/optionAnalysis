@@ -105,30 +105,75 @@ export async function loadCSVFile(filename: string): Promise<LoadedFileData> {
   }
 }
 
+// Cache for loaded files to avoid re-fetching
+const fileCache = new Map<string, { data: LoadedFileData; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 /**
- * Load all CSV files from the data directory
+ * Load all CSV files from the data directory with caching
  */
 export async function loadAllDataFiles(): Promise<LoadedFileData[]> {
   try {
     const files = await getDataFiles();
-    const loadPromises = files.map(file => loadCSVFile(file.filename));
+    const now = Date.now();
     
-    const results = await Promise.all(loadPromises);
+    // Check cache first
+    const cachedResults: LoadedFileData[] = [];
+    const filesToLoad: string[] = [];
+    
+    files.forEach(file => {
+      const cached = fileCache.get(file.filename);
+      if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+        cachedResults.push(cached.data);
+      } else {
+        filesToLoad.push(file.filename);
+      }
+    });
+    
+    // Load only uncached files
+    let newResults: LoadedFileData[] = [];
+    if (filesToLoad.length > 0) {
+      const loadPromises = filesToLoad.map(filename => loadCSVFile(filename));
+      newResults = await Promise.all(loadPromises);
+      
+      // Update cache
+      newResults.forEach(result => {
+        if (!result.error) {
+          fileCache.set(result.filename, { data: result, timestamp: now });
+        }
+      });
+    }
+    
+    const allResults = [...cachedResults, ...newResults];
     
     // Filter out files with errors and log them
-    const successful = results.filter(result => !result.error);
-    const failed = results.filter(result => result.error);
+    const successful = allResults.filter(result => !result.error);
+    const failed = allResults.filter(result => result.error);
     
     if (failed.length > 0) {
       console.warn('Failed to load some data files:', failed);
     }
     
-    console.log(`Successfully loaded ${successful.length} data files`);
+    console.log(`Successfully loaded ${successful.length} data files (${cachedResults.length} cached, ${newResults.filter(r => !r.error).length} new)`);
     return successful;
   } catch (error) {
     console.error('Failed to load data files:', error);
     return [];
   }
+}
+
+/**
+ * Clear the file cache
+ */
+export function clearFileCache(): void {
+  fileCache.clear();
+}
+
+/**
+ * Preload data files in the background
+ */
+export function preloadDataFiles(): Promise<LoadedFileData[]> {
+  return loadAllDataFiles();
 }
 
 /**

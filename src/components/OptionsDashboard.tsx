@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ArrowLeft, Calendar, Filter, Database, Clock, FileText } from 'lucide-react';
 import TickerList from './TickerList';
 import VolumeProfileChart from './VolumeProfileChart';
@@ -87,19 +87,19 @@ const OptionsDashboard: React.FC = () => {
     return getHighestVolumeData(optionData, selectedTicker, selectedExpiry || undefined);
   }, [optionData, selectedTicker, selectedExpiry]);
 
-  const handleTickerSelect = (ticker: string) => {
+  const handleTickerSelect = useCallback((ticker: string) => {
     setSelectedTicker(ticker);
     setSelectedExpiry(null); // Reset expiry selection when changing ticker
-  };
+  }, []);
 
-  const handleBackToList = () => {
+  const handleBackToList = useCallback(() => {
     setSelectedTicker(null);
     setSelectedExpiry(null);
-  };
+  }, []);
 
-  const handleExpirySelect = (expiry: string) => {
+  const handleExpirySelect = useCallback((expiry: string) => {
     setSelectedExpiry(expiry === selectedExpiry ? null : expiry);
-  };
+  }, [selectedExpiry]);
 
   if (loading) {
     return (

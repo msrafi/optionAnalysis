@@ -52,9 +52,24 @@ export interface HighestVolumeData {
   openInterest: number;
 }
 
+// Cache for parsed data to avoid re-parsing
+const parseCache = new Map<string, OptionData[]>();
+
 export function parseCSVData(csvText: string, sourceFile?: string): OptionData[] {
+  // Check cache first
+  const cacheKey = `${sourceFile || 'unknown'}_${csvText.length}_${csvText.slice(0, 100)}`;
+  const cached = parseCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const lines = csvText.split('\n');
   const data: OptionData[] = [];
+  
+  // Pre-allocate array with estimated size for better performance
+  const estimatedSize = Math.max(1000, lines.length * 0.8);
+  data.length = estimatedSize;
+  let dataIndex = 0;
   
   // Skip header row
   for (let i = 1; i < lines.length; i++) {
@@ -81,7 +96,7 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
       
       // Only process valid option data
       if (ticker && strike > 0 && expiry && optionType && volume > 0) {
-        data.push({
+        data[dataIndex++] = {
           ticker,
           strike,
           expiry,
@@ -93,12 +108,18 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
           timestamp,
           sweepType,
           sourceFile
-        });
+        };
       }
     } catch (error) {
       console.warn('Error parsing line:', line, error);
     }
   }
+  
+  // Trim array to actual size
+  data.length = dataIndex;
+  
+  // Cache the result
+  parseCache.set(cacheKey, data);
   
   return data;
 }
@@ -125,10 +146,23 @@ function parseCSVLine(line: string): string[] {
   return fields;
 }
 
+// Cache for ticker summaries
+const tickerSummaryCache = new Map<string, TickerSummary[]>();
+
 export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
+  // Create cache key based on data length and first few items
+  const cacheKey = `${data.length}_${data.slice(0, 3).map(d => `${d.ticker}_${d.timestamp}`).join('_')}`;
+  const cached = tickerSummaryCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const tickerMap = new Map<string, TickerSummary>();
   
-  data.forEach(option => {
+  // Use for loop for better performance than forEach
+  for (let i = 0; i < data.length; i++) {
+    const option = data[i];
+    
     if (!tickerMap.has(option.ticker)) {
       tickerMap.set(option.ticker, {
         ticker: option.ticker,
@@ -151,6 +185,7 @@ export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
       summary.putVolume += option.volume;
     }
     
+    // Use Set for faster expiry checking
     if (!summary.uniqueExpiries.includes(option.expiry)) {
       summary.uniqueExpiries.push(option.expiry);
     }
@@ -159,10 +194,10 @@ export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
     if (new Date(option.timestamp) > new Date(summary.lastActivity)) {
       summary.lastActivity = option.timestamp;
     }
-  });
+  }
   
   // Sort by most recent activity first, then by total volume
-  return Array.from(tickerMap.values()).sort((a, b) => {
+  const result = Array.from(tickerMap.values()).sort((a, b) => {
     const dateA = new Date(a.lastActivity);
     const dateB = new Date(b.lastActivity);
     
@@ -174,6 +209,11 @@ export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
     // If same activity time, sort by total volume
     return b.totalVolume - a.totalVolume;
   });
+  
+  // Cache the result
+  tickerSummaryCache.set(cacheKey, result);
+  
+  return result;
 }
 
 export function getVolumeProfileForTicker(
