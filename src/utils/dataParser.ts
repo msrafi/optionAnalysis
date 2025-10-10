@@ -29,6 +29,14 @@ export interface VolumeProfileData {
   totalVolume: number;
 }
 
+export interface HighestVolumeData {
+  strike: number;
+  totalVolume: number;
+  callVolume: number;
+  putVolume: number;
+  openInterest: number;
+}
+
 export function parseCSVData(csvText: string): OptionData[] {
   const lines = csvText.split('\n');
   const data: OptionData[] = [];
@@ -200,6 +208,56 @@ export function getExpiryDatesForTicker(data: OptionData[], ticker: string): str
   });
   
   return Array.from(expiries).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+}
+
+export function getHighestVolumeData(
+  data: OptionData[], 
+  ticker: string, 
+  expiry?: string
+): HighestVolumeData | null {
+  const filteredData = data.filter(option => 
+    option.ticker === ticker && 
+    (!expiry || option.expiry === expiry)
+  );
+  
+  if (!filteredData.length) return null;
+  
+  const strikeMap = new Map<number, VolumeProfileData>();
+  
+  filteredData.forEach(option => {
+    if (!strikeMap.has(option.strike)) {
+      strikeMap.set(option.strike, {
+        strike: option.strike,
+        callVolume: 0,
+        putVolume: 0,
+        openInterest: 0,
+        totalVolume: 0
+      });
+    }
+    
+    const profile = strikeMap.get(option.strike)!;
+    profile.totalVolume += option.volume;
+    profile.openInterest += option.openInterest;
+    
+    if (option.optionType === 'Call') {
+      profile.callVolume += option.volume;
+    } else {
+      profile.putVolume += option.volume;
+    }
+  });
+  
+  const profiles = Array.from(strikeMap.values());
+  const highestVolume = profiles.reduce((max, current) => 
+    current.totalVolume > max.totalVolume ? current : max
+  );
+  
+  return {
+    strike: highestVolume.strike,
+    totalVolume: highestVolume.totalVolume,
+    callVolume: highestVolume.callVolume,
+    putVolume: highestVolume.putVolume,
+    openInterest: highestVolume.openInterest
+  };
 }
 
 function parsePremium(premium: string): number {

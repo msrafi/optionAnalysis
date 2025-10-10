@@ -326,13 +326,32 @@
   color: #1a1a2e;
 }
 
+/* Charts Section - Two Column Layout */
+.charts-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.chart-column {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* Volume Profile Chart Styles */
 .volume-profile-chart {
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.4);
   border-radius: 12px;
-  padding: 2rem;
-  margin-bottom: 2rem;
+  padding: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  box-sizing: border-box;
+  height: 500px;
+  display: flex;
+  flex-direction: column;
 }
 
 .chart-header {
@@ -358,34 +377,43 @@
 
 .chart-container {
   position: relative;
-  height: 500px;
+  height: 400px;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  width: 100%;
+  flex: 1;
 }
 
-.volume-axis {
+.chart-container.vertical {
+  flex-direction: column;
+}
+
+.volume-axis-left {
   position: absolute;
   left: 0;
   top: 0;
   height: 100%;
-  width: 60px;
+  width: 80px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   padding: 1rem 0;
+  z-index: 2;
 }
 
-.volume-axis-right {
+.volume-axis-bottom {
   position: absolute;
+  bottom: 0;
+  left: 0;
   right: 0;
-  top: 0;
-  height: 100%;
-  width: 60px;
+  height: 60px;
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  padding: 1rem 0;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 1rem;
+  z-index: 2;
 }
 
 .volume-label {
@@ -396,10 +424,18 @@
 
 .chart-area {
   position: absolute;
-  left: 60px;
-  right: 60px;
+  left: 80px;
+  right: 0;
   top: 0;
   height: 100%;
+  z-index: 1;
+}
+
+.chart-area.vertical {
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 60px;
 }
 
 .strike-axis {
@@ -407,14 +443,26 @@
   height: 100%;
 }
 
+.strike-axis.vertical {
+  width: 100%;
+  height: 100%;
+}
+
 .strike-line {
   position: absolute;
   width: 100%;
   height: 1px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.strike-line.vertical {
+  width: 1px;
+  height: 100%;
+  top: 0;
+  bottom: 0;
 }
 
 .strike-label {
@@ -434,12 +482,26 @@
   height: 100%;
 }
 
+.volume-bars.vertical {
+  width: 100%;
+  height: 100%;
+}
+
 .strike-row {
   position: absolute;
   width: 100%;
   height: 20px;
   display: flex;
   align-items: center;
+}
+
+.strike-column {
+  position: absolute;
+  width: 20px;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
 
 .volume-bar {
@@ -451,12 +513,23 @@
   justify-content: center;
 }
 
+.volume-bar.vertical {
+  width: 16px;
+  height: auto;
+  bottom: 0;
+  align-items: flex-end;
+}
+
 .call-bar {
   background: linear-gradient(90deg, #4caf50, #66bb6a);
 }
 
 .put-bar {
   background: linear-gradient(90deg, #f44336, #ef5350);
+}
+
+.total-bar {
+  background: linear-gradient(180deg, #4fc3f7, #29b6f6);
 }
 
 .volume-text {
@@ -466,25 +539,96 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
-.open-interest-bars {
+/* Highest Volume Indicator */
+.highest-volume-line {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: #ff6b9d;
+  z-index: 3;
+}
+
+.highest-volume-line.vertical {
+  width: 2px;
+  height: 100%;
+  top: 0;
+  bottom: 0;
+}
+
+.highest-volume-label {
+  position: absolute;
+  left: 10px;
+  top: -15px;
+  background: rgba(255, 107, 157, 0.9);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.highest-volume-label.vertical {
+  left: -15px;
+  top: 10px;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.ticker-price {
+  font-weight: 700;
+}
+
+.plus-icon {
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+/* Total Volume Chart */
+.total-volume-chart {
   position: absolute;
   right: 0;
   top: 0;
-  width: 20px;
+  width: 200px;
+  height: 100%;
+  display: flex;
+  z-index: 2;
+}
+
+.total-volume-axis {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1rem 0;
+}
+
+.total-volume-bars {
+  position: absolute;
+  left: 60px;
+  right: 0;
+  top: 0;
   height: 100%;
 }
 
-.oi-bar {
+.total-volume-bar {
   position: absolute;
   width: 100%;
-  background: linear-gradient(180deg, #2196f3, #42a5f5);
+  background: linear-gradient(90deg, #4fc3f7, #29b6f6);
   border-radius: 2px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  min-height: 2px;
 }
 
-.oi-text {
+.total-volume-text {
   color: white;
   font-size: 0.6rem;
   font-weight: 600;
@@ -523,8 +667,8 @@
   background: #f44336;
 }
 
-.legend-color.oi {
-  background: #2196f3;
+.legend-color.total {
+  background: #4fc3f7;
 }
 
 .no-data {
@@ -595,8 +739,17 @@
     flex-direction: column;
   }
   
-  .chart-container {
+  .charts-section {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .volume-profile-chart {
     height: 400px;
+  }
+  
+  .chart-container {
+    height: 300px;
   }
   
   .summary-stats {
@@ -622,8 +775,12 @@
     font-size: 1rem;
   }
   
+  .volume-profile-chart {
+    height: 350px;
+  }
+  
   .chart-container {
-    height: 300px;
+    height: 250px;
   }
   
   .summary-stats {

@@ -7,9 +7,11 @@ import {
   getTickerSummaries, 
   getVolumeProfileForTicker, 
   getExpiryDatesForTicker,
+  getHighestVolumeData,
   OptionData,
   TickerSummary,
-  VolumeProfileData
+  VolumeProfileData,
+  HighestVolumeData
 } from '../utils/dataParser';
 
 // We'll load the CSV data via fetch instead of import
@@ -49,6 +51,11 @@ const OptionsDashboard: React.FC = () => {
   const volumeProfileData = useMemo(() => {
     if (!selectedTicker) return [];
     return getVolumeProfileForTicker(optionData, selectedTicker, selectedExpiry || undefined);
+  }, [optionData, selectedTicker, selectedExpiry]);
+
+  const highestVolumeData = useMemo(() => {
+    if (!selectedTicker) return null;
+    return getHighestVolumeData(optionData, selectedTicker, selectedExpiry || undefined);
   }, [optionData, selectedTicker, selectedExpiry]);
 
   const handleTickerSelect = (ticker: string) => {
@@ -116,13 +123,29 @@ const OptionsDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Volume Profile Chart */}
-          <div className="chart-section">
-            <VolumeProfileChart 
-              data={volumeProfileData}
-              ticker={selectedTicker}
-              expiry={selectedExpiry || undefined}
-            />
+          {/* Charts Section - Two Column Layout */}
+          <div className="charts-section">
+            {/* Left Column - Call/Put Volume Chart */}
+            <div className="chart-column">
+              <VolumeProfileChart 
+                data={volumeProfileData}
+                highestVolumeData={highestVolumeData}
+                ticker={selectedTicker}
+                expiry={selectedExpiry || undefined}
+                chartType="callput"
+              />
+            </div>
+            
+            {/* Right Column - Total Volume Chart */}
+            <div className="chart-column">
+              <VolumeProfileChart 
+                data={volumeProfileData}
+                highestVolumeData={highestVolumeData}
+                ticker={selectedTicker}
+                expiry={selectedExpiry || undefined}
+                chartType="total"
+              />
+            </div>
           </div>
 
           {/* Summary Statistics */}

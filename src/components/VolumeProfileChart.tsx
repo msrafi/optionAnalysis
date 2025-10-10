@@ -1,31 +1,37 @@
 import React, { useMemo } from 'react';
-import { VolumeProfileData, formatVolume } from '../utils/dataParser';
+import { VolumeProfileData, HighestVolumeData, formatVolume } from '../utils/dataParser';
 
 interface VolumeProfileChartProps {
   data: VolumeProfileData[];
+  highestVolumeData: HighestVolumeData | null;
   ticker: string;
   expiry?: string;
+  chartType: 'callput' | 'total';
 }
 
 const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({ 
   data, 
+  highestVolumeData,
   ticker, 
-  expiry 
+  expiry,
+  chartType
 }) => {
   const chartData = useMemo(() => {
-    if (!data.length) return { maxVolume: 0, minStrike: 0, maxStrike: 0 };
+    if (!data.length) return { maxVolume: 0, minStrike: 0, maxStrike: 0, maxTotalVolume: 0 };
     
     const maxVolume = Math.max(...data.map(d => Math.max(d.callVolume, d.putVolume)));
+    const maxTotalVolume = Math.max(...data.map(d => d.totalVolume));
     const strikes = data.map(d => d.strike);
     const minStrike = Math.min(...strikes);
     const maxStrike = Math.max(...strikes);
     
-    return { maxVolume, minStrike, maxStrike };
+    return { maxVolume, minStrike, maxStrike, maxTotalVolume };
   }, [data]);
 
-  const getBarWidth = (volume: number) => {
-    if (chartData.maxVolume === 0) return 0;
-    return (volume / chartData.maxVolume) * 100;
+  const getBarWidth = (volume: number, maxVolume: number) => {
+    if (maxVolume === 0) return 0;
+    // Scale to 80% of available space to prevent overflow
+    return Math.min((volume / maxVolume) * 80, 80);
   };
 
   const getStrikePosition = (strike: number) => {
@@ -37,7 +43,7 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
     return (
       <div className="volume-profile-chart">
         <div className="chart-header">
-          <h3>{ticker} Volume Profile</h3>
+          <h3>{ticker} {chartType === 'callput' ? 'Call/Put Volume' : 'Total Volume'}</h3>
           {expiry && <span className="expiry-date">{expiry}</span>}
         </div>
         <div className="no-data">
@@ -47,35 +53,142 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
     );
   }
 
+  if (chartType === 'callput') {
+    return (
+      <div className="volume-profile-chart callput-chart">
+        <div className="chart-header">
+          <h3>{ticker} Call/Put Volume</h3>
+          {expiry && <span className="expiry-date">{expiry}</span>}
+        </div>
+        
+        <div className="chart-container">
+          {/* Left Volume Axis */}
+          <div className="volume-axis-left">
+            <div className="volume-label">{formatVolume(chartData.maxVolume)}</div>
+            <div className="volume-label">{formatVolume(chartData.maxVolume / 2)}</div>
+            <div className="volume-label">0</div>
+            <div className="volume-label">-{formatVolume(chartData.maxVolume / 2)}</div>
+            <div className="volume-label">-{formatVolume(chartData.maxVolume)}</div>
+          </div>
+          
+          {/* Main Chart Area */}
+          <div className="chart-area">
+            {/* Strike Price Lines */}
+            <div className="strike-axis">
+              {data.map((item) => (
+                <div 
+                  key={item.strike} 
+                  className="strike-line"
+                  style={{ 
+                    top: `${getStrikePosition(item.strike)}%`
+                  }}
+                >
+                  <span className="strike-label">{item.strike}</span>
+                </div>
+              ))}
+            </div>
+            
+            {/* Call/Put Volume Bars */}
+            <div className="volume-bars">
+              {data.map((item) => (
+                <div 
+                  key={item.strike} 
+                  className="strike-row"
+                  style={{ top: `${getStrikePosition(item.strike)}%` }}
+                >
+                  {/* Call volume bar (left side, green) */}
+                  <div 
+                    className="volume-bar call-bar"
+                    style={{ 
+                      width: `${getBarWidth(item.callVolume, chartData.maxVolume)}%`,
+                      right: '50%'
+                    }}
+                  >
+                    {item.callVolume > 0 && (
+                      <span className="volume-text">
+                        {formatVolume(item.callVolume)}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Put volume bar (right side, red) */}
+                  <div 
+                    className="volume-bar put-bar"
+                    style={{ 
+                      width: `${getBarWidth(item.putVolume, chartData.maxVolume)}%`,
+                      left: '50%'
+                    }}
+                  >
+                    {item.putVolume > 0 && (
+                      <span className="volume-text">
+                        {formatVolume(item.putVolume)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Highest Volume Indicator Line */}
+            {highestVolumeData && (
+              <div 
+                className="highest-volume-line"
+                style={{ 
+                  top: `${getStrikePosition(highestVolumeData.strike)}%`
+                }}
+              >
+                <div className="highest-volume-label">
+                  <span className="ticker-price">{ticker} Price {highestVolumeData.strike}</span>
+                  <span className="plus-icon">+</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Legend */}
+        <div className="chart-legend">
+          <div className="legend-item">
+            <div className="legend-color call"></div>
+            <span>Call Volume</span>
+          </div>
+          <div className="legend-item">
+            <div className="legend-color put"></div>
+            <span>Put Volume</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Total Volume Chart (Vertical orientation)
   return (
-    <div className="volume-profile-chart">
+    <div className="volume-profile-chart total-chart">
       <div className="chart-header">
-        <h3>{ticker} Volume Profile</h3>
+        <h3>{ticker} Total Volume</h3>
         {expiry && <span className="expiry-date">{expiry}</span>}
       </div>
       
-      <div className="chart-container">
-        {/* Volume axis labels */}
-        <div className="volume-axis">
-          <div className="volume-label">{formatVolume(chartData.maxVolume)}</div>
-          <div className="volume-label">{formatVolume(chartData.maxVolume / 2)}</div>
+      <div className="chart-container vertical">
+        {/* Bottom Volume Axis */}
+        <div className="volume-axis-bottom">
           <div className="volume-label">0</div>
-          <div className="volume-label">-{formatVolume(chartData.maxVolume / 2)}</div>
-          <div className="volume-label">-{formatVolume(chartData.maxVolume)}</div>
+          <div className="volume-label">{formatVolume(chartData.maxTotalVolume * 0.25)}</div>
+          <div className="volume-label">{formatVolume(chartData.maxTotalVolume * 0.5)}</div>
+          <div className="volume-label">{formatVolume(chartData.maxTotalVolume * 0.75)}</div>
+          <div className="volume-label">{formatVolume(chartData.maxTotalVolume)}</div>
         </div>
         
-        {/* Chart area */}
-        <div className="chart-area">
-          {/* Strike price axis */}
-          <div className="strike-axis">
+        {/* Main Chart Area */}
+        <div className="chart-area vertical">
+          {/* Strike Price Lines (Vertical) */}
+          <div className="strike-axis vertical">
             {data.map((item) => (
               <div 
                 key={item.strike} 
-                className="strike-line"
+                className="strike-line vertical"
                 style={{ 
-                  top: `${getStrikePosition(item.strike)}%`,
-                  left: '50%',
-                  transform: 'translateX(-50%)'
+                  left: `${getStrikePosition(item.strike)}%`
                 }}
               >
                 <span className="strike-label">{item.strike}</span>
@@ -83,40 +196,23 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
             ))}
           </div>
           
-          {/* Volume bars */}
-          <div className="volume-bars">
+          {/* Total Volume Bars (Vertical) */}
+          <div className="volume-bars vertical">
             {data.map((item) => (
               <div 
                 key={item.strike} 
-                className="strike-row"
-                style={{ top: `${getStrikePosition(item.strike)}%` }}
+                className="strike-column"
+                style={{ left: `${getStrikePosition(item.strike)}%` }}
               >
-                {/* Call volume bar (left side, green) */}
                 <div 
-                  className="volume-bar call-bar"
+                  className="volume-bar total-bar vertical"
                   style={{ 
-                    width: `${getBarWidth(item.callVolume)}%`,
-                    right: '50%'
+                    height: `${getBarWidth(item.totalVolume, chartData.maxTotalVolume)}%`
                   }}
                 >
-                  {item.callVolume > 0 && (
+                  {item.totalVolume > 0 && (
                     <span className="volume-text">
-                      {formatVolume(item.callVolume)}
-                    </span>
-                  )}
-                </div>
-                
-                {/* Put volume bar (right side, red) */}
-                <div 
-                  className="volume-bar put-bar"
-                  style={{ 
-                    width: `${getBarWidth(item.putVolume)}%`,
-                    left: '50%'
-                  }}
-                >
-                  {item.putVolume > 0 && (
-                    <span className="volume-text">
-                      {formatVolume(item.putVolume)}
+                      {formatVolume(item.totalVolume)}
                     </span>
                   )}
                 </div>
@@ -124,46 +220,28 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = ({
             ))}
           </div>
           
-          {/* Open Interest bars (right side, blue) */}
-          <div className="open-interest-bars">
-            {data.map((item) => (
-              <div 
-                key={`oi-${item.strike}`} 
-                className="oi-bar"
-                style={{ 
-                  top: `${getStrikePosition(item.strike)}%`,
-                  height: `${Math.min((item.openInterest / Math.max(...data.map(d => d.openInterest))) * 100, 100)}%`
-                }}
-              >
-                {item.openInterest > 0 && (
-                  <span className="oi-text">
-                    {formatVolume(item.openInterest)}
-                  </span>
-                )}
+          {/* Highest Volume Indicator Line (Vertical) */}
+          {highestVolumeData && (
+            <div 
+              className="highest-volume-line vertical"
+              style={{ 
+                left: `${getStrikePosition(highestVolumeData.strike)}%`
+              }}
+            >
+              <div className="highest-volume-label vertical">
+                <span className="ticker-price">{ticker} Price {highestVolumeData.strike}</span>
+                <span className="plus-icon">+</span>
               </div>
-            ))}
-          </div>
-        </div>
-        
-        {/* Volume axis labels (right side) */}
-        <div className="volume-axis-right">
-          <div className="volume-label">{formatVolume(Math.max(...data.map(d => d.openInterest)))}</div>
+            </div>
+          )}
         </div>
       </div>
       
       {/* Legend */}
       <div className="chart-legend">
         <div className="legend-item">
-          <div className="legend-color call"></div>
-          <span>Call Volume</span>
-        </div>
-        <div className="legend-item">
-          <div className="legend-color put"></div>
-          <span>Put Volume</span>
-        </div>
-        <div className="legend-item">
-          <div className="legend-color oi"></div>
-          <span>Open Interest</span>
+          <div className="legend-color total"></div>
+          <span>Total Volume</span>
         </div>
       </div>
     </div>
