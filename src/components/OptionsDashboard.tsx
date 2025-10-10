@@ -221,6 +221,7 @@ const OptionsDashboard: React.FC = () => {
                 ticker={selectedTicker}
                 expiry={selectedExpiry || undefined}
                 chartType="callput"
+                currentPrice={highestVolumeData?.strike}
               />
             </div>
             
@@ -232,6 +233,7 @@ const OptionsDashboard: React.FC = () => {
                 ticker={selectedTicker}
                 expiry={selectedExpiry || undefined}
                 chartType="total"
+                currentPrice={highestVolumeData?.strike}
               />
             </div>
           </div>
