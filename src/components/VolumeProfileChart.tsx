@@ -68,57 +68,65 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
 
   if (chartType === 'callput') {
     return (
-      <div className="volume-profile-chart callput-chart">
-        <div className="chart-header">
+      <div className="volume-profile-chart modern-mirrored-chart">
+        <div className="chart-header modern-header">
           <h3>{ticker} Call/Put Volume</h3>
           {expiry && <span className="expiry-date">{expiry}</span>}
         </div>
         
-        <div className="chart-container">
+        <div className="chart-container modern-container">
           {/* Left Volume Axis */}
-          <div className="volume-axis-left">
+          <div className="volume-axis-left modern-axis">
             <div className="volume-label">{formatVolume(chartData.maxVolume)}</div>
-            <div className="volume-label">{formatVolume(chartData.maxVolume / 2)}</div>
+            <div className="volume-label">{formatVolume(chartData.maxVolume * 0.75)}</div>
+            <div className="volume-label">{formatVolume(chartData.maxVolume * 0.5)}</div>
+            <div className="volume-label">{formatVolume(chartData.maxVolume * 0.25)}</div>
             <div className="volume-label">0</div>
-            <div className="volume-label">-{formatVolume(chartData.maxVolume / 2)}</div>
-            <div className="volume-label">-{formatVolume(chartData.maxVolume)}</div>
+            <div className="volume-label">{formatVolume(chartData.maxVolume * 0.25)}</div>
+            <div className="volume-label">{formatVolume(chartData.maxVolume * 0.5)}</div>
+            <div className="volume-label">{formatVolume(chartData.maxVolume * 0.75)}</div>
+            <div className="volume-label">{formatVolume(chartData.maxVolume)}</div>
           </div>
           
           {/* Main Chart Area */}
-          <div className="chart-area">
+          <div className="chart-area modern-chart-area">
+            {/* Center Line */}
+            <div className="center-line"></div>
+            
             {/* Strike Price Lines */}
-            <div className="strike-axis">
+            <div className="strike-axis modern-strike-axis">
               {data.map((item) => (
                 <div 
                   key={item.strike} 
-                  className="strike-line"
+                  className="strike-line modern-strike-line"
                   style={{ 
                     top: `${getStrikePosition(item.strike)}%`
                   }}
                 >
-                  <span className="strike-label">{item.strike}</span>
+                  <span className="strike-label modern-strike-label">{item.strike}</span>
                 </div>
               ))}
             </div>
             
             {/* Call/Put Volume Bars */}
-            <div className="volume-bars">
+            <div className="volume-bars modern-volume-bars">
               {data.map((item) => (
                 <div 
                   key={item.strike} 
-                  className="strike-row"
+                  className="strike-row modern-strike-row"
                   style={{ top: `${getStrikePosition(item.strike)}%` }}
                 >
                   {/* Call volume bar (left side, green) */}
                   <div 
-                    className="volume-bar call-bar"
+                    className="volume-bar call-bar modern-call-bar"
                     style={{ 
                       width: `${getBarWidth(item.callVolume, chartData.maxVolume)}%`,
                       right: '50%'
                     }}
+                    title={`Call Volume: ${formatVolume(item.callVolume)} at Strike ${item.strike}`}
                   >
                     {item.callVolume > 0 && (
-                      <span className="volume-text">
+                      <span className="volume-text modern-volume-text">
                         {formatVolume(item.callVolume)}
                       </span>
                     )}
@@ -126,14 +134,15 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
                   
                   {/* Put volume bar (right side, red) */}
                   <div 
-                    className="volume-bar put-bar"
+                    className="volume-bar put-bar modern-put-bar"
                     style={{ 
                       width: `${getBarWidth(item.putVolume, chartData.maxVolume)}%`,
                       left: '50%'
                     }}
+                    title={`Put Volume: ${formatVolume(item.putVolume)} at Strike ${item.strike}`}
                   >
                     {item.putVolume > 0 && (
-                      <span className="volume-text">
+                      <span className="volume-text modern-volume-text">
                         {formatVolume(item.putVolume)}
                       </span>
                     )}
@@ -145,12 +154,12 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
             {/* Highest Volume Indicator Line */}
             {highestVolumeData && (
               <div 
-                className="highest-volume-line"
+                className="highest-volume-line modern-highest-line"
                 style={{ 
                   top: `${getStrikePosition(highestVolumeData.strike)}%`
                 }}
               >
-                <div className="highest-volume-label">
+                <div className="highest-volume-label modern-highest-label">
                   <span className="ticker-price">{ticker} Price {highestVolumeData.strike}</span>
                   <span className="plus-icon">+</span>
                 </div>
@@ -160,13 +169,13 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
         </div>
         
         {/* Legend */}
-        <div className="chart-legend">
+        <div className="chart-legend modern-legend">
           <div className="legend-item">
-            <div className="legend-color call"></div>
+            <div className="legend-color call modern-legend-call"></div>
             <span>Call Volume</span>
           </div>
           <div className="legend-item">
-            <div className="legend-color put"></div>
+            <div className="legend-color put modern-legend-put"></div>
             <span>Put Volume</span>
           </div>
         </div>

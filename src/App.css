@@ -139,6 +139,31 @@
   font-size: 1rem;
 }
 
+.refresh-button {
+  background: rgba(79, 195, 247, 0.1);
+  border: 1px solid rgba(79, 195, 247, 0.3);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  color: #4fc3f7;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.refresh-button:hover {
+  background: rgba(79, 195, 247, 0.2);
+  border-color: rgba(79, 195, 247, 0.5);
+  transform: translateY(-1px);
+}
+
+.refresh-button .stat-icon {
+  width: 16px;
+  height: 16px;
+}
+
 /* Trade List Section */
 .trade-list-section {
   margin-top: 2rem;
@@ -483,19 +508,72 @@
 }
 
 .ticker-list-header {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 2rem;
+  gap: 2rem;
 }
 
-.ticker-list-header h2 {
+.header-content {
+  flex: 1;
+}
+
+.header-content h2 {
   font-size: 2rem;
   margin: 0 0 0.5rem 0;
   color: white;
 }
 
-.ticker-list-header p {
+.header-content p {
   color: rgba(255, 255, 255, 0.8);
   margin: 0;
+}
+
+.sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sort-icon {
+  width: 18px;
+  height: 18px;
+  color: #4fc3f7;
+  flex-shrink: 0;
+}
+
+.sort-selector {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: white;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 180px;
+}
+
+.sort-selector:hover {
+  border-color: rgba(79, 195, 247, 0.5);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.sort-selector:focus {
+  outline: none;
+  border-color: #4fc3f7;
+  box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.2);
+}
+
+.sort-selector option {
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem;
 }
 
 .ticker-grid {
@@ -609,6 +687,32 @@
 
 .detail-row:last-child {
   border-bottom: none;
+}
+
+.last-trade-row {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.last-trade {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+.trade-side {
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.trade-side.call {
+  color: #4caf50;
+}
+
+.trade-side.put {
+  color: #f44336;
 }
 
 .detail-label {
@@ -768,6 +872,196 @@
   will-change: transform;
 }
 
+/* Modern Mirrored Chart Styles */
+.modern-mirrored-chart {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(20, 20, 30, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.modern-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modern-header h3 {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.3rem;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.modern-container {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modern-axis {
+  background: rgba(0, 0, 0, 0.3);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modern-chart-area {
+  background: rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.center-line {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(180deg, 
+    rgba(255, 255, 255, 0.3) 0%, 
+    rgba(255, 255, 255, 0.1) 50%, 
+    rgba(255, 255, 255, 0.3) 100%);
+  z-index: 1;
+}
+
+.modern-strike-axis {
+  z-index: 2;
+}
+
+.modern-strike-line {
+  background: rgba(255, 255, 255, 0.05);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modern-strike-label {
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.modern-volume-bars {
+  z-index: 3;
+}
+
+.modern-strike-row {
+  transition: all 0.2s ease;
+}
+
+.modern-strike-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.modern-call-bar {
+  background: linear-gradient(90deg, 
+    rgba(76, 175, 80, 0.9) 0%, 
+    rgba(76, 175, 80, 1) 50%, 
+    rgba(76, 175, 80, 0.9) 100%);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+  transition: all 0.2s ease;
+}
+
+.modern-call-bar:hover {
+  background: linear-gradient(90deg, 
+    rgba(76, 175, 80, 1) 0%, 
+    rgba(102, 187, 106, 1) 50%, 
+    rgba(76, 175, 80, 1) 100%);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.5);
+  transform: translateY(-1px);
+}
+
+.modern-put-bar {
+  background: linear-gradient(90deg, 
+    rgba(244, 67, 54, 0.9) 0%, 
+    rgba(244, 67, 54, 1) 50%, 
+    rgba(244, 67, 54, 0.9) 100%);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 4px 0 0 4px;
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+  transition: all 0.2s ease;
+}
+
+.modern-put-bar:hover {
+  background: linear-gradient(90deg, 
+    rgba(244, 67, 54, 1) 0%, 
+    rgba(239, 83, 80, 1) 50%, 
+    rgba(244, 67, 54, 1) 100%);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.5);
+  transform: translateY(-1px);
+}
+
+.modern-volume-text {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modern-highest-line {
+  background: linear-gradient(180deg, 
+    rgba(255, 107, 157, 0.8) 0%, 
+    rgba(255, 107, 157, 1) 50%, 
+    rgba(255, 107, 157, 0.8) 100%);
+  box-shadow: 0 0 8px rgba(255, 107, 157, 0.6);
+  border: 1px solid rgba(255, 107, 157, 0.4);
+}
+
+.modern-highest-label {
+  background: linear-gradient(135deg, 
+    rgba(255, 107, 157, 0.95) 0%, 
+    rgba(255, 107, 157, 1) 100%);
+  border: 1px solid rgba(255, 107, 157, 0.3);
+  box-shadow: 0 4px 12px rgba(255, 107, 157, 0.4);
+  border-radius: 6px;
+}
+
+.modern-legend {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.modern-legend .legend-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.modern-legend .legend-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.modern-legend-call {
+  background: linear-gradient(90deg, 
+    rgba(76, 175, 80, 0.8) 0%, 
+    rgba(76, 175, 80, 1) 100%);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+}
+
+.modern-legend-put {
+  background: linear-gradient(90deg, 
+    rgba(244, 67, 54, 0.8) 0%, 
+    rgba(244, 67, 54, 1) 100%);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  box-shadow: 0 2px 4px rgba(244, 67, 54, 0.3);
+}
+
 .chart-header {
   display: flex;
   justify-content: space-between;
@@ -815,6 +1109,33 @@
   justify-content: space-between;
   padding: 1rem 0;
   z-index: 2;
+}
+
+.modern-axis {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1rem 0;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.3);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modern-axis .volume-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: right;
+  padding: 0.2rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  margin: 0.1rem 0;
 }
 
 .volume-axis-bottom {
@@ -1128,6 +1449,20 @@
 @media (max-width: 768px) {
   .options-dashboard {
     padding: 0.5rem;
+  }
+  
+  .ticker-list-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .sort-controls {
+    align-self: stretch;
+  }
+  
+  .sort-selector {
+    min-width: auto;
+    flex: 1;
   }
   
   .ticker-grid {

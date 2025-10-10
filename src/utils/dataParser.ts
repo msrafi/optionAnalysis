@@ -34,6 +34,15 @@ export interface TickerSummary {
   totalPremium: number;
   uniqueExpiries: string[];
   lastActivity: string;
+  lastActivityDate: Date | null;
+  lastTrade: {
+    strike: number;
+    optionType: 'Call' | 'Put';
+    volume: number;
+    premium: string;
+    sweepType: string;
+    timestamp: string;
+  } | null;
 }
 
 export interface VolumeProfileData {
@@ -54,6 +63,60 @@ export interface HighestVolumeData {
 
 // Cache for parsed data to avoid re-parsing
 const parseCache = new Map<string, OptionData[]>();
+
+// Clear cache function for development
+export function clearDataCache() {
+  parseCache.clear();
+  tickerSummaryCache.clear();
+  console.log('Data cache cleared - all caches reset');
+}
+
+/**
+ * Parse timestamp from CSV data
+ * Expected format: "Wednesday, October 8, 2025 at 3:02 PM"
+ */
+export function parseTimestampFromData(timestampStr: string): Date | null {
+  try {
+    if (!timestampStr) return null;
+    
+    // Handle format: "Wednesday, October 8, 2025 at 3:02 PM"
+    const match = timestampStr.match(/(\w+),\s+(\w+)\s+(\d+),\s+(\d+)\s+at\s+(\d+):(\d+)\s+(AM|PM)/i);
+    if (!match) {
+      console.warn(`Timestamp format not recognized: ${timestampStr}`);
+      return null;
+    }
+    
+    const [, , monthName, day, year, hour, minute, ampm] = match;
+    
+    // Convert month name to number
+    const monthMap: { [key: string]: number } = {
+      'january': 0, 'february': 1, 'march': 2, 'april': 3,
+      'may': 4, 'june': 5, 'july': 6, 'august': 7,
+      'september': 8, 'october': 9, 'november': 10, 'december': 11
+    };
+    
+    const month = monthMap[monthName.toLowerCase()];
+    if (month === undefined) {
+      console.warn(`Unknown month: ${monthName}`);
+      return null;
+    }
+    
+    // Convert 12-hour to 24-hour format
+    let hour24 = parseInt(hour);
+    if (ampm.toUpperCase() === 'PM' && hour24 !== 12) {
+      hour24 += 12;
+    } else if (ampm.toUpperCase() === 'AM' && hour24 === 12) {
+      hour24 = 0;
+    }
+    
+    const parsedDate = new Date(parseInt(year), month, parseInt(day), hour24, parseInt(minute));
+    console.log(`Parsed timestamp: ${timestampStr} -> ${parsedDate.toString()}`);
+    return parsedDate;
+  } catch (error) {
+    console.warn(`Failed to parse timestamp: ${timestampStr}`, error);
+    return null;
+  }
+}
 
 export function parseCSVData(csvText: string, sourceFile?: string): OptionData[] {
   // Check cache first
@@ -92,10 +155,20 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
       const premium = fields[13] || '$0';
       const openInterest = parseInt(fields[14]?.replace(/,/g, '') || '0');
       const bidAskSpread = parseInt(fields[15]?.replace(/,/g, '') || '0');
-      const timestamp = fields[5] || '';
+      const timestamp = fields[5] || ''; // Use the actual timestamp from column 6 (index 5)
       
-      // Only process valid option data
-      if (ticker && strike > 0 && expiry && optionType && volume > 0) {
+      // Filter out non-ticker entries (trade types, sweep types, etc.)
+      const invalidTickers = ['Ask', 'Above', 'Bid', 'Below', 'Sweep', 'Block', 'Trade', 'Volume', 'Premium'];
+      const isValidTicker = ticker && 
+        ticker.length >= 1 && 
+        ticker.length <= 10 && 
+        !invalidTickers.includes(ticker) &&
+        !ticker.match(/^\d+$/) && // Not just numbers
+        !ticker.includes(' ') && // No spaces
+        /^[A-Z0-9]+$/.test(ticker); // Only uppercase letters and numbers
+      
+      // Only process valid option data with valid tickers
+      if (isValidTicker && strike > 0 && expiry && optionType && volume > 0) {
         data[dataIndex++] = {
           ticker,
           strike,
@@ -109,6 +182,21 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
           sweepType,
           sourceFile
         };
+      } else if (ticker && (ticker === 'Ask' || ticker === 'Above' || ticker === 'Bid' || ticker === 'Below')) {
+        // Debug: log filtered out non-ticker entries
+        console.log('Filtered out non-ticker entry:', {
+          ticker,
+          reason: 'trade type/sweep type, not a stock ticker'
+        });
+      } else if (isValidTicker && ticker) {
+        // Debug: log successful parsing with timestamp
+        const parsedTimestamp = parseTimestampFromData(timestamp);
+        console.log('Successfully parsed ticker:', {
+          ticker,
+          timestamp,
+          parsedTimestamp: parsedTimestamp ? parsedTimestamp.toString() : 'Failed to parse',
+          volume
+        });
       }
     } catch (error) {
       console.warn('Error parsing line:', line, error);
@@ -164,6 +252,7 @@ export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
     const option = data[i];
     
     if (!tickerMap.has(option.ticker)) {
+      const parsedTimestamp = parseTimestampFromData(option.timestamp);
       tickerMap.set(option.ticker, {
         ticker: option.ticker,
         totalVolume: 0,
@@ -171,7 +260,16 @@ export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
         putVolume: 0,
         totalPremium: 0,
         uniqueExpiries: [],
-        lastActivity: option.timestamp
+        lastActivity: option.timestamp,
+        lastActivityDate: parsedTimestamp,
+        lastTrade: {
+          strike: option.strike,
+          optionType: option.optionType,
+          volume: option.volume,
+          premium: option.premium,
+          sweepType: option.sweepType,
+          timestamp: option.timestamp
+        }
       });
     }
     
@@ -191,22 +289,48 @@ export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
     }
     
     // Update last activity if this is more recent
-    if (new Date(option.timestamp) > new Date(summary.lastActivity)) {
+    const currentTimestamp = parseTimestampFromData(option.timestamp);
+    if (currentTimestamp && summary.lastActivityDate && currentTimestamp > summary.lastActivityDate) {
       summary.lastActivity = option.timestamp;
+      summary.lastActivityDate = currentTimestamp;
+      // Update last trade with most recent trade
+      summary.lastTrade = {
+        strike: option.strike,
+        optionType: option.optionType,
+        volume: option.volume,
+        premium: option.premium,
+        sweepType: option.sweepType,
+        timestamp: option.timestamp
+      };
+    } else if (currentTimestamp && !summary.lastActivityDate) {
+      summary.lastActivity = option.timestamp;
+      summary.lastActivityDate = currentTimestamp;
+      // Set last trade if none exists
+      if (!summary.lastTrade) {
+        summary.lastTrade = {
+          strike: option.strike,
+          optionType: option.optionType,
+          volume: option.volume,
+          premium: option.premium,
+          sweepType: option.sweepType,
+          timestamp: option.timestamp
+        };
+      }
     }
   }
   
   // Sort by most recent activity first, then by total volume
   const result = Array.from(tickerMap.values()).sort((a, b) => {
-    const dateA = new Date(a.lastActivity);
-    const dateB = new Date(b.lastActivity);
+    // Use parsed dates for more accurate sorting
+    const dateA = a.lastActivityDate;
+    const dateB = b.lastActivityDate;
     
     // First sort by most recent activity
-    if (dateA.getTime() !== dateB.getTime()) {
+    if (dateA && dateB && dateA.getTime() !== dateB.getTime()) {
       return dateB.getTime() - dateA.getTime();
     }
     
-    // If same activity time, sort by total volume
+    // If same activity time or no dates, sort by total volume
     return b.totalVolume - a.totalVolume;
   });
   
@@ -430,12 +554,15 @@ export function getDataSummary(data: OptionData[]): {
       totalPuts += option.volume;
     }
     
-    const timestamp = new Date(option.timestamp);
-    if (!earliestDate || timestamp < earliestDate) {
-      earliestDate = timestamp;
-    }
-    if (!latestDate || timestamp > latestDate) {
-      latestDate = timestamp;
+    // Use parsed timestamp for more accurate date range
+    const parsedTimestamp = parseTimestampFromData(option.timestamp);
+    if (parsedTimestamp) {
+      if (!earliestDate || parsedTimestamp < earliestDate) {
+        earliestDate = parsedTimestamp;
+      }
+      if (!latestDate || parsedTimestamp > latestDate) {
+        latestDate = parsedTimestamp;
+      }
     }
   });
   

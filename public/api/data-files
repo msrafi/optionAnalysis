@@ -1,7 +1,17 @@
 [
   {
+    "name": "options_data_2024-01-15_11-30.csv",
+    "size": 190439,
+    "timestamp": "2024-01-15T16:30:00.000Z"
+  },
+  {
+    "name": "options_data_2024-01-15_11-00.csv",
+    "size": 23819,
+    "timestamp": "2024-01-15T16:00:00.000Z"
+  },
+  {
     "name": "options_data_2024-01-15_10-00.csv",
-    "size": 1024000,
-    "timestamp": "2024-01-15T10:00:00Z"
+    "size": 60346,
+    "timestamp": "2024-01-15T15:00:00.000Z"
   }
 ]

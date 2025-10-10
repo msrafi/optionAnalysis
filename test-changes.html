@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Changes</title>
+</head>
+<body>
+    <h1>Testing Data Parser Changes</h1>
+    <div id="output"></div>
+    
+    <script type="module">
+        // Test the timestamp parsing function
+        function parseTimestampFromData(timestampStr) {
+            try {
+                if (!timestampStr) return null;
+                
+                const match = timestampStr.match(/(\w+),\s+(\w+)\s+(\d+),\s+(\d+)\s+at\s+(\d+):(\d+)\s+(AM|PM)/i);
+                if (!match) return null;
+                
+                const [, , monthName, day, year, hour, minute, ampm] = match;
+                
+                const monthMap = {
+                    'january': 0, 'february': 1, 'march': 2, 'april': 3,
+                    'may': 4, 'june': 5, 'july': 6, 'august': 7,
+                    'september': 8, 'october': 9, 'november': 10, 'december': 11
+                };
+                
+                const month = monthMap[monthName.toLowerCase()];
+                if (month === undefined) return null;
+                
+                let hour24 = parseInt(hour);
+                if (ampm.toUpperCase() === 'PM' && hour24 !== 12) {
+                    hour24 += 12;
+                } else if (ampm.toUpperCase() === 'AM' && hour24 === 12) {
+                    hour24 = 0;
+                }
+                
+                return new Date(parseInt(year), month, parseInt(day), hour24, parseInt(minute));
+            } catch (error) {
+                console.warn(`Failed to parse timestamp: ${timestampStr}`, error);
+                return null;
+            }
+        }
+        
+        // Test data
+        const testTimestamp = "Thursday, October 9, 2025 at 2:15 PM";
+        const parsed = parseTimestampFromData(testTimestamp);
+        
+        document.getElementById('output').innerHTML = `
+            <h2>Test Results:</h2>
+            <p><strong>Input:</strong> ${testTimestamp}</p>
+            <p><strong>Parsed:</strong> ${parsed ? parsed.toString() : 'Failed to parse'}</p>
+            <p><strong>Time Ago:</strong> ${parsed ? getTimeAgo(parsed) : 'N/A'}</p>
+        `;
+        
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+            
+            if (diffInHours < 1) return 'Just now';
+            else if (diffInHours < 24) return `${diffInHours}h ago`;
+            else {
+                const diffInDays = Math.floor(diffInHours / 24);
+                return `${diffInDays}d ago`;
+            }
+        }
+    </script>
+</body>
+</html>

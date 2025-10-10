@@ -16,6 +16,21 @@ interface TradeRowProps {
 const TradeRow: React.FC<TradeRowProps> = memo(({ trade, index }) => {
   const formatTime = useCallback((timestamp: string): string => {
     try {
+      // Try to parse the timestamp format from CSV data
+      // Expected format: "Thursday, October 9, 2025 at 2:15 PM"
+      const match = timestamp.match(/(\d+):(\d+)\s+(AM|PM)/i);
+      if (match) {
+        const [, hour, minute, ampm] = match;
+        let hour24 = parseInt(hour);
+        if (ampm.toUpperCase() === 'PM' && hour24 !== 12) {
+          hour24 += 12;
+        } else if (ampm.toUpperCase() === 'AM' && hour24 === 12) {
+          hour24 = 0;
+        }
+        return `${hour24.toString().padStart(2, '0')}:${minute}:00`;
+      }
+      
+      // Fallback to standard date parsing
       const date = new Date(timestamp);
       if (isNaN(date.getTime())) return 'Unknown';
       

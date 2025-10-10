@@ -1,22 +1,19 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ArrowLeft, Calendar, Filter, Database, Clock, FileText } from 'lucide-react';
+import { ArrowLeft, Calendar, Database, Clock, FileText, RefreshCw } from 'lucide-react';
 import TickerList from './TickerList';
 import VolumeProfileChart from './VolumeProfileChart';
 import TradeList from './TradeList';
 import { 
   mergeDataFromFiles,
-  getDataSummary,
   getTickerSummaries, 
   getVolumeProfileForTicker, 
   getExpiryDatesForTicker,
   getHighestVolumeData,
+  clearDataCache,
   OptionData,
-  TickerSummary,
-  VolumeProfileData,
-  HighestVolumeData,
   MergedDataInfo
 } from '../utils/dataParser';
-import { loadAllDataFiles, LoadedFileData } from '../utils/fileLoader';
+import { loadAllDataFiles } from '../utils/fileLoader';
 
 // We'll load the CSV data via fetch instead of import
 
@@ -69,9 +66,6 @@ const OptionsDashboard: React.FC = () => {
     return getTickerSummaries(optionData);
   }, [optionData]);
 
-  const dataSummary = useMemo(() => {
-    return getDataSummary(optionData);
-  }, [optionData]);
 
   const expiryDates = useMemo(() => {
     if (!selectedTicker) return [];
@@ -110,6 +104,11 @@ const OptionsDashboard: React.FC = () => {
     setSelectedExpiry(expiry === selectedExpiry ? null : expiry);
   }, [selectedExpiry]);
 
+  const handleRefreshData = useCallback(() => {
+    clearDataCache();
+    window.location.reload();
+  }, []);
+
   if (loading) {
     return (
       <div className="dashboard-loading">
@@ -137,30 +136,40 @@ const OptionsDashboard: React.FC = () => {
 
   return (
     <div className="options-dashboard">
-      {/* Data Summary Header */}
-      {dataInfo && (
-        <div className="data-summary-header">
-          <div className="summary-stats">
-            <div className="summary-stat">
-              <Database className="stat-icon" />
-              <span className="stat-label">Files Loaded</span>
-              <span className="stat-value">{dataInfo.totalFiles}</span>
+          {/* Data Summary Header */}
+          {dataInfo && (
+            <div className="data-summary-header">
+              <div className="summary-stats">
+                <div className="summary-stat">
+                  <Database className="stat-icon" />
+                  <span className="stat-label">Files Loaded</span>
+                  <span className="stat-value">{dataInfo.totalFiles}</span>
+                </div>
+                <div className="summary-stat">
+                  <FileText className="stat-icon" />
+                  <span className="stat-label">Total Records</span>
+                  <span className="stat-value">{dataInfo.totalRecords.toLocaleString()}</span>
+                </div>
+                <div className="summary-stat">
+                  <Clock className="stat-icon" />
+                  <span className="stat-label">Latest Data</span>
+                  <span className="stat-value">
+                    {dataInfo.dateRange.latest?.toLocaleString() || 'Unknown'}
+                  </span>
+                </div>
+                <div className="summary-stat">
+                  <button 
+                    className="refresh-button" 
+                    onClick={handleRefreshData}
+                    title="Refresh data and clear cache"
+                  >
+                    <RefreshCw className="stat-icon" />
+                    <span className="stat-label">Refresh</span>
+                  </button>
+                </div>
+              </div>
             </div>
-            <div className="summary-stat">
-              <FileText className="stat-icon" />
-              <span className="stat-label">Total Records</span>
-              <span className="stat-value">{dataInfo.totalRecords.toLocaleString()}</span>
-            </div>
-            <div className="summary-stat">
-              <Clock className="stat-icon" />
-              <span className="stat-label">Latest Data</span>
-              <span className="stat-value">
-                {dataInfo.dateRange.latest?.toLocaleString() || 'Unknown'}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
+          )}
 
       {!selectedTicker ? (
         <TickerList 
