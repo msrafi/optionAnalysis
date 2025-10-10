@@ -70,7 +70,9 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
     const minStrike = current - range;
     const maxStrike = current + range;
     
-    return data.filter(item => item.strike >= minStrike && item.strike <= maxStrike);
+    return data
+      .filter(item => item.strike >= minStrike && item.strike <= maxStrike)
+      .sort((a, b) => a.strike - b.strike); // Sort in ascending order (lowest to highest)
   }, [data, getCurrentPrice]);
 
   // Get chart data for filtered range
