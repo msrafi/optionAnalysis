@@ -1270,7 +1270,7 @@
   width: 100%;
   flex: 1;
   overflow-y: auto; /* Enable vertical scrolling */
-  overflow-x: hidden; /* Prevent horizontal scrolling */
+  overflow-x: auto; /* Enable horizontal scrolling for many strike prices */
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
 }
@@ -1313,6 +1313,7 @@
   margin-top: 1rem;
   padding: 0 0.5rem;
   z-index: 3;
+  min-width: max-content; /* Allow horizontal expansion for many strike prices */
 }
 
 .x-axis-label {
@@ -1499,6 +1500,7 @@
 .volume-bars.vertical {
   width: 100%;
   height: 100%;
+  min-width: max-content; /* Allow horizontal expansion for many strike prices */
 }
 
 .strike-row {

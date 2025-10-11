@@ -18,30 +18,6 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
   chartType,
   currentPrice
 }) => {
-  const chartData = useMemo(() => {
-    if (!data.length) return { maxVolume: 0, minStrike: 0, maxStrike: 0, maxTotalVolume: 0 };
-    
-    // Use for loop for better performance
-    let maxVolume = 0;
-    let maxTotalVolume = 0;
-    let minStrike = Infinity;
-    let maxStrike = -Infinity;
-    
-    for (let i = 0; i < data.length; i++) {
-      const d = data[i];
-      maxVolume = Math.max(maxVolume, Math.max(d.callVolume, d.putVolume));
-      maxTotalVolume = Math.max(maxTotalVolume, d.totalVolume);
-      minStrike = Math.min(minStrike, d.strike);
-      maxStrike = Math.max(maxStrike, d.strike);
-    }
-    
-    return { 
-      maxVolume, 
-      minStrike: minStrike === Infinity ? 0 : minStrike, 
-      maxStrike: maxStrike === -Infinity ? 0 : maxStrike, 
-      maxTotalVolume 
-    };
-  }, [data]);
 
   const getBarWidth = useCallback((volume: number, maxVolume: number) => {
     if (maxVolume === 0) return 0;
@@ -61,19 +37,11 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
     return current !== null && Math.abs(strike - current) < 0.01; // Allow for small floating point differences
   }, [getCurrentPrice]);
 
-  // Filter data to show only strike prices within 10% range of current price
+  // Show all strike prices (no filtering)
   const getFilteredData = useCallback(() => {
-    const current = getCurrentPrice();
-    if (!current) return data;
-    
-    const range = current * 0.1; // 10% of current price
-    const minStrike = current - range;
-    const maxStrike = current + range;
-    
     return data
-      .filter(item => item.strike >= minStrike && item.strike <= maxStrike)
       .sort((a, b) => a.strike - b.strike); // Sort in ascending order (lowest to highest)
-  }, [data, getCurrentPrice]);
+  }, [data]);
 
   // Get chart data for filtered range
   const filteredData = getFilteredData();
