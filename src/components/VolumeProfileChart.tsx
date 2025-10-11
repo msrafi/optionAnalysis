@@ -111,10 +111,17 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
     
     const totalItems = filteredData.length;
     const spacing = 100 / (totalItems + 1); // Even spacing with padding
-    // Reverse the positioning so lowest prices appear at top
-    const reversedIndex = totalItems - 1 - index;
-    return spacing * (reversedIndex + 1);
-  }, [filteredData, filteredChartData]);
+    
+    // For Call/Put chart: reverse positioning (lowest at top)
+    // For Total Volume chart: normal positioning (lowest at left)
+    if (chartType === 'callput') {
+      const reversedIndex = totalItems - 1 - index;
+      return spacing * (reversedIndex + 1);
+    } else {
+      // Total Volume chart: prices go from low to high (left to right)
+      return spacing * (index + 1);
+    }
+  }, [filteredData, filteredChartData, chartType]);
 
   // Calculate dynamic height based on number of strike prices
   const getChartHeight = useCallback(() => {
@@ -277,6 +284,21 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
         </div>
       </div>
       
+      {/* Chart Header with Price Info */}
+      {/* <div className="chart-header">
+        <div className="chart-title">
+          {ticker} Total Volume
+        </div>
+        <div className="price-info">
+          <div className="current-price-box">
+            Current Price: ${getCurrentPrice()?.toFixed(2) || 'N/A'}
+          </div>
+          <div className="price-range-box">
+            Range: ${filteredData.length > 0 ? filteredData[0].strike.toFixed(0) : 'N/A'} - ${filteredData.length > 0 ? filteredData[filteredData.length - 1].strike.toFixed(0) : 'N/A'}
+          </div>
+        </div>
+      </div> */}
+
       <div className="chart-container vertical">
         
         {/* Main Chart Area */}
@@ -284,25 +306,6 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
           className="chart-area vertical"
           style={{ height: `${getChartHeight()}px` }}
         >
-          {/* Strike Price Lines (Vertical) */}
-          <div className="strike-axis vertical">
-            {filteredData.map((item) => (
-              <div 
-                key={item.strike} 
-                className="strike-line vertical"
-                style={{ 
-                  left: `${getStrikePosition(item.strike)}%`
-                }}
-              >
-                <span 
-                  className={`strike-label ${isCurrentPrice(item.strike) ? 'current-price-label' : ''}`}
-                >
-                  {item.strike}
-                </span>
-              </div>
-            ))}
-          </div>
-          
           {/* Total Volume Bars (Vertical) */}
           <div className="volume-bars vertical">
             {filteredData.map((item) => (
@@ -318,8 +321,11 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
                   }}
                 >
                   {item.totalVolume > 0 && (
-                    <span className="volume-text">
+                    <span className="volume-text volume-text-top">
                       {formatVolume(item.totalVolume)}
+                      <span className="volume-percentage">
+                        ({((item.totalVolume / filteredData.reduce((sum, d) => sum + d.totalVolume, 0)) * 100).toFixed(1)}%)
+                      </span>
                     </span>
                   )}
                 </div>
@@ -336,6 +342,25 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
               }}
             ></div>
           )}
+        </div>
+        
+        {/* X-Axis Price Labels (Bottom) - Moved outside chart area */}
+        <div className="x-axis-labels">
+          {filteredData.map((item) => (
+            <div 
+              key={item.strike} 
+              className="x-axis-label"
+              style={{ 
+                left: `${getStrikePosition(item.strike)}%`
+              }}
+            >
+              <span 
+                className={`strike-label ${isCurrentPrice(item.strike) ? 'current-price-label' : ''}`}
+              >
+                {item.strike}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
       

@@ -1000,21 +1000,76 @@
   z-index: 10 !important; /* Ensure it's above other elements */
 }
 
-/* Thin current price line */
+/* Enhanced current price line */
 .current-price-line {
   position: absolute;
   width: 100%;
-  height: 1px;
-  background: rgba(255, 193, 7, 0.8);
-  z-index: 2;
-  box-shadow: 0 0 4px rgba(255, 193, 7, 0.6);
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #fbbf24, #f59e0b, #fbbf24, transparent);
+  z-index: 3;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+  animation: pulse-glow 2s ease-in-out infinite alternate;
 }
 
 .current-price-line.vertical {
-  width: 1px;
+  width: 2px;
   height: 100%;
   top: 0;
   bottom: 0;
+  background: linear-gradient(180deg, transparent, #fbbf24, #f59e0b, #fbbf24, transparent);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+}
+
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 16px rgba(251, 191, 36, 0.8);
+  }
+}
+
+/* Chart Header Styling */
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0 0.5rem;
+}
+
+.chart-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.price-info {
+  display: flex;
+  gap: 1rem;
+}
+
+.current-price-box {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #000000;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.price-range-box {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 /* Header info styling */
@@ -1208,14 +1263,16 @@
 .chart-container {
   position: relative;
   height: 400px; /* Fixed height for scrolling */
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9));
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   display: flex;
   width: 100%;
   flex: 1;
   overflow-y: auto; /* Enable vertical scrolling */
   overflow-x: hidden; /* Prevent horizontal scrolling */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
 }
 
 /* Custom scrollbar styling */
@@ -1242,6 +1299,47 @@
 .chart-container {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
+}
+
+/* X-Axis Labels for Total Volume Chart */
+.x-axis-labels {
+  position: relative;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  margin-top: 1rem;
+  padding: 0 0.5rem;
+  z-index: 3;
+}
+
+.x-axis-label {
+  position: absolute;
+  bottom: -50px;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Volume text positioning for top of bars */
+.volume-text-top {
+  position: absolute;
+  top: -42px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  z-index: 4;
 }
 
 /* Scroll indicator */
@@ -1340,7 +1438,8 @@
   left: 0;
   right: 0;
   top: 0;
-  bottom: 60px;
+  bottom: 100px; /* Much more space to separate bars from price labels */
+  padding-bottom: 90px; /* Increased padding to create clear separation */
 }
 
 .strike-axis {
@@ -1371,12 +1470,22 @@
 }
 
 .strike-label {
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.85);
   color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.strike-label:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .volume-bars {
@@ -1428,6 +1537,17 @@
   height: auto;
   bottom: 0;
   align-items: flex-end;
+  animation: bar-grow 0.8s ease-out;
+}
+
+@keyframes bar-grow {
+  0% {
+    height: 0%;
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 .call-bar {
@@ -1439,14 +1559,39 @@
 }
 
 .total-bar {
-  background: linear-gradient(180deg, #4fc3f7, #29b6f6);
+  background: linear-gradient(180deg, #60a5fa, #3b82f6, #2563eb);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.total-bar:hover {
+  background: linear-gradient(180deg, #93c5fd, #60a5fa, #3b82f6);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.5);
+  transform: translateY(-1px);
 }
 
 .volume-text {
   color: white;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.7);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* gap: 0.1rem; */
+}
+
+.volume-percentage {
+  font-size: 0.65rem;
   font-weight: 600;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  color: rgba(255, 255, 255, 0.8);
+  opacity: 0.9;
 }
 
 /* Highest Volume Indicator */
@@ -1557,33 +1702,49 @@
   display: flex;
   justify-content: center;
   gap: 2rem;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   color: white;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.legend-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
 }
 
 .legend-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .legend-color.call {
-  background: #4caf50;
+  background: linear-gradient(135deg, #4caf50, #66bb6a);
 }
 
 .legend-color.put {
-  background: #f44336;
+  background: linear-gradient(135deg, #f44336, #ef5350);
 }
 
 .legend-color.total {
-  background: #4fc3f7;
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
 }
 
 .no-data {
@@ -1652,6 +1813,24 @@
   
   .app-header {
     padding: 1.5rem 1rem;
+  }
+
+  .chart-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .price-info {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .current-price-box,
+  .price-range-box {
+    width: 100%;
+    text-align: center;
   }
   
   .app-header h1 {
