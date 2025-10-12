@@ -125,6 +125,36 @@ export function parseTimestampFromData(timestampStr: string): Date | null {
   }
 }
 
+/**
+ * Check if an option has expired based on its expiry date
+ * Expected format: "MM/DD/YYYY" (e.g., "10/10/2025")
+ */
+function isOptionExpired(expiryStr: string): boolean {
+  try {
+    if (!expiryStr) return false;
+    
+    // Parse expiry date from MM/DD/YYYY format
+    const parts = expiryStr.split('/');
+    if (parts.length !== 3) return false;
+    
+    const month = parseInt(parts[0]) - 1; // JavaScript months are 0-indexed
+    const day = parseInt(parts[1]);
+    const year = parseInt(parts[2]);
+    
+    // Create expiry date at end of day (23:59:59) to ensure options expire after market close
+    const expiryDate = new Date(year, month, day, 23, 59, 59);
+    const today = new Date();
+    
+    // Option is expired if expiry date is before today
+    return expiryDate < today;
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn(`Failed to parse expiry date: ${expiryStr}`, error);
+    }
+    return false; // If we can't parse it, don't filter it out
+  }
+}
+
 export function parseCSVData(csvText: string, sourceFile?: string): OptionData[] {
   // Check cache first
   const cacheKey = `${sourceFile || 'unknown'}_${csvText.length}_${csvText.slice(0, 100)}`;
@@ -174,8 +204,11 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
         !ticker.includes(' ') && // No spaces
         /^[A-Z0-9]+$/.test(ticker); // Only uppercase letters and numbers
       
-      // Only process valid option data with valid tickers
-      if (isValidTicker && strike > 0 && expiry && optionType && volume > 0) {
+      // Check if the option has expired
+      const isExpired = isOptionExpired(expiry);
+      
+      // Only process valid option data with valid tickers and non-expired options
+      if (isValidTicker && strike > 0 && expiry && optionType && volume > 0 && !isExpired) {
         data[dataIndex++] = {
           ticker,
           strike,
