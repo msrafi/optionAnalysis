@@ -68,7 +68,9 @@ const parseCache = new Map<string, OptionData[]>();
 export function clearDataCache() {
   parseCache.clear();
   tickerSummaryCache.clear();
-  console.log('Data cache cleared - all caches reset');
+  if (import.meta.env.DEV) {
+    console.log('Data cache cleared - all caches reset');
+  }
 }
 
 /**
@@ -82,7 +84,9 @@ export function parseTimestampFromData(timestampStr: string): Date | null {
     // Handle format: "Wednesday, October 8, 2025 at 3:02 PM"
     const match = timestampStr.match(/(\w+),\s+(\w+)\s+(\d+),\s+(\d+)\s+at\s+(\d+):(\d+)\s+(AM|PM)/i);
     if (!match) {
-      console.warn(`Timestamp format not recognized: ${timestampStr}`);
+      if (import.meta.env.DEV) {
+        console.warn(`Timestamp format not recognized: ${timestampStr}`);
+      }
       return null;
     }
     
@@ -97,7 +101,9 @@ export function parseTimestampFromData(timestampStr: string): Date | null {
     
     const month = monthMap[monthName.toLowerCase()];
     if (month === undefined) {
-      console.warn(`Unknown month: ${monthName}`);
+      if (import.meta.env.DEV) {
+        console.warn(`Unknown month: ${monthName}`);
+      }
       return null;
     }
     
@@ -110,10 +116,11 @@ export function parseTimestampFromData(timestampStr: string): Date | null {
     }
     
     const parsedDate = new Date(parseInt(year), month, parseInt(day), hour24, parseInt(minute));
-    console.log(`Parsed timestamp: ${timestampStr} -> ${parsedDate.toString()}`);
     return parsedDate;
   } catch (error) {
-    console.warn(`Failed to parse timestamp: ${timestampStr}`, error);
+    if (import.meta.env.DEV) {
+      console.warn(`Failed to parse timestamp: ${timestampStr}`, error);
+    }
     return null;
   }
 }
@@ -182,24 +189,11 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
           sweepType,
           sourceFile
         };
-      } else if (ticker && (ticker === 'Ask' || ticker === 'Above' || ticker === 'Bid' || ticker === 'Below')) {
-        // Debug: log filtered out non-ticker entries
-        console.log('Filtered out non-ticker entry:', {
-          ticker,
-          reason: 'trade type/sweep type, not a stock ticker'
-        });
-      } else if (isValidTicker && ticker) {
-        // Debug: log successful parsing with timestamp
-        const parsedTimestamp = parseTimestampFromData(timestamp);
-        console.log('Successfully parsed ticker:', {
-          ticker,
-          timestamp,
-          parsedTimestamp: parsedTimestamp ? parsedTimestamp.toString() : 'Failed to parse',
-          volume
-        });
       }
     } catch (error) {
-      console.warn('Error parsing line:', line, error);
+      if (import.meta.env.DEV) {
+        console.warn('Error parsing line:', line, error);
+      }
     }
   }
   
@@ -245,7 +239,7 @@ export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
     return cached;
   }
 
-  const tickerMap = new Map<string, TickerSummary>();
+  const tickerMap = new Map<string, TickerSummary & { expirySet: Set<string> }>();
   
   // Use for loop for better performance than forEach
   for (let i = 0; i < data.length; i++) {
@@ -260,6 +254,7 @@ export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
         putVolume: 0,
         totalPremium: 0,
         uniqueExpiries: [],
+        expirySet: new Set<string>(),
         lastActivity: option.timestamp,
         lastActivityDate: parsedTimestamp,
         lastTrade: {
@@ -283,8 +278,9 @@ export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
       summary.putVolume += option.volume;
     }
     
-    // Use Set for faster expiry checking
-    if (!summary.uniqueExpiries.includes(option.expiry)) {
+    // Use Set for O(1) expiry checking instead of O(n) array.includes()
+    if (!summary.expirySet.has(option.expiry)) {
+      summary.expirySet.add(option.expiry);
       summary.uniqueExpiries.push(option.expiry);
     }
     
@@ -320,7 +316,8 @@ export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
   }
   
   // Sort by most recent activity first, then by total volume
-  const result = Array.from(tickerMap.values()).sort((a, b) => {
+  // Remove the expirySet before returning (it was just for performance)
+  const result = Array.from(tickerMap.values()).map(({ expirySet, ...summary }) => summary).sort((a, b) => {
     // Use parsed dates for more accurate sorting
     const dateA = a.lastActivityDate;
     const dateB = b.lastActivityDate;

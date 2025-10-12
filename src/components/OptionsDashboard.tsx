@@ -51,7 +51,9 @@ const OptionsDashboard: React.FC = () => {
         setDataInfo(info);
         setLoading(false);
         
-        console.log(`Loaded ${info.totalFiles} files with ${info.totalRecords} total records`);
+        if (import.meta.env.DEV) {
+          console.log(`Loaded ${info.totalFiles} files with ${info.totalRecords} total records`);
+        }
       } catch (error) {
         console.error('Error loading data files:', error);
         setError(error instanceof Error ? error.message : 'Failed to load data');

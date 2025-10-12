@@ -48,7 +48,6 @@
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
-  will-change: transform;
 }
 
 @keyframes spin {
@@ -613,8 +612,7 @@
   padding: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
-  transition: all 0.3s ease;
-  will-change: transform, box-shadow;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .ticker-card:hover {
@@ -868,8 +866,7 @@
   height: 500px;
   display: flex;
   flex-direction: column;
-  contain: layout style paint;
-  will-change: transform;
+  contain: layout style;
 }
 
 /* Modern Mirrored Chart Styles */
@@ -1007,8 +1004,7 @@
   height: 2px;
   background: linear-gradient(90deg, transparent, #fbbf24, #f59e0b, #fbbf24, transparent);
   z-index: 3;
-  box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
-  animation: pulse-glow 2s ease-in-out infinite alternate;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.7);
 }
 
 .current-price-line.vertical {
@@ -1017,16 +1013,7 @@
   top: 0;
   bottom: 0;
   background: linear-gradient(180deg, transparent, #fbbf24, #f59e0b, #fbbf24, transparent);
-  box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
-}
-
-@keyframes pulse-glow {
-  0% {
-    box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
-  }
-  100% {
-    box-shadow: 0 0 16px rgba(251, 191, 36, 0.8);
-  }
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.7);
 }
 
 /* Chart Header Styling */
@@ -1539,17 +1526,6 @@
   height: auto;
   bottom: 0;
   align-items: flex-end;
-  animation: bar-grow 0.8s ease-out;
-}
-
-@keyframes bar-grow {
-  0% {
-    height: 0%;
-    opacity: 0;
-  }
-  100% {
-    opacity: 1;
-  }
 }
 
 .call-bar {

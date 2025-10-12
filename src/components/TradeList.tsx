@@ -1,6 +1,7 @@
 import React, { memo, useMemo, useCallback } from 'react';
 import { Clock, TrendingUp, TrendingDown } from 'lucide-react';
 import { OptionData, formatVolume, formatPremium } from '../utils/dataParser';
+import VirtualizedList from './VirtualizedList';
 
 interface TradeListProps {
   trades: OptionData[];
@@ -133,6 +134,15 @@ const TradeList: React.FC<TradeListProps> = memo(({ trades, ticker, expiry }) =>
     );
   }
 
+  const renderTradeItem = useCallback((trade: OptionData, index: number) => (
+    <TradeRow trade={trade} index={index} />
+  ), []);
+
+  const getTradeKey = useCallback((trade: OptionData, index: number) => 
+    `${trade.ticker}-${trade.strike}-${trade.expiry}-${trade.timestamp}-${index}`,
+    []
+  );
+
   return (
     <div className="trade-list">
       <div className="trade-list-header">
@@ -157,9 +167,14 @@ const TradeList: React.FC<TradeListProps> = memo(({ trades, ticker, expiry }) =>
           </div>
           
           <div className="trade-table-body">
-            {filteredTrades.map((trade, index) => (
-              <TradeRow key={`${trade.ticker}-${trade.strike}-${trade.expiry}-${trade.timestamp}-${index}`} trade={trade} index={index} />
-            ))}
+            <VirtualizedList
+              items={filteredTrades}
+              itemHeight={60}
+              containerHeight={500}
+              renderItem={renderTradeItem}
+              keyExtractor={getTradeKey}
+              overscan={3}
+            />
           </div>
         </div>
       </div>

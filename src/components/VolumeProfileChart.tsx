@@ -46,12 +46,13 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
   // Get chart data for filtered range
   const filteredData = getFilteredData();
   const filteredChartData = useMemo(() => {
-    if (!filteredData.length) return { maxVolume: 0, minStrike: 0, maxStrike: 0, maxTotalVolume: 0 };
+    if (!filteredData.length) return { maxVolume: 0, minStrike: 0, maxStrike: 0, maxTotalVolume: 0, totalVolumeSum: 0 };
     
     let maxVolume = 0;
     let maxTotalVolume = 0;
     let minStrike = Infinity;
     let maxStrike = -Infinity;
+    let totalVolumeSum = 0;
     
     for (let i = 0; i < filteredData.length; i++) {
       const d = filteredData[i];
@@ -59,13 +60,15 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
       maxTotalVolume = Math.max(maxTotalVolume, d.totalVolume);
       minStrike = Math.min(minStrike, d.strike);
       maxStrike = Math.max(maxStrike, d.strike);
+      totalVolumeSum += d.totalVolume;
     }
     
     return { 
       maxVolume, 
       minStrike: minStrike === Infinity ? 0 : minStrike, 
       maxStrike: maxStrike === -Infinity ? 0 : maxStrike, 
-      maxTotalVolume 
+      maxTotalVolume,
+      totalVolumeSum
     };
   }, [filteredData]);
 
@@ -218,7 +221,7 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
         </div>
         
         {/* Legend */}
-        <div className="chart-legend modern-legend">
+        {/* <div className="chart-legend modern-legend">
           <div className="legend-item">
             <div className="legend-color call modern-legend-call"></div>
             <span>Call Volume</span>
@@ -227,7 +230,7 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
             <div className="legend-color put modern-legend-put"></div>
             <span>Put Volume</span>
           </div>
-        </div>
+        </div> */}
       </div>
     );
   }
@@ -292,7 +295,7 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
                     <span className="volume-text volume-text-top">
                       {formatVolume(item.totalVolume)}
                       <span className="volume-percentage">
-                        ({((item.totalVolume / filteredData.reduce((sum, d) => sum + d.totalVolume, 0)) * 100).toFixed(1)}%)
+                        ({filteredChartData.totalVolumeSum > 0 ? ((item.totalVolume / filteredChartData.totalVolumeSum) * 100).toFixed(1) : '0.0'}%)
                       </span>
                     </span>
                   )}
@@ -333,12 +336,12 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
       </div>
       
       {/* Legend */}
-      <div className="chart-legend">
+      {/* <div className="chart-legend">
         <div className="legend-item">
           <div className="legend-color total"></div>
           <span>Total Volume</span>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 });

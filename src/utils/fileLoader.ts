@@ -31,7 +31,9 @@ export function parseTimestampFromFilename(filename: string): Date | null {
     
     return new Date(year, month - 1, day, hour, minute);
   } catch (error) {
-    console.warn(`Failed to parse timestamp from filename: ${filename}`, error);
+    if (import.meta.env.DEV) {
+      console.warn(`Failed to parse timestamp from filename: ${filename}`, error);
+    }
     return null;
   }
 }
@@ -65,7 +67,9 @@ export async function getDataFiles(): Promise<FileInfo[]> {
       b.timestamp.getTime() - a.timestamp.getTime() // Most recent first
     );
   } catch (error) {
-    console.warn('Failed to fetch data files list, using fallback:', error);
+    if (import.meta.env.DEV) {
+      console.warn('Failed to fetch data files list, using fallback:', error);
+    }
     return [
       {
         filename: 'options_data_2024-01-15_10-00.csv',
@@ -150,11 +154,13 @@ export async function loadAllDataFiles(): Promise<LoadedFileData[]> {
     const successful = allResults.filter(result => !result.error);
     const failed = allResults.filter(result => result.error);
     
-    if (failed.length > 0) {
+    if (import.meta.env.DEV && failed.length > 0) {
       console.warn('Failed to load some data files:', failed);
     }
     
-    console.log(`Successfully loaded ${successful.length} data files (${cachedResults.length} cached, ${newResults.filter(r => !r.error).length} new)`);
+    if (import.meta.env.DEV) {
+      console.log(`Successfully loaded ${successful.length} data files (${cachedResults.length} cached, ${newResults.filter(r => !r.error).length} new)`);
+    }
     return successful;
   } catch (error) {
     console.error('Failed to load data files:', error);

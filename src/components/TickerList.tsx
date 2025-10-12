@@ -36,7 +36,9 @@ const formatDateTime = (timestamp: string, parsedDate?: Date | null): string => 
       hour12: true
     });
   } catch (error) {
-    console.warn('Error parsing timestamp:', timestamp, error);
+    if (import.meta.env.DEV) {
+      console.warn('Error parsing timestamp:', timestamp, error);
+    }
     return 'Unknown';
   }
 };
