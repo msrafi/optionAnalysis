@@ -120,12 +120,17 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect })
       </div>
       
       <div className="ticker-grid">
-        {sortedTickers.map((ticker) => (
-          <div 
-            key={ticker.ticker} 
-            className="ticker-card"
-            onClick={() => onTickerSelect(ticker.ticker)}
-          >
+        {sortedTickers.map((ticker) => {
+          const callDominant = ticker.callVolume > ticker.putVolume;
+          const putDominant = ticker.putVolume > ticker.callVolume;
+          const dominanceClass = callDominant ? 'call-dominant' : putDominant ? 'put-dominant' : 'balanced';
+          
+          return (
+            <div 
+              key={ticker.ticker} 
+              className={`ticker-card ${dominanceClass}`}
+              onClick={() => onTickerSelect(ticker.ticker)}
+            >
             <div className="ticker-header">
               <h3 className="ticker-symbol">{ticker.ticker}</h3>
               <div className="ticker-metrics">
@@ -177,7 +182,8 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect })
                   </div>
                 </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

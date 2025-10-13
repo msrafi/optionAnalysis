@@ -786,13 +786,42 @@
   padding: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+}
+
+.ticker-card.call-dominant {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.15), rgba(76, 175, 80, 0.08));
+  border-color: rgba(76, 175, 80, 0.3);
+}
+
+.ticker-card.put-dominant {
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.15), rgba(244, 67, 54, 0.08));
+  border-color: rgba(244, 67, 54, 0.3);
+}
+
+.ticker-card.balanced {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.15), rgba(96, 165, 250, 0.08));
+  border-color: rgba(96, 165, 250, 0.3);
 }
 
 .ticker-card:hover {
   transform: translateY(-4px);
-  background: rgba(255, 255, 255, 0.15);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.ticker-card.call-dominant:hover {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.25), rgba(76, 175, 80, 0.15));
+  box-shadow: 0 8px 32px rgba(76, 175, 80, 0.3);
+}
+
+.ticker-card.put-dominant:hover {
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.25), rgba(244, 67, 54, 0.15));
+  box-shadow: 0 8px 32px rgba(244, 67, 54, 0.3);
+}
+
+.ticker-card.balanced:hover {
+  background: linear-gradient(135deg, rgba(96, 165, 250, 0.25), rgba(96, 165, 250, 0.15));
+  box-shadow: 0 8px 32px rgba(96, 165, 250, 0.3);
 }
 
 .ticker-header {
