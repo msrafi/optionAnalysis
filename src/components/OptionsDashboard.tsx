@@ -13,7 +13,7 @@ import {
   OptionData,
   MergedDataInfo
 } from '../utils/dataParser';
-import { loadAllDataFiles } from '../utils/fileLoader';
+import { loadAllDataFiles, clearFileCache } from '../utils/fileLoader';
 import { getCurrentPrice, clearPriceCache } from '../utils/stockPrice';
 
 // We'll load the CSV data via fetch instead of import
@@ -111,9 +111,22 @@ const OptionsDashboard: React.FC = () => {
   }, [selectedExpiry]);
 
   const handleRefreshData = useCallback(() => {
-    clearDataCache();
-    clearPriceCache();
-    window.location.reload();
+    // Clear all application caches
+    clearDataCache();      // Clear parsed data cache
+    clearPriceCache();     // Clear stock price cache
+    clearFileCache();      // Clear file loading cache
+    
+    // Clear browser storage
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (error) {
+      console.warn('Could not clear storage:', error);
+    }
+    
+    // Hard refresh - bypass all browser caches
+    // Adding timestamp forces browser to treat as new request
+    window.location.href = window.location.href.split('?')[0] + '?t=' + Date.now();
   }, []);
 
   // Fetch current stock price when ticker is selected (real-time API with 15min cache)
@@ -191,10 +204,10 @@ const OptionsDashboard: React.FC = () => {
                   <button 
                     className="refresh-button" 
                     onClick={handleRefreshData}
-                    title="Refresh data and clear cache"
+                    title="Hard Refresh - Clears all caches and reloads data from files"
                   >
                     <RefreshCw className="stat-icon" />
-                    <span className="stat-label">Refresh</span>
+                    <span className="stat-label">Hard Refresh</span>
                   </button>
                 </div>
               </div>

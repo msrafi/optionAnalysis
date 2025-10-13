@@ -192,14 +192,9 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
           <h3>{ticker} Call/Put Volume</h3>
           <div className="header-info">
             {getCurrentPrice() && (
-              <>
-                <span className="current-price-display">
-                  Current Price: <strong>${getCurrentPrice()}</strong>
-                </span>
-                <span className="price-range-display">
-                  Range: <strong>${(getCurrentPrice()! * 0.9).toFixed(0)} - ${(getCurrentPrice()! * 1.1).toFixed(0)}</strong>
-                </span>
-              </>
+              <span className="current-price-display">
+                Current Price: <strong>${getCurrentPrice()}</strong>
+              </span>
             )}
             {expiry && <span className="expiry-date">{expiry}</span>}
           </div>
@@ -330,14 +325,9 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
         <h3>{ticker} Total Volume</h3>
         <div className="header-info">
           {getCurrentPrice() && (
-            <>
-              <span className="current-price-display">
-                Current Price: <strong>${getCurrentPrice()}</strong>
-              </span>
-              <span className="price-range-display">
-                Range: <strong>${(getCurrentPrice()! * 0.9).toFixed(0)} - ${(getCurrentPrice()! * 1.1).toFixed(0)}</strong>
-              </span>
-            </>
+            <span className="current-price-display">
+              Current Price: <strong>${getCurrentPrice()}</strong>
+            </span>
           )}
           {expiry && <span className="expiry-date">{expiry}</span>}
         </div>
