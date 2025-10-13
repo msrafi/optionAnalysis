@@ -183,15 +183,16 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
     
     try {
       // Extract relevant fields based on the CSV structure
-      const timestamp = fields[1] || ''; // Column 2 (index 1) - Timestamp
-      const sweepType = fields[2] || ''; // Column 3 (index 2) - Sweep Type
-      const ticker = fields[3] || '';     // Column 4 (index 3) - Ticker
-      const strike = parseFloat(fields[4]) || 0;  // Column 5 (index 4) - Strike
-      const expiry = fields[5] || '';     // Column 6 (index 5) - Expiry
-      const optionType = fields[6] as 'Call' | 'Put'; // Column 7 (index 6) - Option Type
-      const volume = parseInt(fields[8]?.replace(/,/g, '') || '0'); // Column 9 (index 8) - Volume
-      const premium = fields[9] || '$0';  // Column 10 (index 9) - Premium
-      const openInterest = parseInt(fields[10]?.replace(/,/g, '') || '0'); // Column 11 (index 10) - OI
+      // Col 1: Avatar URL, Col 2: Username, Col 3: APP, Col 4: Short time, Col 5: Separator
+      const timestamp = fields[5] || ''; // Column 6 (index 5) - Full Timestamp
+      const sweepType = fields[6] || ''; // Column 7 (index 6) - Sweep Type (e.g., "Call Sweep")
+      const ticker = fields[7] || '';     // Column 8 (index 7) - Ticker
+      const strike = parseFloat(fields[8]) || 0;  // Column 9 (index 8) - Strike
+      const expiry = fields[9] || '';     // Column 10 (index 9) - Expiry
+      const optionType = fields[10] as 'Call' | 'Put'; // Column 11 (index 10) - Option Type
+      const volume = parseInt(fields[12]?.replace(/,/g, '') || '0'); // Column 13 (index 12) - Volume
+      const premium = fields[13] || '$0';  // Column 14 (index 13) - Premium
+      const openInterest = parseInt(fields[14]?.replace(/,/g, '') || '0'); // Column 15 (index 14) - OI
       const bidAskSpread = 0; // Not available in current format
       
       // Filter out non-ticker entries (trade types, sweep types, etc.)

@@ -30,13 +30,13 @@ const OptionsDashboard: React.FC = () => {
   const [isPriceCached, setIsPriceCached] = useState(false);
 
   useEffect(() => {
-    const loadAllData = async () => {
+    const loadAllData = async (bustCache: boolean = false) => {
       try {
         setLoading(true);
         setError(null);
         
         // Load all CSV files from the data directory
-        const loadedFiles = await loadAllDataFiles();
+        const loadedFiles = await loadAllDataFiles(bustCache);
         
         if (loadedFiles.length === 0) {
           throw new Error('No data files found in the data directory');
@@ -65,7 +65,7 @@ const OptionsDashboard: React.FC = () => {
       }
     };
 
-    loadAllData();
+    loadAllData(false); // Normal load on mount
   }, []);
 
   const tickerSummaries = useMemo(() => {
@@ -110,24 +110,74 @@ const OptionsDashboard: React.FC = () => {
     setSelectedExpiry(expiry === selectedExpiry ? null : expiry);
   }, [selectedExpiry]);
 
-  const handleRefreshData = useCallback(() => {
-    // Clear all application caches
-    clearDataCache();      // Clear parsed data cache
-    clearPriceCache();     // Clear stock price cache
-    clearFileCache();      // Clear file loading cache
-    
-    // Clear browser storage
+  const handleRefreshData = useCallback(async () => {
     try {
-      localStorage.clear();
-      sessionStorage.clear();
+      console.log('🔄 Performing hard refresh...');
+      
+      // Clear all application caches
+      clearDataCache();      // Clear parsed data cache
+      clearPriceCache();     // Clear stock price cache
+      clearFileCache();      // Clear file loading cache
+      
+      // Clear browser storage
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (error) {
+        console.warn('Could not clear storage:', error);
+      }
+      
+      console.log('✓ All caches cleared');
+      console.log('🔄 Reloading data with cache bypass...');
+      
+      setLoading(true);
+      setError(null);
+      
+      // Load all CSV files with cache busting enabled
+      const loadedFiles = await loadAllDataFiles(true);
+      
+      if (loadedFiles.length === 0) {
+        throw new Error('No data files found in the data directory');
+      }
+      
+      // Merge data from all files
+      const { mergedData, info } = mergeDataFromFiles(
+        loadedFiles.map(file => ({
+          filename: file.filename,
+          data: file.data,
+          timestamp: file.timestamp
+        }))
+      );
+      
+      setOptionData(mergedData);
+      setDataInfo(info);
+      
+      // Reset current price and reload it
+      setCurrentPrice(null);
+      setPriceSource('none');
+      setIsPriceCached(false);
+      
+      // Reload price if a ticker is selected
+      if (selectedTicker) {
+        const { price, source, cached } = await getCurrentPrice(selectedTicker);
+        setCurrentPrice(price);
+        setPriceSource(source);
+        setIsPriceCached(cached);
+      }
+      
+      setLoading(false);
+      
+      console.log('✓ Data reloaded successfully:', {
+        files: info.totalFiles,
+        records: info.totalRecords,
+        latestData: info.dateRange.latest
+      });
     } catch (error) {
-      console.warn('Could not clear storage:', error);
+      console.error('Error during hard refresh:', error);
+      setError(error instanceof Error ? error.message : 'Failed to refresh data');
+      setLoading(false);
     }
-    
-    // Hard refresh - bypass all browser caches
-    // Adding timestamp forces browser to treat as new request
-    window.location.href = window.location.href.split('?')[0] + '?t=' + Date.now();
-  }, []);
+  }, [selectedTicker]);
 
   // Fetch current stock price when ticker is selected (real-time API with 15min cache)
   useEffect(() => {

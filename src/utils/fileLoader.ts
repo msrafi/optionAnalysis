@@ -81,11 +81,19 @@ export async function getDataFiles(): Promise<FileInfo[]> {
 }
 
 /**
- * Load a single CSV file
+ * Load a single CSV file with cache busting
  */
-export async function loadCSVFile(filename: string): Promise<LoadedFileData> {
+export async function loadCSVFile(filename: string, bustCache: boolean = false): Promise<LoadedFileData> {
   try {
-    const response = await fetch(`/data/${filename}`);
+    // Add cache-busting query parameter to force fresh load
+    const cacheBuster = bustCache ? `?t=${Date.now()}` : '';
+    const response = await fetch(`/data/${filename}${cacheBuster}`, {
+      cache: bustCache ? 'no-store' : 'default',
+      headers: {
+        'Cache-Control': bustCache ? 'no-cache, no-store, must-revalidate' : 'default',
+        'Pragma': bustCache ? 'no-cache' : 'default'
+      }
+    });
     
     if (!response.ok) {
       throw new Error(`Failed to load ${filename}: ${response.status} ${response.statusText}`);
@@ -116,12 +124,34 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 /**
  * Load all CSV files from the data directory with caching
  */
-export async function loadAllDataFiles(): Promise<LoadedFileData[]> {
+export async function loadAllDataFiles(bustCache: boolean = false): Promise<LoadedFileData[]> {
   try {
     const files = await getDataFiles();
     const now = Date.now();
     
-    // Check cache first
+    // If busting cache, skip cache check and load all files fresh
+    if (bustCache) {
+      if (import.meta.env.DEV) {
+        console.log('🔄 Cache busting enabled - loading all files fresh...');
+      }
+      const loadPromises = files.map(file => loadCSVFile(file.filename, true));
+      const results = await Promise.all(loadPromises);
+      
+      // Update cache with fresh data
+      results.forEach(result => {
+        if (!result.error) {
+          fileCache.set(result.filename, { data: result, timestamp: now });
+        }
+      });
+      
+      const successful = results.filter(result => !result.error);
+      if (import.meta.env.DEV) {
+        console.log(`✓ Loaded ${successful.length} files fresh (cache bypassed)`);
+      }
+      return successful;
+    }
+    
+    // Normal caching behavior
     const cachedResults: LoadedFileData[] = [];
     const filesToLoad: string[] = [];
     
@@ -137,7 +167,7 @@ export async function loadAllDataFiles(): Promise<LoadedFileData[]> {
     // Load only uncached files
     let newResults: LoadedFileData[] = [];
     if (filesToLoad.length > 0) {
-      const loadPromises = filesToLoad.map(filename => loadCSVFile(filename));
+      const loadPromises = filesToLoad.map(filename => loadCSVFile(filename, false));
       newResults = await Promise.all(loadPromises);
       
       // Update cache
