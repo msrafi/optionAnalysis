@@ -1020,15 +1020,64 @@
   z-index: 0;
 }
 
+/* Base strike axis - comes first */
+.strike-axis {
+  position: relative;
+  height: 100%;
+}
+
+.strike-axis.vertical {
+  width: 100%;
+  height: 100%;
+}
+
+/* Modern strike axis - modifier override */
 .modern-strike-axis {
   z-index: 2;
-  position: relative;
+  position: absolute;
   width: 100%;
   height: 100%;
   min-height: 100%;
 }
 
-/* Dynamic strike positioning */
+/* Base strike line and label - these come first */
+.strike-line {
+  position: absolute;
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.strike-line.vertical {
+  width: 1px;
+  height: 100%;
+  top: 0;
+  bottom: 0;
+}
+
+.strike-label {
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.strike-label:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Dynamic strike positioning - modern variant overrides */
 .modern-strike-line {
   position: absolute;
   width: 100%;
@@ -1047,16 +1096,15 @@
   background: rgba(255, 255, 255, 0.05);
 }
 
-
 .modern-strike-label {
-  background: rgba(0, 0, 0, 0.7);
+  background: none;
   color: rgba(255, 255, 255, 0.9); /* More visible */
   font-weight: 600; /* Increased weight for better visibility */
   font-size: 0.75rem; /* Slightly smaller but more readable */
   padding: 0.15rem 0.3rem; /* Compact padding */
   border-radius: 3px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  border: none;
+  text-shadow: none;
   white-space: nowrap;
   min-width: 2rem;
   text-align: center;
@@ -1180,6 +1228,57 @@
 }
 
 
+/* Base volume bars and rows - these come first */
+.volume-bars {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+}
+
+.volume-bars.vertical {
+  width: 100%;
+  height: 100%;
+  min-width: max-content; /* Allow horizontal expansion for many strike prices */
+}
+
+.strike-row {
+  position: absolute;
+  width: 100%;
+  height: 18px; /* Further reduced from 22px to 18px for even thinner bars */
+  display: flex;
+  align-items: center;
+  padding: 0 4px; /* Increased padding for better spacing */
+  box-sizing: border-box;
+  margin: 1px 0; /* Reduced margin for tighter spacing */
+}
+
+.call-bar {
+  background: linear-gradient(90deg, #4caf50, #66bb6a);
+}
+
+.put-bar {
+  background: linear-gradient(90deg, #f44336, #ef5350);
+}
+
+.volume-text {
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.7);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* gap: 0.1rem; */
+}
+
+/* Modern variants - these override the base styles */
 .modern-volume-bars {
   z-index: 1;
   position: relative;
@@ -1512,77 +1611,6 @@
   padding-bottom: 90px; /* Increased padding to create clear separation */
 }
 
-.strike-axis {
-  position: relative;
-  height: 100%;
-}
-
-.strike-axis.vertical {
-  width: 100%;
-  height: 100%;
-}
-
-.strike-line {
-  position: absolute;
-  width: 100%;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.strike-line.vertical {
-  width: 1px;
-  height: 100%;
-  top: 0;
-  bottom: 0;
-}
-
-.strike-label {
-  background: rgba(0, 0, 0, 0.85);
-  color: white;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.strike-label:hover {
-  background: rgba(0, 0, 0, 0.9);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.volume-bars {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-}
-
-.volume-bars.vertical {
-  width: 100%;
-  height: 100%;
-  min-width: max-content; /* Allow horizontal expansion for many strike prices */
-}
-
-.strike-row {
-  position: absolute;
-  width: 100%;
-  height: 18px; /* Further reduced from 22px to 18px for even thinner bars */
-  display: flex;
-  align-items: center;
-  padding: 0 4px; /* Increased padding for better spacing */
-  box-sizing: border-box;
-  margin: 1px 0; /* Reduced margin for tighter spacing */
-}
-
 .strike-column {
   position: absolute;
   width: 20px;
@@ -1610,14 +1638,6 @@
   align-items: flex-end;
 }
 
-.call-bar {
-  background: linear-gradient(90deg, #4caf50, #66bb6a);
-}
-
-.put-bar {
-  background: linear-gradient(90deg, #f44336, #ef5350);
-}
-
 .total-bar {
   background: linear-gradient(180deg, #60a5fa, #3b82f6, #2563eb);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
@@ -1629,22 +1649,6 @@
   background: linear-gradient(180deg, #93c5fd, #60a5fa, #3b82f6);
   box-shadow: 0 4px 16px rgba(59, 130, 246, 0.5);
   transform: translateY(-1px);
-}
-
-.volume-text {
-  color: white;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
-  background: rgba(0, 0, 0, 0.7);
-  padding: 0.2rem 0.4rem;
-  border-radius: 4px;
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* gap: 0.1rem; */
 }
 
 .volume-percentage {

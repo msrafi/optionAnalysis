@@ -14,6 +14,7 @@ import {
   MergedDataInfo
 } from '../utils/dataParser';
 import { loadAllDataFiles } from '../utils/fileLoader';
+import { getCurrentPrice, clearPriceCache } from '../utils/stockPrice';
 
 // We'll load the CSV data via fetch instead of import
 
@@ -24,6 +25,9 @@ const OptionsDashboard: React.FC = () => {
   const [dataInfo, setDataInfo] = useState<MergedDataInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPrice, setCurrentPrice] = useState<number | null>(null);
+  const [priceSource, setPriceSource] = useState<'api' | 'none'>('none');
+  const [isPriceCached, setIsPriceCached] = useState(false);
 
   useEffect(() => {
     const loadAllData = async () => {
@@ -108,8 +112,32 @@ const OptionsDashboard: React.FC = () => {
 
   const handleRefreshData = useCallback(() => {
     clearDataCache();
+    clearPriceCache();
     window.location.reload();
   }, []);
+
+  // Fetch current stock price when ticker is selected (real-time API with 15min cache)
+  useEffect(() => {
+    if (!selectedTicker) {
+      setCurrentPrice(null);
+      setPriceSource('none');
+      setIsPriceCached(false);
+      return;
+    }
+
+    const fetchPrice = async () => {
+      const result = await getCurrentPrice(selectedTicker);
+      setCurrentPrice(result.price);
+      setPriceSource(result.source);
+      setIsPriceCached(result.cached);
+      
+      if (import.meta.env.DEV) {
+        console.log(`Stock price for ${selectedTicker}:`, result.price, `(source: ${result.source}, cached: ${result.cached})`);
+      }
+    };
+
+    fetchPrice();
+  }, [selectedTicker]);
 
   if (loading) {
     return (
@@ -185,7 +213,53 @@ const OptionsDashboard: React.FC = () => {
               <ArrowLeft className="back-icon" />
               Back to Ticker List
             </button>
-            <h2>{selectedTicker} Options Analysis</h2>
+            <div>
+              <h2>{selectedTicker} Options Analysis</h2>
+              {currentPrice && priceSource === 'api' ? (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.5rem', 
+                  marginTop: '0.5rem',
+                  fontSize: '0.9rem',
+                  color: 'rgba(255, 255, 255, 0.8)'
+                }}>
+                  <span style={{
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '4px',
+                    background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.3))',
+                    border: '1px solid rgba(76, 175, 80, 0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      background: '#4caf50'
+                    }}></span>
+                    Current Price: ${currentPrice.toFixed(2)}
+                    <span style={{ 
+                      opacity: 0.7, 
+                      fontSize: '0.75rem',
+                      marginLeft: '0.25rem'
+                    }}>
+                      ({isPriceCached ? 'Cached' : 'Live'})
+                    </span>
+                  </span>
+                </div>
+              ) : (
+                <div style={{ 
+                  marginTop: '0.5rem',
+                  fontSize: '0.85rem',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  fontStyle: 'italic'
+                }}>
+                  Real-time price unavailable
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Expiry Date Filter */}
@@ -223,7 +297,7 @@ const OptionsDashboard: React.FC = () => {
                 ticker={selectedTicker}
                 expiry={selectedExpiry || undefined}
                 chartType="callput"
-                currentPrice={highestVolumeData?.strike}
+                currentPrice={currentPrice || undefined}
               />
             </div>
             
@@ -235,7 +309,7 @@ const OptionsDashboard: React.FC = () => {
                 ticker={selectedTicker}
                 expiry={selectedExpiry || undefined}
                 chartType="total"
-                currentPrice={highestVolumeData?.strike}
+                currentPrice={currentPrice || undefined}
               />
             </div>
           </div>
