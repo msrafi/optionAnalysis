@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ArrowLeft, Calendar, Database, Clock, FileText, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Calendar, Database, Clock, FileText, RefreshCw, Search } from 'lucide-react';
 import TickerList from './TickerList';
 import VolumeProfileChart from './VolumeProfileChart';
 import TradeList from './TradeList';
@@ -28,6 +28,7 @@ const OptionsDashboard: React.FC = () => {
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
   const [priceSource, setPriceSource] = useState<'api' | 'none'>('none');
   const [isPriceCached, setIsPriceCached] = useState(false);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   useEffect(() => {
     const loadAllData = async (bustCache: boolean = false) => {
@@ -71,6 +72,17 @@ const OptionsDashboard: React.FC = () => {
   const tickerSummaries = useMemo(() => {
     return getTickerSummaries(optionData);
   }, [optionData]);
+
+  const filteredTickerSummaries = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return tickerSummaries;
+    }
+    
+    const searchLower = searchTerm.toLowerCase();
+    return tickerSummaries.filter(ticker => 
+      ticker.ticker.toLowerCase().includes(searchLower)
+    );
+  }, [tickerSummaries, searchTerm]);
 
 
   const expiryDates = useMemo(() => {
@@ -264,9 +276,31 @@ const OptionsDashboard: React.FC = () => {
             </div>
           )}
 
+      {!selectedTicker && (
+        <div className="search-container">
+          <Search className="search-icon" />
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Search tickers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {searchTerm && (
+            <button 
+              className="clear-search"
+              onClick={() => setSearchTerm('')}
+              title="Clear search"
+            >
+              ×
+            </button>
+          )}
+        </div>
+      )}
+
       {!selectedTicker ? (
         <TickerList 
-          tickers={tickerSummaries} 
+          tickers={filteredTickerSummaries} 
           onTickerSelect={handleTickerSelect} 
         />
       ) : (
