@@ -1,29 +1,118 @@
-import React, { memo, useMemo, useCallback } from 'react';
-import { VolumeProfileData, HighestVolumeData, formatVolume } from '../utils/dataParser';
+import React, { memo, useMemo, useCallback, useState } from 'react';
+import { VolumeProfileData, HighestVolumeData, formatVolume, OptionData } from '../utils/dataParser';
 
-interface VolumeProfileChartProps {
+export interface VolumeProfileChartProps {
   data: VolumeProfileData[];
   highestVolumeData: HighestVolumeData | null;
   ticker: string;
   expiry?: string;
   chartType: 'callput' | 'total';
   currentPrice?: number; // Optional current stock price
+  trades?: OptionData[]; // Raw trade data for tooltips
 }
 
-const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({ 
+const VolumeProfileChart = memo<VolumeProfileChartProps>(({ 
   data, 
   highestVolumeData,
   ticker, 
   expiry,
   chartType,
-  currentPrice
+  currentPrice,
+  trades = []
 }) => {
+  // Tooltip state
+  const [tooltip, setTooltip] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    content: {
+      strike: number;
+      type?: 'Call' | 'Put';
+      volume: number;
+      trades: number;
+      premium: string;
+      sweepTypes: string[];
+      times: string[];
+    } | null;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    content: null
+  });
 
   const getBarWidth = useCallback((volume: number, maxVolume: number) => {
     if (maxVolume === 0) return 0;
     // Scale to 46% of available space (48% total - 2% spacing on each side)
     // This ensures bars don't exceed the available space with the new spacing
     return Math.min((volume / maxVolume) * 46, 46);
+  }, []);
+
+  // Build tooltip data for a strike price and option type
+  const getTooltipData = useCallback((strike: number, optionType?: 'Call' | 'Put') => {
+    const strikeTrades = trades.filter(t => 
+      t.strike === strike && (!optionType || t.optionType === optionType)
+    );
+    
+    const totalVolume = strikeTrades.reduce((sum, t) => sum + t.volume, 0);
+    const totalPremium = strikeTrades.reduce((sum, t) => {
+      const premium = t.premium.replace(/[$,]/g, '');
+      return sum + (parseFloat(premium) || 0);
+    }, 0);
+    
+    const premiumFormatted = totalPremium >= 1000000 
+      ? (totalPremium / 1000000).toFixed(2) + 'M' 
+      : totalPremium >= 1000 
+      ? (totalPremium / 1000).toFixed(1) + 'K' 
+      : totalPremium.toFixed(0);
+    
+    const sweepTypes = [...new Set(strikeTrades.map(t => t.sweepType))].filter(Boolean);
+    const times = strikeTrades.map(t => {
+      try {
+        const date = new Date(t.timestamp);
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      } catch {
+        return '';
+      }
+    }).filter(Boolean);
+    
+    const uniqueTimes = [...new Set(times)].slice(0, 3); // Show up to 3 unique times
+    
+    return {
+      strike,
+      type: optionType,
+      volume: totalVolume,
+      trades: strikeTrades.length,
+      premium: premiumFormatted,
+      sweepTypes,
+      times: uniqueTimes
+    };
+  }, [trades]);
+
+  // Handle mouse enter on volume bar
+  const handleBarMouseEnter = useCallback((e: React.MouseEvent, strike: number, optionType?: 'Call' | 'Put') => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const tooltipData = getTooltipData(strike, optionType);
+    
+    setTooltip({
+      visible: true,
+      x: e.clientX,
+      y: rect.top - 10,
+      content: tooltipData
+    });
+  }, [getTooltipData]);
+
+  // Handle mouse leave
+  const handleBarMouseLeave = useCallback(() => {
+    setTooltip(prev => ({ ...prev, visible: false }));
+  }, []);
+
+  // Handle mouse move to update position
+  const handleBarMouseMove = useCallback((e: React.MouseEvent) => {
+    setTooltip(prev => ({
+      ...prev,
+      x: e.clientX,
+    }));
   }, []);
 
   // Determine current price - use provided currentPrice or fall back to highest volume strike
@@ -187,6 +276,7 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
 
   if (chartType === 'callput') {
     return (
+      <>
       <div className="volume-profile-chart modern-mirrored-chart">
         <div className="chart-header modern-header">
           <h3>{ticker} Call/Put Volume</h3>
@@ -244,7 +334,9 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
                       width: `${getBarWidth(item.callVolume, filteredChartData.maxVolume)}%`,
                       right: '52%' /* Moved 2% away from center to add spacing */
                     }}
-                    title={`Call Volume: ${formatVolume(item.callVolume)} at Strike ${item.strike}`}
+                    onMouseEnter={(e) => handleBarMouseEnter(e, item.strike, 'Call')}
+                    onMouseLeave={handleBarMouseLeave}
+                    onMouseMove={handleBarMouseMove}
                   >
                     {item.callVolume > 0 && getBarWidth(item.callVolume, filteredChartData.maxVolume) > 12 && (
                       <span className="volume-text modern-volume-text">
@@ -260,7 +352,9 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
                       width: `${getBarWidth(item.putVolume, filteredChartData.maxVolume)}%`,
                       left: '52%' /* Moved 2% away from center to add spacing */
                     }}
-                    title={`Put Volume: ${formatVolume(item.putVolume)} at Strike ${item.strike}`}
+                    onMouseEnter={(e) => handleBarMouseEnter(e, item.strike, 'Put')}
+                    onMouseLeave={handleBarMouseLeave}
+                    onMouseMove={handleBarMouseMove}
                   >
                     {item.putVolume > 0 && getBarWidth(item.putVolume, filteredChartData.maxVolume) > 12 && (
                       <span className="volume-text modern-volume-text">
@@ -315,11 +409,63 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
           </div>
         </div> */}
       </div>
+
+      {/* Modern Tooltip */}
+      {tooltip.visible && tooltip.content && (
+        <div 
+          className="modern-tooltip"
+          style={{
+            position: 'fixed',
+            left: `${tooltip.x + 15}px`,
+            top: `${tooltip.y}px`,
+            transform: 'translateY(-50%)',
+            pointerEvents: 'none',
+            zIndex: 9999
+          }}
+        >
+          <div className="tooltip-header">
+            <span className="tooltip-strike">${tooltip.content.strike}</span>
+            {tooltip.content.type && (
+              <span className={`tooltip-type ${tooltip.content.type.toLowerCase()}`}>
+                {tooltip.content.type}
+              </span>
+            )}
+          </div>
+          <div className="tooltip-body">
+            <div className="tooltip-row">
+              <span className="tooltip-label">Volume:</span>
+              <span className="tooltip-value">{tooltip.content.volume.toLocaleString()}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Trades:</span>
+              <span className="tooltip-value">{tooltip.content.trades}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Premium:</span>
+              <span className="tooltip-value">${tooltip.content.premium}</span>
+            </div>
+            {tooltip.content.sweepTypes.length > 0 && (
+              <div className="tooltip-row">
+                <span className="tooltip-label">Sweep:</span>
+                <span className="tooltip-value">{tooltip.content.sweepTypes.join(', ')}</span>
+              </div>
+            )}
+            {tooltip.content.times.length > 0 && (
+              <div className="tooltip-row">
+                <span className="tooltip-label">Times:</span>
+                <span className="tooltip-value tooltip-times">{tooltip.content.times.join(' • ')}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      </>
     );
   }
 
   // Total Volume Chart (Vertical orientation)
   return (
+    <>
     <div className="volume-profile-chart total-chart">
       <div className="chart-header">
         <h3>{ticker} Total Volume</h3>
@@ -368,6 +514,9 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
                   style={{ 
                     height: `${getBarWidth(item.totalVolume, filteredChartData.maxTotalVolume)}%`
                   }}
+                  onMouseEnter={(e) => handleBarMouseEnter(e, item.strike)}
+                  onMouseLeave={handleBarMouseLeave}
+                  onMouseMove={handleBarMouseMove}
                 >
                   {item.totalVolume > 0 && (
                     <span className="volume-text volume-text-top">
@@ -439,7 +588,58 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
           <span>Total Volume</span>
         </div>
       </div> */}
+
+      {/* Modern Tooltip */}
+      {tooltip.visible && tooltip.content && (
+        <div 
+          className="modern-tooltip"
+          style={{
+            position: 'fixed',
+            left: `${tooltip.x + 15}px`,
+            top: `${tooltip.y}px`,
+            transform: 'translateY(-50%)',
+            pointerEvents: 'none',
+            zIndex: 9999
+          }}
+        >
+          <div className="tooltip-header">
+            <span className="tooltip-strike">${tooltip.content.strike}</span>
+            {tooltip.content.type && (
+              <span className={`tooltip-type ${tooltip.content.type.toLowerCase()}`}>
+                {tooltip.content.type}
+              </span>
+            )}
+          </div>
+          <div className="tooltip-body">
+            <div className="tooltip-row">
+              <span className="tooltip-label">Volume:</span>
+              <span className="tooltip-value">{tooltip.content.volume.toLocaleString()}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Trades:</span>
+              <span className="tooltip-value">{tooltip.content.trades}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Premium:</span>
+              <span className="tooltip-value">${tooltip.content.premium}</span>
+            </div>
+            {tooltip.content.sweepTypes.length > 0 && (
+              <div className="tooltip-row">
+                <span className="tooltip-label">Sweep:</span>
+                <span className="tooltip-value">{tooltip.content.sweepTypes.join(', ')}</span>
+              </div>
+            )}
+            {tooltip.content.times.length > 0 && (
+              <div className="tooltip-row">
+                <span className="tooltip-label">Times:</span>
+                <span className="tooltip-value tooltip-times">{tooltip.content.times.join(' • ')}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
+    </>
   );
 });
 

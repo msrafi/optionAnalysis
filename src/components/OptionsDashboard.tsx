@@ -95,6 +95,16 @@ const OptionsDashboard: React.FC = () => {
     return getVolumeProfileForTicker(optionData, selectedTicker, selectedExpiry || undefined);
   }, [optionData, selectedTicker, selectedExpiry]);
 
+  // Get filtered trades for the selected ticker and expiry
+  const filteredTrades = useMemo(() => {
+    if (!selectedTicker) return [];
+    return optionData.filter(trade => {
+      const matchesTicker = trade.ticker === selectedTicker;
+      const matchesExpiry = !selectedExpiry || trade.expiry === selectedExpiry;
+      return matchesTicker && matchesExpiry;
+    });
+  }, [optionData, selectedTicker, selectedExpiry]);
+
   const highestVolumeData = useMemo(() => {
     if (!selectedTicker) return null;
     return getHighestVolumeData(optionData, selectedTicker, selectedExpiry || undefined);
@@ -385,6 +395,7 @@ const OptionsDashboard: React.FC = () => {
                 expiry={selectedExpiry || undefined}
                 chartType="callput"
                 currentPrice={currentPrice || undefined}
+                trades={filteredTrades}
               />
             </div>
             
@@ -397,6 +408,7 @@ const OptionsDashboard: React.FC = () => {
                 expiry={selectedExpiry || undefined}
                 chartType="total"
                 currentPrice={currentPrice || undefined}
+                trades={filteredTrades}
               />
             </div>
           </div>

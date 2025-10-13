@@ -1300,12 +1300,14 @@
   left: 0;
   right: 0;
   height: 100%;
+  z-index: 3;
 }
 
 .volume-bars.vertical {
   width: 100%;
   height: 100%;
   min-width: max-content; /* Allow horizontal expansion for many strike prices */
+  z-index: 3;
 }
 
 .strike-row {
@@ -1321,10 +1323,118 @@
 
 .call-bar {
   background: linear-gradient(90deg, #4caf50, #66bb6a);
+  transition: all 0.2s ease;
+}
+
+.call-bar:hover {
+  background: linear-gradient(90deg, #66bb6a, #81c784);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
 }
 
 .put-bar {
   background: linear-gradient(90deg, #f44336, #ef5350);
+  transition: all 0.2s ease;
+}
+
+.put-bar:hover {
+  background: linear-gradient(90deg, #ef5350, #f44336);
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.4);
+}
+
+/* Modern Tooltip */
+.modern-tooltip {
+  background: linear-gradient(135deg, rgba(30, 30, 45, 0.98), rgba(20, 20, 35, 0.98));
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  padding: 0;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  min-width: 220px;
+  animation: tooltipFadeIn 0.2s ease-out;
+  overflow: hidden;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+.tooltip-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 0.75rem;
+}
+
+.tooltip-strike {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.tooltip-type {
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tooltip-type.call {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.2));
+  color: #66bb6a;
+  border: 1px solid rgba(76, 175, 80, 0.4);
+}
+
+.tooltip-type.put {
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.3), rgba(244, 67, 54, 0.2));
+  color: #ef5350;
+  border: 1px solid rgba(244, 67, 54, 0.4);
+}
+
+.tooltip-body {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.tooltip-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.tooltip-value {
+  font-size: 0.85rem;
+  color: #ffffff;
+  font-weight: 600;
+  text-align: right;
+}
+
+.tooltip-times {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.85);
+  max-width: 140px;
+  line-height: 1.3;
 }
 
 .volume-text {
@@ -1345,7 +1455,7 @@
 
 /* Modern variants - these override the base styles */
 .modern-volume-bars {
-  z-index: 1;
+  z-index: 3;
   position: relative;
   width: 100%;
   height: 100%;
@@ -1694,6 +1804,7 @@
   justify-content: center;
   max-width: 48%; /* Ensure bars don't exceed half the container width */
   box-sizing: border-box;
+  cursor: pointer;
 }
 
 .volume-bar.vertical {
