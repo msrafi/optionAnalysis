@@ -1,6 +1,6 @@
 import React, { memo, useMemo, useCallback, useState } from 'react';
-import { Clock, TrendingUp, TrendingDown, ArrowUpDown } from 'lucide-react';
-import { OptionData, formatVolume, formatPremium, parseTimestampFromData } from '../utils/dataParser';
+import { ArrowUpDown } from 'lucide-react';
+import { OptionData, formatVolume, parseTimestampFromData } from '../utils/dataParser';
 import VirtualizedList from './VirtualizedList';
 
 interface TradeListProps {
@@ -15,14 +15,14 @@ interface TradeRowProps {
 }
 
 const TradeRow: React.FC<TradeRowProps> = memo(({ trade }) => {
-  const formatDateTime = useCallback((timestamp: string): { date: string; time: string } => {
+  const formatExecutionDateTime = useCallback((timestamp: string): string => {
     try {
-      // Try to parse the timestamp format from CSV data
+      // Parse the timestamp format from CSV data
       // Expected format: "Thursday, October 9, 2025 at 2:15 PM"
       const fullMatch = timestamp.match(/(\w+),\s+(\w+)\s+(\d+),\s+(\d+)\s+at\s+(\d+):(\d+)\s+(AM|PM)/i);
       
       if (fullMatch) {
-        const [, , monthName, day, year, hour, minute, ampm] = fullMatch;
+        const [, , monthName, day, , hour, minute, ampm] = fullMatch;
         
         // Convert to 24-hour format
         let hour24 = parseInt(hour);
@@ -40,95 +40,42 @@ const TradeRow: React.FC<TradeRowProps> = memo(({ trade }) => {
         };
         
         const month = monthMap[monthName.toLowerCase()] || '01';
-        const formattedDate = `${month}/${day.padStart(2, '0')}/${year}`;
-        const formattedTime = `${hour24.toString().padStart(2, '0')}:${minute}:00`;
+        const formattedDate = `${month}/${day.padStart(2, '0')}`;
+        const formattedTime = `${hour24.toString().padStart(2, '0')}:${minute}`;
         
-        return { date: formattedDate, time: formattedTime };
+        return `${formattedDate} ${formattedTime}`;
       }
       
       // Fallback to standard date parsing
       const date = new Date(timestamp);
-      if (isNaN(date.getTime())) return { date: 'Unknown', time: 'Unknown' };
+      if (isNaN(date.getTime())) return 'Unknown';
       
-      return {
-        date: date.toLocaleDateString('en-US'),
-        time: date.toLocaleTimeString('en-US', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false
-        })
-      };
+      return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' }) + ' ' + 
+             date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
     } catch (error) {
-      return { date: 'Unknown', time: 'Unknown' };
-    }
-  }, []);
-
-  const getSideColor = useCallback((side: string) => {
-    switch (side.toLowerCase()) {
-      case 'bid':
-      case 'below':
-        return '#4caf50'; // Green
-      case 'ask':
-      case 'above':
-        return '#f44336'; // Red
-      default:
-        return '#ff9800'; // Orange
-    }
-  }, []);
-
-  const getSideIcon = useCallback((side: string) => {
-    switch (side.toLowerCase()) {
-      case 'bid':
-      case 'below':
-        return <TrendingDown className="side-icon" />;
-      case 'ask':
-      case 'above':
-        return <TrendingUp className="side-icon" />;
-      default:
-        return null;
+      return 'Unknown';
     }
   }, []);
 
   return (
     <div 
-      className="trade-row"
+      className="trade-row-compact"
       style={{
         backgroundColor: trade.optionType === 'Call' 
-          ? 'rgba(3, 64, 5, 0.86)' // Green background for Calls
-          : 'rgba(232, 27, 13, 0.86)', // Red background for Puts
-        borderLeft: `4px solid ${trade.optionType === 'Call' ? '#4caf50' : '#f44336'}`
+          ? 'rgba(0, 100, 0, 0.4)' // Green background for Calls
+          : 'rgba(139, 0, 0, 0.4)', // Red background for Puts
       }}
     >
-      <div className="trade-indicators">
-        <div 
-          className="side-indicator" 
-          style={{ backgroundColor: getSideColor(trade.sweepType) }}
-        />
-        <div className="time-indicator" />
-      </div>
-      
-      <div className="trade-content">
-        <div className="trade-symbol">{trade.ticker}</div>
-        <div className="trade-strike">{trade.strike}</div>
-        <div className="trade-expiry">{new Date(trade.expiry).toLocaleDateString()}</div>
-        <div className={`trade-type ${trade.optionType.toLowerCase()}`}>{trade.optionType}</div>
-        <div className="trade-side">
-          {getSideIcon(trade.sweepType)}
-          <span>{trade.sweepType}</span>
-        </div>
-        <div className="trade-size">{trade.volume.toLocaleString()}</div>
-        <div className="trade-premium">{formatPremium(parseFloat(trade.premium.replace(/[$,]/g, '')))}</div>
-        <div className="trade-volume">{formatVolume(trade.volume)}</div>
-        <div className="trade-oi">{trade.openInterest.toLocaleString()}</div>
-        <div className="trade-datetime">
-          <Clock className="time-icon" />
-          <div className="datetime-container">
-            <span className="trade-date">{formatDateTime(trade.timestamp).date}</span>
-            <span className="trade-time">{formatDateTime(trade.timestamp).time}</span>
-          </div>
-        </div>
-      </div>
+      <div className="trade-cell symbol-cell">{trade.ticker}</div>
+      <div className="trade-cell strike-cell">{trade.strike}</div>
+      <div className="trade-cell expiry-cell">{new Date(trade.expiry).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</div>
+      <div className="trade-cell type-cell">{trade.optionType}</div>
+      <div className="trade-cell side-cell">{trade.sweepType}</div>
+      <div className="trade-cell size-cell">{formatVolume(trade.volume)}</div>
+      <div className="trade-cell premium-cell">{trade.premium}</div>
+      <div className="trade-cell volume-cell">{formatVolume(trade.volume)}</div>
+      <div className="trade-cell oi-cell">{formatVolume(trade.openInterest)}</div>
+      <div className="trade-cell exec-time-cell">{formatExecutionDateTime(trade.timestamp)}</div>
     </div>
   );
 });
@@ -230,17 +177,17 @@ const TradeList: React.FC<TradeListProps> = memo(({ trades, ticker, expiry }) =>
             <div className="header-cell">Premium</div>
             <div className="header-cell">Volume</div>
             <div className="header-cell">OI</div>
-            <div className="header-cell">Date/Time</div>
+            <div className="header-cell">Exec Time</div>
           </div>
           
           <div className="trade-table-body">
             <VirtualizedList
               items={filteredTrades}
-              itemHeight={80}
+              itemHeight={40}
               containerHeight={500}
               renderItem={renderTradeItem as (item: unknown, index: number) => React.ReactNode}
               keyExtractor={getTradeKey as (item: unknown, index: number) => string}
-              overscan={3}
+              overscan={5}
             />
           </div>
         </div>
