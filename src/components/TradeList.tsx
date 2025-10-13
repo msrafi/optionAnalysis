@@ -1,7 +1,6 @@
 import React, { memo, useMemo, useCallback, useState } from 'react';
 import { ArrowUpDown } from 'lucide-react';
 import { OptionData, formatVolume, parseTimestampFromData } from '../utils/dataParser';
-import VirtualizedList from './VirtualizedList';
 
 interface TradeListProps {
   trades: OptionData[];
@@ -67,14 +66,14 @@ const TradeRow: React.FC<TradeRowProps> = memo(({ trade }) => {
       }}
     >
       <div className="trade-cell symbol-cell">{trade.ticker}</div>
-      <div className="trade-cell strike-cell">{trade.strike}</div>
-      <div className="trade-cell expiry-cell">{new Date(trade.expiry).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</div>
-      <div className="trade-cell type-cell">{trade.optionType}</div>
-      <div className="trade-cell side-cell">{trade.sweepType}</div>
-      <div className="trade-cell size-cell">{formatVolume(trade.volume)}</div>
-      <div className="trade-cell premium-cell">{trade.premium}</div>
-      <div className="trade-cell volume-cell">{formatVolume(trade.volume)}</div>
-      <div className="trade-cell oi-cell">{formatVolume(trade.openInterest)}</div>
+      <div className="trade-cell strike-cell" data-label="Strike:">{trade.strike}</div>
+      <div className="trade-cell expiry-cell" data-label="Expiry:">{new Date(trade.expiry).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</div>
+      <div className="trade-cell type-cell" data-label="Type:">{trade.optionType}</div>
+      <div className="trade-cell side-cell" data-label="Side:">{trade.sweepType}</div>
+      <div className="trade-cell size-cell" data-label="Size:">{formatVolume(trade.volume)}</div>
+      <div className="trade-cell premium-cell" data-label="Premium:">{trade.premium}</div>
+      <div className="trade-cell volume-cell" data-label="Volume:">{formatVolume(trade.volume)}</div>
+      <div className="trade-cell oi-cell" data-label="OI:">{formatVolume(trade.openInterest)}</div>
       <div className="trade-cell exec-time-cell">{formatExecutionDateTime(trade.timestamp)}</div>
     </div>
   );
@@ -132,10 +131,6 @@ const TradeList: React.FC<TradeListProps> = memo(({ trades, ticker, expiry }) =>
     );
   }
 
-  const renderTradeItem = useCallback((trade: OptionData, index: number) => (
-    <TradeRow trade={trade} index={index} />
-  ), []);
-
   const getTradeKey = useCallback((trade: OptionData, index: number) => 
     `${trade.ticker}-${trade.strike}-${trade.expiry}-${trade.timestamp}-${index}`,
     []
@@ -181,14 +176,9 @@ const TradeList: React.FC<TradeListProps> = memo(({ trades, ticker, expiry }) =>
           </div>
           
           <div className="trade-table-body">
-            <VirtualizedList
-              items={filteredTrades}
-              itemHeight={40}
-              containerHeight={500}
-              renderItem={renderTradeItem as (item: unknown, index: number) => React.ReactNode}
-              keyExtractor={getTradeKey as (item: unknown, index: number) => string}
-              overscan={5}
-            />
+            {filteredTrades.map((trade, index) => (
+              <TradeRow key={getTradeKey(trade, index)} trade={trade} index={index} />
+            ))}
           </div>
         </div>
       </div>
