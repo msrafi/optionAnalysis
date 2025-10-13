@@ -31,8 +31,9 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
       volume: number;
       trades: number;
       premium: string;
+      premiumFull: string;
       sweepTypes: string[];
-      times: string[];
+      tradeVolumes: number[];
     } | null;
   }>({
     visible: false,
@@ -66,17 +67,19 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
       ? (totalPremium / 1000).toFixed(1) + 'K' 
       : totalPremium.toFixed(0);
     
-    const sweepTypes = [...new Set(strikeTrades.map(t => t.sweepType))].filter(Boolean);
-    const times = strikeTrades.map(t => {
-      try {
-        const date = new Date(t.timestamp);
-        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-      } catch {
-        return '';
-      }
-    }).filter(Boolean);
+    // Full premium value with commas
+    const premiumFull = totalPremium.toLocaleString('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
     
-    const uniqueTimes = [...new Set(times)].slice(0, 3); // Show up to 3 unique times
+    const sweepTypes = [...new Set(strikeTrades.map(t => t.sweepType))].filter(Boolean);
+    
+    // Get individual trade volumes, sorted by volume descending
+    const tradeVolumes = strikeTrades
+      .map(t => t.volume)
+      .sort((a, b) => b - a)
+      .slice(0, 5); // Show up to 5 largest trades
     
     return {
       strike,
@@ -84,8 +87,9 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
       volume: totalVolume,
       trades: strikeTrades.length,
       premium: premiumFormatted,
+      premiumFull,
       sweepTypes,
-      times: uniqueTimes
+      tradeVolumes
     };
   }, [trades]);
 
@@ -440,20 +444,10 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
               <span className="tooltip-label">Trades:</span>
               <span className="tooltip-value">{tooltip.content.trades}</span>
             </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Premium:</span>
-              <span className="tooltip-value">${tooltip.content.premium}</span>
-            </div>
-            {tooltip.content.sweepTypes.length > 0 && (
+            {tooltip.content.tradeVolumes.length > 0 && (
               <div className="tooltip-row">
-                <span className="tooltip-label">Sweep:</span>
-                <span className="tooltip-value">{tooltip.content.sweepTypes.join(', ')}</span>
-              </div>
-            )}
-            {tooltip.content.times.length > 0 && (
-              <div className="tooltip-row">
-                <span className="tooltip-label">Times:</span>
-                <span className="tooltip-value tooltip-times">{tooltip.content.times.join(' • ')}</span>
+                <span className="tooltip-label">Top Trades:</span>
+                <span className="tooltip-value tooltip-trades">{tooltip.content.tradeVolumes.map(v => v.toLocaleString()).join(' • ')}</span>
               </div>
             )}
           </div>
@@ -619,20 +613,10 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
               <span className="tooltip-label">Trades:</span>
               <span className="tooltip-value">{tooltip.content.trades}</span>
             </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Premium:</span>
-              <span className="tooltip-value">${tooltip.content.premium}</span>
-            </div>
-            {tooltip.content.sweepTypes.length > 0 && (
+            {tooltip.content.tradeVolumes.length > 0 && (
               <div className="tooltip-row">
-                <span className="tooltip-label">Sweep:</span>
-                <span className="tooltip-value">{tooltip.content.sweepTypes.join(', ')}</span>
-              </div>
-            )}
-            {tooltip.content.times.length > 0 && (
-              <div className="tooltip-row">
-                <span className="tooltip-label">Times:</span>
-                <span className="tooltip-value tooltip-times">{tooltip.content.times.join(' • ')}</span>
+                <span className="tooltip-label">Top Trades:</span>
+                <span className="tooltip-value tooltip-trades">{tooltip.content.tradeVolumes.map(v => v.toLocaleString()).join(' • ')}</span>
               </div>
             )}
           </div>
