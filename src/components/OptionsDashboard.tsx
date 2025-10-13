@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ArrowLeft, Calendar, Database, Clock, FileText, RefreshCw, Search } from 'lucide-react';
+import { ArrowLeft, Calendar, RefreshCw, Search } from 'lucide-react';
 import TickerList from './TickerList';
 import VolumeProfileChart from './VolumeProfileChart';
 import TradeList from './TradeList';
@@ -241,62 +241,52 @@ const OptionsDashboard: React.FC = () => {
 
   return (
     <div className="options-dashboard">
-          {/* Data Summary Header */}
+      {/* Compact Header with Data Summary */}
+      <header className="dashboard-header">
+        <div className="header-left">
+          <h1>Option Analysis Dashboard</h1>
           {dataInfo && (
-            <div className="data-summary-header">
-              <div className="summary-stats">
-                <div className="summary-stat">
-                  <Database className="stat-icon" />
-                  <span className="stat-label">Files Loaded</span>
-                  <span className="stat-value">{dataInfo.totalFiles}</span>
-                </div>
-                <div className="summary-stat">
-                  <FileText className="stat-icon" />
-                  <span className="stat-label">Total Records</span>
-                  <span className="stat-value">{dataInfo.totalRecords.toLocaleString()}</span>
-                </div>
-                <div className="summary-stat">
-                  <Clock className="stat-icon" />
-                  <span className="stat-label">Latest Data</span>
-                  <span className="stat-value">
-                    {dataInfo.dateRange.latest?.toLocaleString() || 'Unknown'}
-                  </span>
-                </div>
-                <div className="summary-stat">
-                  <button 
-                    className="refresh-button" 
-                    onClick={handleRefreshData}
-                    title="Hard Refresh - Clears all caches and reloads data from files"
-                  >
-                    <RefreshCw className="stat-icon" />
-                    <span className="stat-label">Hard Refresh</span>
-                  </button>
-                </div>
-              </div>
+            <div className="header-stats">
+              <span className="header-stat">{dataInfo.totalFiles} files</span>
+              <span className="stat-separator">•</span>
+              <span className="header-stat">{dataInfo.totalRecords.toLocaleString()} records</span>
+              <span className="stat-separator">•</span>
+              <span className="header-stat">{dataInfo.dateRange.latest?.toLocaleString() || 'Unknown'}</span>
             </div>
           )}
-
-      {!selectedTicker && (
-        <div className="search-container">
-          <Search className="search-icon" />
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search tickers..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          {searchTerm && (
-            <button 
-              className="clear-search"
-              onClick={() => setSearchTerm('')}
-              title="Clear search"
-            >
-              ×
-            </button>
-          )}
         </div>
-      )}
+        
+        {!selectedTicker && (
+          <div className="search-container-header">
+            <Search className="search-icon" />
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search tickers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            {searchTerm && (
+              <button 
+                className="clear-search"
+                onClick={() => setSearchTerm('')}
+                title="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        )}
+        
+        <button 
+          className="refresh-button-compact" 
+          onClick={handleRefreshData}
+          title="Hard Refresh - Clears all caches and reloads data from files"
+        >
+          <RefreshCw className="refresh-icon" />
+          Hard Refresh
+        </button>
+      </header>
 
       {!selectedTicker ? (
         <TickerList 
