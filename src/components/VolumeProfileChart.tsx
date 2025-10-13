@@ -94,6 +94,75 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
     }
   }, [filteredData, filteredChartData, chartType]);
 
+  // Get position for current price (interpolates between strikes)
+  const getCurrentPricePosition = useCallback((price: number) => {
+    if (!filteredData.length) return 50;
+    if (filteredChartData.maxStrike === filteredChartData.minStrike) return 50;
+    
+    const minStrike = filteredChartData.minStrike;
+    const maxStrike = filteredChartData.maxStrike;
+    
+    // Clamp price to be within strike range
+    const clampedPrice = Math.max(minStrike, Math.min(maxStrike, price));
+    
+    // Find the strikes immediately above and below the current price
+    let lowerStrike = minStrike;
+    let upperStrike = maxStrike;
+    let lowerIndex = 0;
+    let upperIndex = filteredData.length - 1;
+    
+    for (let i = 0; i < filteredData.length - 1; i++) {
+      const currentStrike = filteredData[i].strike;
+      const nextStrike = filteredData[i + 1].strike;
+      
+      if (currentStrike <= clampedPrice && clampedPrice <= nextStrike) {
+        lowerStrike = currentStrike;
+        upperStrike = nextStrike;
+        lowerIndex = i;
+        upperIndex = i + 1;
+        break;
+      }
+    }
+    
+    // Calculate positions for the bounding strikes using same logic as getStrikePosition
+    const totalItems = filteredData.length;
+    const spacing = 100 / (totalItems + 1);
+    
+    let lowerPos, upperPos;
+    if (chartType === 'callput') {
+      // Reversed positioning for call/put chart
+      const lowerReversed = totalItems - 1 - lowerIndex;
+      const upperReversed = totalItems - 1 - upperIndex;
+      lowerPos = spacing * (lowerReversed + 1);
+      upperPos = spacing * (upperReversed + 1);
+    } else {
+      lowerPos = spacing * (lowerIndex + 1);
+      upperPos = spacing * (upperIndex + 1);
+    }
+    
+    // Interpolate between the two strike positions
+    if (upperStrike === lowerStrike) {
+      return lowerPos;
+    }
+    
+    const priceRatio = (clampedPrice - lowerStrike) / (upperStrike - lowerStrike);
+    const interpolatedPosition = lowerPos + (upperPos - lowerPos) * priceRatio;
+    
+    if (import.meta.env.DEV) {
+      console.log('Price interpolation:', {
+        price: clampedPrice,
+        lowerStrike,
+        upperStrike,
+        lowerPos: lowerPos.toFixed(2),
+        upperPos: upperPos.toFixed(2),
+        priceRatio: priceRatio.toFixed(3),
+        finalPos: interpolatedPosition.toFixed(2)
+      });
+    }
+    
+    return interpolatedPosition;
+  }, [filteredData, filteredChartData, chartType]);
+
   // Calculate dynamic height based on number of strike prices
   const getChartHeight = useCallback(() => {
     const rowHeight = 18; // Height of each strike row
@@ -213,9 +282,28 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
               <div 
                 className="current-price-line"
                 style={{ 
-                  top: `${getStrikePosition(getCurrentPrice()!)}%`
+                  top: `${getCurrentPricePosition(getCurrentPrice()!)}%`
                 }}
-              ></div>
+              >
+                <span className="current-price-label-inline" style={{
+                  position: 'absolute',
+                  left: '105%',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.95), rgba(255, 152, 0, 0.95))',
+                  color: '#000000',
+                  padding: '0.25rem 0.5rem',
+                  borderRadius: '4px',
+                  fontSize: '0.8rem',
+                  fontWeight: '700',
+                  whiteSpace: 'nowrap',
+                  border: '2px solid rgba(255, 193, 7, 1)',
+                  boxShadow: '0 2px 8px rgba(255, 193, 7, 0.4)',
+                  zIndex: 15
+                }}>
+                  ${getCurrentPrice()!.toFixed(2)}
+                </span>
+              </div>
             )}
           </div>
         </div>
@@ -309,9 +397,28 @@ const VolumeProfileChart: React.FC<VolumeProfileChartProps> = memo(({
             <div 
               className="current-price-line vertical"
               style={{ 
-                left: `${getStrikePosition(getCurrentPrice()!)}%`
+                left: `${getCurrentPricePosition(getCurrentPrice()!)}%`
               }}
-            ></div>
+            >
+              <span className="current-price-label-inline" style={{
+                position: 'absolute',
+                left: '50%',
+                top: '-30px',
+                transform: 'translateX(-50%)',
+                background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.95), rgba(255, 152, 0, 0.95))',
+                color: '#000000',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '4px',
+                fontSize: '0.8rem',
+                fontWeight: '700',
+                whiteSpace: 'nowrap',
+                border: '2px solid rgba(255, 193, 7, 1)',
+                boxShadow: '0 2px 8px rgba(255, 193, 7, 0.4)',
+                zIndex: 15
+              }}>
+                ${getCurrentPrice()!.toFixed(2)}
+              </span>
+            </div>
           )}
         </div>
         

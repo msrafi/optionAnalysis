@@ -4,11 +4,14 @@ A modern React dashboard for options trading analysis and volume profile visuali
 
 ## Features
 
+- **Real-Time Stock Prices**: Fetches current stock prices from NASDAQ/Finnhub API (with Yahoo Finance fallback)
+- **Smart Price Caching**: 15-minute cache to minimize API calls while keeping prices fresh
 - **Multi-File Data Support**: Loads and merges data from multiple CSV files
 - **Hourly Data Updates**: Supports adding new data files every hour
 - **Ticker List View**: Browse all available tickers sorted by recent activity
 - **Dual Chart Layout**: Side-by-side call/put and total volume charts
 - **Volume Profile Charts**: Interactive charts with vertical price orientation
+- **Current Price Indicators**: Highlights current stock price on charts
 - **Expiry Date Filtering**: Filter volume data by specific expiry dates
 - **Data Summary Dashboard**: Shows total files, records, and latest data timestamp
 - **Responsive Design**: Works on desktop and mobile devices
@@ -29,12 +32,25 @@ A modern React dashboard for options trading analysis and volume profile visuali
    npm install
    ```
 
-3. Start the development server:
+3. **(Optional) Configure Real-Time Stock Prices from NASDAQ:**
+   
+   For real-time NASDAQ stock prices, get a free Finnhub API key:
+   
+   - Sign up at [https://finnhub.io/register](https://finnhub.io/register)
+   - Get your free API key (60 calls/minute)
+   - Create a `.env` file in the project root:
+     ```env
+     VITE_FINNHUB_API_KEY=your_api_key_here
+     ```
+   
+   **Note:** If no API key is provided, the app will use Yahoo Finance API as fallback.
+
+4. Start the development server:
    ```bash
    npm run dev
    ```
 
-4. Open your browser and navigate to `http://localhost:3000`
+5. Open your browser and navigate to `http://localhost:5173`
 
 ## Available Scripts
 
