@@ -924,12 +924,98 @@
 .detail-value {
   color: white;
   font-weight: 600;
+  font-size: 0.8rem;
 }
 
 .detail-icon {
   width: 16px;
   height: 16px;
   color: rgba(255, 255, 255, 0.7);
+}
+
+/* Analytics Section */
+.ticker-analytics {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.analytics-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.analytics-badge svg {
+  flex-shrink: 0;
+}
+
+.badge-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+}
+
+.badge-detail,
+.badge-value {
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
+  font-size: 0.7rem;
+}
+
+/* Key Levels Badge */
+.key-levels-badge {
+  background: linear-gradient(135deg, rgba(156, 39, 176, 0.2), rgba(156, 39, 176, 0.15));
+  border: 1px solid rgba(156, 39, 176, 0.4);
+  color: #ab47bc;
+  flex-wrap: wrap;
+}
+
+.badge-strikes {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.level-strike {
+  padding: 0.15rem 0.35rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.level-strike.level-high {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.4);
+  color: #4caf50;
+}
+
+.level-strike.level-medium {
+  background: rgba(33, 150, 243, 0.2);
+  border-color: rgba(33, 150, 243, 0.4);
+  color: #2196f3;
+}
+
+.level-strike.level-low {
+  background: rgba(158, 158, 158, 0.2);
+  border-color: rgba(158, 158, 158, 0.4);
+  color: #9e9e9e;
+}
+
+/* Max Pain Badge */
+.max-pain-badge {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.15));
+  border: 1px solid rgba(255, 193, 7, 0.4);
+  color: #ffc107;
 }
 
 .ticker-footer {

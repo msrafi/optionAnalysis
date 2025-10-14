@@ -648,3 +648,386 @@ export function getRecentData(data: OptionData[], hours: number = 24): OptionDat
   const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
   return filterDataByTimeRange(data, cutoff, new Date());
 }
+
+// ============================================================================
+// ANALYTICAL FEATURES
+// ============================================================================
+
+export interface UnusualActivityAlert {
+  ticker: string;
+  alertType: 'volume' | 'premium' | 'sweep' | 'multiple';
+  severity: 'low' | 'medium' | 'high';
+  reason: string;
+  metrics: {
+    totalVolume: number;
+    totalPremium: number;
+    callPutRatio: number;
+    sweepCount: number;
+    avgTradeSize: number;
+  };
+}
+
+export interface KeyPriceLevel {
+  strike: number;
+  volume: number;
+  openInterest: number;
+  premium: number;
+  significance: 'high' | 'medium' | 'low';
+  type: 'call' | 'put' | 'both';
+}
+
+export interface GammaExposure {
+  strike: number;
+  netGammaExposure: number; // Positive = dealers long gamma, Negative = dealers short gamma
+  callVolume: number;
+  putVolume: number;
+  callOI: number;
+  putOI: number;
+  level: 'extreme' | 'high' | 'moderate' | 'low';
+}
+
+export interface TickerAnalytics {
+  ticker: string;
+  unusualActivity?: UnusualActivityAlert | null;
+  keyPriceLevels: KeyPriceLevel[];
+  gammaExposure: GammaExposure[];
+  maxPainStrike: number | null;
+  currentPrice?: number;
+}
+
+/**
+ * Detect unusual activity for a ticker
+ */
+export function detectUnusualActivity(
+  tickerData: OptionData[],
+  ticker: string,
+  allData: OptionData[]
+): UnusualActivityAlert | null {
+  if (tickerData.length === 0) return null;
+
+  // Calculate metrics for this ticker
+  const totalVolume = tickerData.reduce((sum, t) => sum + t.volume, 0);
+  const totalPremium = tickerData.reduce((sum, t) => {
+    const premium = parseFloat(t.premium.replace(/[$,]/g, '')) || 0;
+    return sum + premium;
+  }, 0);
+  
+  const callVolume = tickerData.filter(t => t.optionType === 'Call').reduce((sum, t) => sum + t.volume, 0);
+  const putVolume = tickerData.filter(t => t.optionType === 'Put').reduce((sum, t) => sum + t.volume, 0);
+  const callPutRatio = putVolume > 0 ? callVolume / putVolume : callVolume;
+  
+  const sweepCount = tickerData.filter(t => t.sweepType && t.sweepType.toLowerCase().includes('sweep')).length;
+  const avgTradeSize = totalVolume / tickerData.length;
+
+  // Calculate baseline (average across all tickers for comparison)
+  const allTickers = [...new Set(allData.map(t => t.ticker))];
+  const avgVolumePerTicker = allData.reduce((sum, t) => sum + t.volume, 0) / allTickers.length;
+  const avgPremiumPerTicker = allData.reduce((sum, t) => {
+    const premium = parseFloat(t.premium.replace(/[$,]/g, '')) || 0;
+    return sum + premium;
+  }, 0) / allTickers.length;
+
+  // Detection criteria
+  const alerts: string[] = [];
+  let severity: 'low' | 'medium' | 'high' = 'low';
+  let alertType: 'volume' | 'premium' | 'sweep' | 'multiple' = 'volume';
+  
+  // High volume alert (3x average)
+  if (totalVolume > avgVolumePerTicker * 3) {
+    alerts.push(`Volume ${((totalVolume / avgVolumePerTicker) * 100).toFixed(0)}% above average`);
+    severity = 'high';
+    alertType = 'volume';
+  } else if (totalVolume > avgVolumePerTicker * 2) {
+    alerts.push(`Volume ${((totalVolume / avgVolumePerTicker) * 100).toFixed(0)}% above average`);
+    severity = 'medium';
+  }
+
+  // High premium alert (3x average)
+  if (totalPremium > avgPremiumPerTicker * 3) {
+    alerts.push(`Premium ${((totalPremium / avgPremiumPerTicker) * 100).toFixed(0)}% above average`);
+    severity = 'high';
+    if (alertType !== 'volume') alertType = 'premium';
+    else alertType = 'multiple';
+  } else if (totalPremium > avgPremiumPerTicker * 2) {
+    alerts.push(`Premium ${((totalPremium / avgPremiumPerTicker) * 100).toFixed(0)}% above average`);
+    if (severity !== 'high') severity = 'medium';
+  }
+
+  // Unusual sweep activity
+  if (sweepCount > 5) {
+    alerts.push(`${sweepCount} sweeps detected`);
+    severity = 'high';
+    alertType = alertType === 'volume' || alertType === 'premium' ? 'multiple' : 'sweep';
+  } else if (sweepCount > 2) {
+    alerts.push(`${sweepCount} sweeps detected`);
+    if (severity === 'low') severity = 'medium';
+  }
+
+  // Extreme call/put ratio
+  if (callPutRatio > 5) {
+    alerts.push(`Heavy call bias (${callPutRatio.toFixed(1)}:1)`);
+    if (severity === 'low') severity = 'medium';
+  } else if (callPutRatio < 0.2) {
+    alerts.push(`Heavy put bias (1:${(1/callPutRatio).toFixed(1)})`);
+    if (severity === 'low') severity = 'medium';
+  }
+
+  // Large average trade size
+  if (avgTradeSize > 5000) {
+    alerts.push(`Large avg trade size: ${formatVolume(Math.round(avgTradeSize))}`);
+    if (severity === 'low') severity = 'medium';
+  }
+
+  // Return alert if any criteria met
+  if (alerts.length > 0) {
+    return {
+      ticker,
+      alertType,
+      severity,
+      reason: alerts.join(' • '),
+      metrics: {
+        totalVolume,
+        totalPremium,
+        callPutRatio,
+        sweepCount,
+        avgTradeSize
+      }
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Identify key price levels based on volume and open interest
+ */
+export function identifyKeyPriceLevels(
+  tickerData: OptionData[],
+  topN: number = 5
+): KeyPriceLevel[] {
+  if (tickerData.length === 0) return [];
+
+  // Aggregate by strike price
+  const strikeMap = new Map<number, {
+    volume: number;
+    openInterest: number;
+    premium: number;
+    callVolume: number;
+    putVolume: number;
+  }>();
+
+  tickerData.forEach(trade => {
+    const existing = strikeMap.get(trade.strike) || {
+      volume: 0,
+      openInterest: 0,
+      premium: 0,
+      callVolume: 0,
+      putVolume: 0
+    };
+
+    const premium = parseFloat(trade.premium.replace(/[$,]/g, '')) || 0;
+
+    existing.volume += trade.volume;
+    existing.openInterest += trade.openInterest;
+    existing.premium += premium;
+    
+    if (trade.optionType === 'Call') {
+      existing.callVolume += trade.volume;
+    } else {
+      existing.putVolume += trade.volume;
+    }
+
+    strikeMap.set(trade.strike, existing);
+  });
+
+  // Convert to array and sort by combined score
+  const levels = Array.from(strikeMap.entries()).map(([strike, data]) => {
+    // Combined significance score (weighted: 40% volume, 40% OI, 20% premium)
+    const maxVolume = Math.max(...Array.from(strikeMap.values()).map(v => v.volume));
+    const maxOI = Math.max(...Array.from(strikeMap.values()).map(v => v.openInterest));
+    const maxPremium = Math.max(...Array.from(strikeMap.values()).map(v => v.premium));
+    
+    const volumeScore = maxVolume > 0 ? data.volume / maxVolume : 0;
+    const oiScore = maxOI > 0 ? data.openInterest / maxOI : 0;
+    const premiumScore = maxPremium > 0 ? data.premium / maxPremium : 0;
+    
+    const combinedScore = volumeScore * 0.4 + oiScore * 0.4 + premiumScore * 0.2;
+    
+    let significance: 'high' | 'medium' | 'low' = 'low';
+    if (combinedScore > 0.7) significance = 'high';
+    else if (combinedScore > 0.4) significance = 'medium';
+
+    let type: 'call' | 'put' | 'both' = 'both';
+    if (data.callVolume > data.putVolume * 2) type = 'call';
+    else if (data.putVolume > data.callVolume * 2) type = 'put';
+
+    return {
+      strike,
+      volume: data.volume,
+      openInterest: data.openInterest,
+      premium: data.premium,
+      significance,
+      type,
+      combinedScore
+    };
+  });
+
+  // Sort by combined score and return top N
+  return levels
+    .sort((a, b) => b.combinedScore - a.combinedScore)
+    .slice(0, topN)
+    .map(({ combinedScore, ...rest }) => rest);
+}
+
+/**
+ * Estimate gamma exposure at each strike
+ * Note: This is a simplified estimation without actual Greeks data
+ */
+export function estimateGammaExposure(
+  tickerData: OptionData[],
+  currentPrice?: number
+): GammaExposure[] {
+  if (tickerData.length === 0) return [];
+
+  // Aggregate by strike
+  const strikeMap = new Map<number, {
+    callVolume: number;
+    putVolume: number;
+    callOI: number;
+    putOI: number;
+  }>();
+
+  tickerData.forEach(trade => {
+    const existing = strikeMap.get(trade.strike) || {
+      callVolume: 0,
+      putVolume: 0,
+      callOI: 0,
+      putOI: 0
+    };
+
+    if (trade.optionType === 'Call') {
+      existing.callVolume += trade.volume;
+      existing.callOI += trade.openInterest;
+    } else {
+      existing.putVolume += trade.volume;
+      existing.putOI += trade.openInterest;
+    }
+
+    strikeMap.set(trade.strike, existing);
+  });
+
+  // Calculate gamma exposure estimates
+  const exposures = Array.from(strikeMap.entries()).map(([strike, data]) => {
+    // Simplified gamma estimation:
+    // Dealers are typically short options (providing liquidity)
+    // Call OI = dealers short calls = negative gamma for dealers (must buy as price rises)
+    // Put OI = dealers short puts = positive gamma for dealers (must sell as price falls)
+    
+    // Weight ATM options higher (simplified: within 10% of current price gets full weight)
+    let atmWeight = 1;
+    if (currentPrice) {
+      const percentFromCurrent = Math.abs(strike - currentPrice) / currentPrice;
+      if (percentFromCurrent < 0.05) atmWeight = 2; // Very close to ATM
+      else if (percentFromCurrent < 0.10) atmWeight = 1.5; // Near ATM
+      else if (percentFromCurrent > 0.20) atmWeight = 0.5; // Far OTM/ITM
+    }
+
+    // Net gamma exposure (negative = dealers need to buy on way up, sell on way down)
+    // Using OI as it represents open positions that need hedging
+    const netGammaExposure = (data.putOI - data.callOI) * atmWeight;
+    
+    const absExposure = Math.abs(netGammaExposure);
+    const maxExposure = Math.max(...Array.from(strikeMap.values()).map(v => 
+      Math.abs((v.putOI - v.callOI))
+    ));
+    
+    let level: 'extreme' | 'high' | 'moderate' | 'low' = 'low';
+    if (maxExposure > 0) {
+      const exposureRatio = absExposure / maxExposure;
+      if (exposureRatio > 0.7) level = 'extreme';
+      else if (exposureRatio > 0.4) level = 'high';
+      else if (exposureRatio > 0.2) level = 'moderate';
+    }
+
+    return {
+      strike,
+      netGammaExposure,
+      callVolume: data.callVolume,
+      putVolume: data.putVolume,
+      callOI: data.callOI,
+      putOI: data.putOI,
+      level
+    };
+  });
+
+  // Sort by strike price
+  return exposures.sort((a, b) => a.strike - b.strike);
+}
+
+/**
+ * Calculate max pain (strike where option holders lose most money)
+ */
+export function calculateMaxPain(tickerData: OptionData[]): number | null {
+  if (tickerData.length === 0) return null;
+
+  // Get unique strikes
+  const strikes = [...new Set(tickerData.map(t => t.strike))].sort((a, b) => a - b);
+  
+  // For each strike, calculate total loss for option holders
+  const painMap = new Map<number, number>();
+
+  strikes.forEach(testStrike => {
+    let totalPain = 0;
+
+    tickerData.forEach(trade => {
+      const { strike, optionType, openInterest } = trade;
+      
+      if (optionType === 'Call') {
+        // Calls lose value if price is below strike
+        if (testStrike < strike) {
+          totalPain += openInterest * (strike - testStrike);
+        }
+      } else {
+        // Puts lose value if price is above strike
+        if (testStrike > strike) {
+          totalPain += openInterest * (testStrike - strike);
+        }
+      }
+    });
+
+    painMap.set(testStrike, totalPain);
+  });
+
+  // Find strike with maximum pain
+  let maxPainStrike = strikes[0];
+  let maxPain = painMap.get(strikes[0]) || 0;
+
+  painMap.forEach((pain, strike) => {
+    if (pain > maxPain) {
+      maxPain = pain;
+      maxPainStrike = strike;
+    }
+  });
+
+  return maxPainStrike;
+}
+
+/**
+ * Get complete analytics for a ticker
+ */
+export function getTickerAnalytics(
+  ticker: string,
+  allData: OptionData[],
+  currentPrice?: number
+): TickerAnalytics {
+  const tickerData = allData.filter(t => t.ticker === ticker);
+  
+  return {
+    ticker,
+    unusualActivity: detectUnusualActivity(tickerData, ticker, allData),
+    keyPriceLevels: identifyKeyPriceLevels(tickerData, 5),
+    gammaExposure: estimateGammaExposure(tickerData, currentPrice),
+    maxPainStrike: calculateMaxPain(tickerData),
+    currentPrice
+  };
+}

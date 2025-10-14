@@ -301,7 +301,8 @@ const OptionsDashboard: React.FC = () => {
       {!selectedTicker ? (
         <TickerList 
           tickers={filteredTickerSummaries} 
-          onTickerSelect={handleTickerSelect} 
+          onTickerSelect={handleTickerSelect}
+          allData={optionData}
         />
       ) : (
         <div className="ticker-detail-view">

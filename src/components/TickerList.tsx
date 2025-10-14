@@ -1,10 +1,11 @@
 import React, { memo, useMemo, useState } from 'react';
-import { TrendingUp, TrendingDown, Calendar, Clock, ArrowUpDown } from 'lucide-react';
-import { TickerSummary, formatVolume, formatPremium } from '../utils/dataParser';
+import { TrendingUp, TrendingDown, Calendar, Clock, ArrowUpDown, Target, Zap } from 'lucide-react';
+import { TickerSummary, formatVolume, formatPremium, OptionData, getTickerAnalytics } from '../utils/dataParser';
 
 interface TickerListProps {
   tickers: TickerSummary[];
   onTickerSelect: (ticker: string) => void;
+  allData: OptionData[];
 }
 
 type SortOption = 'recent' | 'oldest' | 'volume-high' | 'volume-low' | 'calls-high' | 'puts-high' | 'premium-high' | 'premium-low';
@@ -43,7 +44,7 @@ const formatDateTime = (timestamp: string, parsedDate?: Date | null): string => 
   }
 };
 
-const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect }) => {
+const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, allData }) => {
   const [sortBy, setSortBy] = useState<SortOption>('recent');
 
   const sortedTickers = useMemo(() => {
@@ -121,6 +122,9 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect })
           const putDominant = ticker.putVolume > ticker.callVolume;
           const dominanceClass = callDominant ? 'call-dominant' : putDominant ? 'put-dominant' : 'balanced';
           
+          // Calculate analytics for this ticker
+          const analytics = getTickerAnalytics(ticker.ticker, allData);
+          
           return (
             <div 
               key={ticker.ticker} 
@@ -128,7 +132,9 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect })
               onClick={() => onTickerSelect(ticker.ticker)}
             >
             <div className="ticker-header">
-              <h3 className="ticker-symbol">{ticker.ticker}</h3>
+              <h3 className="ticker-symbol">
+                {ticker.ticker}
+              </h3>
               <div className="ticker-metrics">
                 <div className="metric">
                   <TrendingUp className="metric-icon call" />
@@ -170,6 +176,37 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect })
                     </div>
                   )}
                 </div>
+                
+                {/* Analytics Section */}
+                {(analytics.keyPriceLevels.length > 0 || analytics.maxPainStrike) && (
+                  <div className="ticker-analytics">
+                    {analytics.keyPriceLevels.length > 0 && (
+                      <div className="analytics-badge key-levels-badge">
+                        <Target size={12} />
+                        <span className="badge-label">Key Levels:</span>
+                        <span className="badge-strikes">
+                          {analytics.keyPriceLevels.slice(0, 3).map((level, idx) => (
+                            <span 
+                              key={level.strike} 
+                              className={`level-strike level-${level.significance}`}
+                              title={`${level.type === 'call' ? 'Call' : level.type === 'put' ? 'Put' : 'Call/Put'} - Vol: ${formatVolume(level.volume)}, OI: ${formatVolume(level.openInterest)}`}
+                            >
+                              {idx > 0 && ', '}${level.strike}
+                            </span>
+                          ))}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {analytics.maxPainStrike && (
+                      <div className="analytics-badge max-pain-badge">
+                        <Zap size={12} />
+                        <span className="badge-label">Max Pain:</span>
+                        <span className="badge-value">${analytics.maxPainStrike}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 <div className="ticker-footer">
                   <div className="last-activity">
