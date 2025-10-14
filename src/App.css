@@ -1379,8 +1379,34 @@
   padding: 0;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
   min-width: 220px;
+  max-width: 400px;
+  max-height: 90vh;
+  overflow-y: auto;
   animation: tooltipFadeIn 0.2s ease-out;
-  overflow: hidden;
+  cursor: default;
+}
+
+.modern-tooltip:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Custom scrollbar for tooltip if content exceeds viewport */
+.modern-tooltip::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modern-tooltip::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.modern-tooltip::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.modern-tooltip::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 @keyframes tooltipFadeIn {
@@ -1398,10 +1424,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   background: rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .tooltip-strike {
@@ -1433,10 +1459,10 @@
 }
 
 .tooltip-body {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .tooltip-row {
@@ -1462,8 +1488,111 @@
 .tooltip-trades {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.85);
-  max-width: 140px;
+  max-width: 300px;
   line-height: 1.3;
+  word-wrap: break-word;
+  max-height: 150px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 5px;
+}
+
+/* Custom scrollbar for tooltip trades */
+.tooltip-trades::-webkit-scrollbar {
+  width: 4px;
+}
+
+.tooltip-trades::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+}
+
+.tooltip-trades::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.tooltip-trades::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Trade Details Section */
+.tooltip-trade-details {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Trade Details Only (no summary above) */
+.tooltip-trade-details-only {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.tooltip-trade-header {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tooltip-trade-list {
+  max-height: none;
+  overflow-y: visible;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  position: relative;
+}
+
+
+.tooltip-trade-item {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 3px;
+  padding: 0.25rem 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.15s ease;
+  font-size: 0.65rem;
+}
+
+.tooltip-trade-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.trade-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.65rem;
+  line-height: 1.2;
+}
+
+.trade-item-label {
+  color: rgba(255, 255, 255, 0.55);
+  font-weight: 500;
+  font-size: 0.6rem;
+  min-width: 45px;
+}
+
+.trade-item-value {
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 600;
+  text-align: right;
+  font-size: 0.65rem;
+}
+
+.trade-item-time {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
 }
 
 .tooltip-premium {
@@ -1692,7 +1821,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 40px;
+  height: 0px;
   display: flex;
   align-items: center;
   margin-top: 1rem;
@@ -1748,6 +1877,10 @@
 
 .chart-container.vertical {
   flex-direction: column;
+  overflow-x: hidden; /* Hide horizontal scrollbar */
+  overflow-y: hidden; /* Hide vertical scrollbar */
+  height: auto; /* Allow container to expand to show all content including x-axis labels */
+  min-height: 400px;
 }
 
 .volume-axis-left {
@@ -1824,6 +1957,7 @@
   left: 0;
   right: 0;
   top: 0;
+  min-height: auto;
   bottom: 100px; /* Much more space to separate bars from price labels */
   padding-bottom: 90px; /* Increased padding to create clear separation */
 }

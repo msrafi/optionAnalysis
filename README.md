@@ -58,6 +58,32 @@ A modern React dashboard for options trading analysis and volume profile visuali
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint
+- `npm run deploy` - Deploy to GitHub Pages (builds and deploys)
+
+## Deployment
+
+This app is configured to deploy to GitHub Pages. There are two ways to deploy:
+
+### Automatic Deployment (Recommended)
+
+The app automatically deploys to GitHub Pages when you push to the `main` branch using GitHub Actions.
+
+1. Make sure GitHub Pages is enabled in your repository settings:
+   - Go to Settings → Pages
+   - Set Source to "GitHub Actions"
+2. Push your changes to the `main` branch
+3. The GitHub Action will automatically build and deploy
+4. Your app will be live at: `https://msrafi.github.io/optionAnalysis/`
+
+### Manual Deployment
+
+You can also manually deploy using the gh-pages package:
+
+```bash
+npm run deploy
+```
+
+This will build the app and push it to the `gh-pages` branch.
 
 ## Tech Stack
 

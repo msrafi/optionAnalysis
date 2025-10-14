@@ -34,6 +34,14 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
       premiumFull: string;
       sweepTypes: string[];
       tradeVolumes: number[];
+      expiries: string[];
+      size: number;
+      tradeDetails: Array<{
+        volume: number;
+        premium: string;
+        timestamp: string;
+        expiry: string;
+      }>;
     } | null;
   }>({
     visible: false,
@@ -78,8 +86,23 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
     // Get individual trade volumes, sorted by volume descending
     const tradeVolumes = strikeTrades
       .map(t => t.volume)
-      .sort((a, b) => b - a)
-      .slice(0, 5); // Show up to 5 largest trades
+      .sort((a, b) => b - a); // Show all trades
+    
+    // Get unique expiry dates
+    const expiries = [...new Set(strikeTrades.map(t => t.expiry))].sort();
+    
+    // Size is the same as totalVolume (total contracts)
+    const size = totalVolume;
+    
+    // Get detailed trade information, sorted by volume descending
+    const tradeDetails = strikeTrades
+      .sort((a, b) => b.volume - a.volume)
+      .map(t => ({
+        volume: t.volume,
+        premium: t.premium,
+        timestamp: t.timestamp,
+        expiry: t.expiry
+      }));
     
     return {
       strike,
@@ -89,7 +112,10 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
       premium: premiumFormatted,
       premiumFull,
       sweepTypes,
-      tradeVolumes
+      tradeVolumes,
+      expiries,
+      size,
+      tradeDetails
     };
   }, [trades]);
 
@@ -423,9 +449,11 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
             left: `${tooltip.x + 15}px`,
             top: `${tooltip.y}px`,
             transform: 'translateY(-50%)',
-            pointerEvents: 'none',
+            pointerEvents: 'auto',
             zIndex: 9999
           }}
+          onMouseEnter={() => setTooltip(prev => ({ ...prev, visible: true }))}
+          onMouseLeave={handleBarMouseLeave}
         >
           <div className="tooltip-header">
             <span className="tooltip-strike">${tooltip.content.strike}</span>
@@ -436,18 +464,66 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
             )}
           </div>
           <div className="tooltip-body">
-            <div className="tooltip-row">
-              <span className="tooltip-label">Volume:</span>
-              <span className="tooltip-value">{tooltip.content.volume.toLocaleString()}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Trades:</span>
-              <span className="tooltip-value">{tooltip.content.trades}</span>
-            </div>
-            {tooltip.content.tradeVolumes.length > 0 && (
-              <div className="tooltip-row">
-                <span className="tooltip-label">Top Trades:</span>
-                <span className="tooltip-value tooltip-trades">{tooltip.content.tradeVolumes.map(v => v.toLocaleString()).join(' • ')}</span>
+            {tooltip.content.tradeDetails.length > 0 && (
+              <div className="tooltip-trade-details-only">
+                <div className="tooltip-trade-header">Trade Details:</div>
+                <div className="tooltip-trade-list">
+                  {tooltip.content.tradeDetails.map((trade, idx) => (
+                    <div key={idx} className="tooltip-trade-item">
+                      <div className="trade-item-row">
+                        <span className="trade-item-label">Vol:</span>
+                        <span className="trade-item-value">{trade.volume.toLocaleString()}</span>
+                      </div>
+                      <div className="trade-item-row">
+                        <span className="trade-item-label">Premium:</span>
+                        <span className="trade-item-value">{trade.premium}</span>
+                      </div>
+                      {trade.expiry && (
+                        <div className="trade-item-row">
+                          <span className="trade-item-label">Expiry:</span>
+                          <span className="trade-item-value">
+                            {new Date(trade.expiry).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      <div className="trade-item-row">
+                        <span className="trade-item-label">Time:</span>
+                        <span className="trade-item-value trade-item-time">
+                          {(() => {
+                            try {
+                              if (!trade.timestamp) return 'N/A';
+                              
+                              // Try parsing the Discord format: "Monday, October 13, 2025 at 10:07 AM"
+                              const date = new Date(trade.timestamp);
+                              
+                              // Check if date is valid
+                              if (!isNaN(date.getTime())) {
+                                return `${date.toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })} ${date.toLocaleTimeString('en-US', { 
+                                  hour: 'numeric', 
+                                  minute: '2-digit',
+                                  hour12: true 
+                                })}`;
+                              }
+                              
+                              // If date parsing failed, return the original timestamp
+                              return trade.timestamp;
+                            } catch (e) {
+                              return trade.timestamp || 'N/A';
+                            }
+                          })()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -592,9 +668,11 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
             left: `${tooltip.x + 15}px`,
             top: `${tooltip.y}px`,
             transform: 'translateY(-50%)',
-            pointerEvents: 'none',
+            pointerEvents: 'auto',
             zIndex: 9999
           }}
+          onMouseEnter={() => setTooltip(prev => ({ ...prev, visible: true }))}
+          onMouseLeave={handleBarMouseLeave}
         >
           <div className="tooltip-header">
             <span className="tooltip-strike">${tooltip.content.strike}</span>
@@ -605,18 +683,66 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
             )}
           </div>
           <div className="tooltip-body">
-            <div className="tooltip-row">
-              <span className="tooltip-label">Volume:</span>
-              <span className="tooltip-value">{tooltip.content.volume.toLocaleString()}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Trades:</span>
-              <span className="tooltip-value">{tooltip.content.trades}</span>
-            </div>
-            {tooltip.content.tradeVolumes.length > 0 && (
-              <div className="tooltip-row">
-                <span className="tooltip-label">Top Trades:</span>
-                <span className="tooltip-value tooltip-trades">{tooltip.content.tradeVolumes.map(v => v.toLocaleString()).join(' • ')}</span>
+            {tooltip.content.tradeDetails.length > 0 && (
+              <div className="tooltip-trade-details-only">
+                <div className="tooltip-trade-header">Trade Details:</div>
+                <div className="tooltip-trade-list">
+                  {tooltip.content.tradeDetails.map((trade, idx) => (
+                    <div key={idx} className="tooltip-trade-item">
+                      <div className="trade-item-row">
+                        <span className="trade-item-label">Vol:</span>
+                        <span className="trade-item-value">{trade.volume.toLocaleString()}</span>
+                      </div>
+                      <div className="trade-item-row">
+                        <span className="trade-item-label">Premium:</span>
+                        <span className="trade-item-value">{trade.premium}</span>
+                      </div>
+                      {trade.expiry && (
+                        <div className="trade-item-row">
+                          <span className="trade-item-label">Expiry:</span>
+                          <span className="trade-item-value">
+                            {new Date(trade.expiry).toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        </div>
+                      )}
+                      <div className="trade-item-row">
+                        <span className="trade-item-label">Time:</span>
+                        <span className="trade-item-value trade-item-time">
+                          {(() => {
+                            try {
+                              if (!trade.timestamp) return 'N/A';
+                              
+                              // Try parsing the Discord format: "Monday, October 13, 2025 at 10:07 AM"
+                              const date = new Date(trade.timestamp);
+                              
+                              // Check if date is valid
+                              if (!isNaN(date.getTime())) {
+                                return `${date.toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })} ${date.toLocaleTimeString('en-US', { 
+                                  hour: 'numeric', 
+                                  minute: '2-digit',
+                                  hour12: true 
+                                })}`;
+                              }
+                              
+                              // If date parsing failed, return the original timestamp
+                              return trade.timestamp;
+                            } catch (e) {
+                              return trade.timestamp || 'N/A';
+                            }
+                          })()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>

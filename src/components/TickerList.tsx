@@ -1,5 +1,5 @@
-import React, { memo, useMemo, useCallback, useState } from 'react';
-import { TrendingUp, TrendingDown, Calendar, DollarSign, Clock, ArrowUpDown } from 'lucide-react';
+import React, { memo, useMemo, useState } from 'react';
+import { TrendingUp, TrendingDown, Calendar, Clock, ArrowUpDown } from 'lucide-react';
 import { TickerSummary, formatVolume, formatPremium } from '../utils/dataParser';
 
 interface TickerListProps {
@@ -7,7 +7,7 @@ interface TickerListProps {
   onTickerSelect: (ticker: string) => void;
 }
 
-type SortOption = 'recent' | 'oldest' | 'volume-high' | 'volume-low' | 'calls-high' | 'puts-high';
+type SortOption = 'recent' | 'oldest' | 'volume-high' | 'volume-low' | 'calls-high' | 'puts-high' | 'premium-high' | 'premium-low';
 
 const formatDateTime = (timestamp: string, parsedDate?: Date | null): string => {
   try {
@@ -78,22 +78,16 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect })
       case 'puts-high':
         return sorted.sort((a, b) => b.putVolume - a.putVolume);
       
+      case 'premium-high':
+        return sorted.sort((a, b) => b.totalPremium - a.totalPremium);
+      
+      case 'premium-low':
+        return sorted.sort((a, b) => a.totalPremium - b.totalPremium);
+      
       default:
         return sorted;
     }
   }, [tickers, sortBy]);
-
-  const getSortLabel = (option: SortOption): string => {
-    switch (option) {
-      case 'recent': return 'Most Recent';
-      case 'oldest': return 'Oldest First';
-      case 'volume-high': return 'Volume (High to Low)';
-      case 'volume-low': return 'Volume (Low to High)';
-      case 'calls-high': return 'Calls (High to Low)';
-      case 'puts-high': return 'Puts (High to Low)';
-      default: return 'Most Recent';
-    }
-  };
 
   return (
     <div className="ticker-list">
@@ -115,6 +109,8 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect })
             <option value="volume-low">Volume (Low to High)</option>
             <option value="calls-high">Calls (High to Low)</option>
             <option value="puts-high">Puts (High to Low)</option>
+            <option value="premium-high">Premium (High to Low)</option>
+            <option value="premium-low">Premium (Low to High)</option>
           </select>
         </div>
       </div>

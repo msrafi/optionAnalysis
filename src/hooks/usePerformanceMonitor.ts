@@ -18,7 +18,7 @@ export function usePerformanceMonitor(componentName: string) {
       const renderTime = performance.now() - renderStartTime.current;
       
       // Log performance metrics in development
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         const metrics: PerformanceMetrics = {
           renderTime,
           componentName,
@@ -45,7 +45,7 @@ export function measureFunction<T extends (...args: any[]) => any>(
     const result = fn(...args);
     const end = performance.now();
     
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.log(`Function ${name} took ${(end - start).toFixed(2)}ms`);
     }
     

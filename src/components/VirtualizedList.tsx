@@ -1,4 +1,4 @@
-import React, { memo, useMemo, useCallback, useState, useEffect, useRef } from 'react';
+import React, { memo, useMemo, useCallback, useState, useRef } from 'react';
 
 interface VirtualizedListProps<T> {
   items: T[];
