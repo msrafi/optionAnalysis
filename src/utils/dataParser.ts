@@ -514,12 +514,25 @@ export function mergeDataFromFiles(fileData: Array<{filename: string, data: stri
   let earliestDate: Date | null = null;
   let latestDate: Date | null = null;
   
+  // Track unique trades to avoid duplicates
+  const uniqueTrades = new Map<string, OptionData>();
+  
   // Sort files by timestamp (most recent first)
   const sortedFiles = fileData.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
   
   sortedFiles.forEach(file => {
     const parsedData = parseCSVData(file.data, file.filename);
-    mergedData.push(...parsedData);
+    
+    // Deduplicate trades based on key fields
+    parsedData.forEach(trade => {
+      // Create unique key from trade characteristics
+      const key = `${trade.ticker}_${trade.strike}_${trade.expiry}_${trade.optionType}_${trade.volume}_${trade.premium}_${trade.timestamp}`;
+      
+      // Only add if we haven't seen this exact trade before
+      if (!uniqueTrades.has(key)) {
+        uniqueTrades.set(key, trade);
+      }
+    });
     
     fileInfo.push({
       filename: file.filename,
@@ -535,6 +548,9 @@ export function mergeDataFromFiles(fileData: Array<{filename: string, data: stri
       latestDate = file.timestamp;
     }
   });
+  
+  // Convert Map values to array
+  mergedData.push(...uniqueTrades.values());
   
   const info: MergedDataInfo = {
     totalFiles: fileData.length,
