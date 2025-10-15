@@ -1736,6 +1736,8 @@
   border-radius: 0 2px 2px 0;
   box-shadow: 0 1px 3px rgba(76, 175, 80, 0.15);
   transition: all 0.2s ease;
+  justify-content: flex-start; /* Align text to the left (end) of call bars */
+  padding-left: 4px;
 }
 
 .modern-call-bar:hover {
@@ -1756,6 +1758,8 @@
   border-radius: 2px 0 0 2px;
   box-shadow: 0 1px 3px rgba(244, 67, 54, 0.15);
   transition: all 0.2s ease;
+  justify-content: flex-end; /* Align text to the right (end) of put bars */
+  padding-right: 4px;
 }
 
 .modern-put-bar:hover {
@@ -1772,16 +1776,19 @@
   font-weight: 500; /* Reduced weight for cleaner look */
   font-size: 0.6rem; /* Even smaller for thinner bars */
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
-  background: rgba(0, 0, 0, 0.6); /* More opaque for better contrast */
-  padding: 0.02rem 0.15rem; /* Minimal padding for thinner bars */
+  background: rgba(0, 0, 0, 0.05); /* More opaque for better contrast */
+  /* background: rgba(0, 0, 0, 0.75); More opaque for better contrast */
+  padding: 0.08rem 0.25rem; /* Slightly more padding for better readability */
   border-radius: 2px; /* Smaller radius for thinner bars */
   border: 1px solid rgba(255, 255, 255, 0.2);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 90%; /* Leave some margin within the bar */
+  overflow: visible; /* Allow text to overflow outside small bars */
   display: inline-block;
   line-height: 1; /* Tighter line height for thinner bars */
+  z-index: 10; /* Ensure text appears above bars */
+  position: absolute;
+  left: 5px;
+  top: -9px;
 }
 
 .modern-highest-line {
@@ -2067,6 +2074,7 @@
   max-width: 48%; /* Ensure bars don't exceed half the container width */
   box-sizing: border-box;
   cursor: pointer;
+  overflow: visible; /* Allow volume text to overflow on small bars */
 }
 
 .volume-bar.vertical {

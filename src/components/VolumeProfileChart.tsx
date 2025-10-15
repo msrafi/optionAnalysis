@@ -368,7 +368,7 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
                     onMouseLeave={handleBarMouseLeave}
                     onMouseMove={handleBarMouseMove}
                   >
-                    {item.callVolume > 0 && getBarWidth(item.callVolume, filteredChartData.maxVolume) > 12 && (
+                    {item.callVolume > 0 && (
                       <span className="volume-text modern-volume-text">
                         {formatVolume(item.callVolume)}
                       </span>
@@ -386,7 +386,7 @@ const VolumeProfileChart = memo<VolumeProfileChartProps>(({
                     onMouseLeave={handleBarMouseLeave}
                     onMouseMove={handleBarMouseMove}
                   >
-                    {item.putVolume > 0 && getBarWidth(item.putVolume, filteredChartData.maxVolume) > 12 && (
+                    {item.putVolume > 0 && (
                       <span className="volume-text modern-volume-text">
                         {formatVolume(item.putVolume)}
                       </span>
