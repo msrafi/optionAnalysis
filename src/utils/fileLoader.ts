@@ -42,43 +42,40 @@ export function parseTimestampFromFilename(filename: string): Date | null {
  * Get all CSV files from the data directory
  */
 export async function getDataFiles(): Promise<FileInfo[]> {
-  try {
-    // In a real application, you would fetch this from your backend
-    // For now, we'll simulate by checking known files
-    const baseUrl = import.meta.env.BASE_URL;
-    const response = await fetch(`${baseUrl}api/data-files.json`);
-    
-    if (!response.ok) {
-      // Fallback to static file list for development
-      return [
-        {
-          filename: 'options_data_2024-01-15_10-00.csv',
-          timestamp: new Date('2024-01-15T10:00:00'),
-          size: 0 // Will be updated when file is loaded
-        }
-      ];
-    }
-    
-    const files = await response.json();
-    return files.map((file: any) => ({
-      filename: file.name,
-      timestamp: parseTimestampFromFilename(file.name) || new Date(),
-      size: file.size
-    })).sort((a: FileInfo, b: FileInfo) => 
-      b.timestamp.getTime() - a.timestamp.getTime() // Most recent first
-    );
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.warn('Failed to fetch data files list, using fallback:', error);
-    }
-    return [
-      {
-        filename: 'options_data_2024-01-15_10-00.csv',
-        timestamp: new Date('2024-01-15T10:00:00'),
-        size: 0
-      }
-    ];
-  }
+  // Use hardcoded list of available files for now
+  const knownFiles = [
+    'options_data_2025-10-15_TSLA.csv',
+    'options_data_2025-10-16_16-00.csv',
+    'options_data_2025-10-16_15-00.csv',
+    'options_data_2025-10-16_12-00.csv',
+    'options_data_2025-10-16_10-30.csv',
+    'options_data_2025-10-15_16-00.csv',
+    'options_data_2025-10-15_14-00.csv',
+    'options_data_2025-10-15_11-30.csv',
+    'options_data_2025-10-15_10-00.csv',
+    'options_data_2025-10-14_16-00.csv',
+    'options_data_2025-10-14_15-00.csv',
+    'options_data_2025-10-14_11-00.csv',
+    'options_data_2025-10-14_01-00.csv',
+    'options_data_2025-10-13_13-20.csv',
+    'options_data_2025-10-13_13-00.csv',
+    'options_data_2025-10-13_10-50.csv',
+    'options_data_2025-10-13_10-00.csv',
+    'options_data_2025-10-13_05-30.csv',
+    'options_data_2024-01-15_16-00.csv',
+    'options_data_2024-01-15_11-30.csv',
+    'options_data_2024-01-15_11-00.csv',
+    'options_data_2024-01-15_10-00.csv',
+    'options_data_2024-01-15_02-30.csv'
+  ];
+
+  return knownFiles.map(filename => ({
+    filename,
+    timestamp: parseTimestampFromFilename(filename) || new Date(),
+    size: 0 // Will be updated when file is loaded
+  })).sort((a: FileInfo, b: FileInfo) => 
+    b.timestamp.getTime() - a.timestamp.getTime() // Most recent first
+  );
 }
 
 /**
