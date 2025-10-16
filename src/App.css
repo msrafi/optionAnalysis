@@ -2524,6 +2524,17 @@
   font-weight: 700;
 }
 
+/* Heatmap responsive adjustments */
+@media (max-width: 1200px) {
+  .heatmap-column {
+    max-width: 50%; /* Reduce heatmap width on smaller screens */
+  }
+  
+  .heatmap-table {
+    min-width: 600px; /* Reduce minimum width for smaller screens */
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   /* .options-dashboard {
@@ -2653,6 +2664,14 @@
   .heatmap-trades-section {
     grid-template-columns: 1fr;
     gap: 1rem;
+  }
+  
+  .heatmap-column {
+    max-width: 100%; /* Full width on mobile */
+  }
+  
+  .heatmap-table {
+    min-width: 500px; /* Smaller minimum width for mobile */
   }
   
   .volume-profile-chart {
@@ -2789,6 +2808,7 @@
 
 .heatmap-column {
   width: 100%;
+  max-width: 60%; /* Limit heatmap width to leave space for trade history */
   box-sizing: border-box;
 }
 
@@ -2857,6 +2877,21 @@
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
   flex: 1;
+  position: relative;
+}
+
+.heatmap-scroll-container::after {
+  content: "← Scroll horizontally to see more strikes →";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  pointer-events: none;
+  z-index: 5;
 }
 
 .heatmap-scroll-container::-webkit-scrollbar {
@@ -2880,6 +2915,7 @@
 
 .heatmap-table {
   width: 100%;
+  min-width: 800px; /* Ensure minimum width for horizontal scroll */
   border-collapse: collapse;
   font-size: 0.85rem;
 }
