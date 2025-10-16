@@ -45,7 +45,8 @@ export async function getDataFiles(): Promise<FileInfo[]> {
   try {
     // In a real application, you would fetch this from your backend
     // For now, we'll simulate by checking known files
-    const response = await fetch('/api/data-files');
+    const baseUrl = import.meta.env.BASE_URL;
+    const response = await fetch(`${baseUrl}api/data-files`);
     
     if (!response.ok) {
       // Fallback to static file list for development
@@ -87,7 +88,8 @@ export async function loadCSVFile(filename: string, bustCache: boolean = false):
   try {
     // Add cache-busting query parameter to force fresh load
     const cacheBuster = bustCache ? `?t=${Date.now()}` : '';
-    const response = await fetch(`/data/${filename}${cacheBuster}`, {
+    const baseUrl = import.meta.env.BASE_URL;
+    const response = await fetch(`${baseUrl}data/${filename}${cacheBuster}`, {
       cache: bustCache ? 'no-store' : 'default',
       headers: {
         'Cache-Control': bustCache ? 'no-cache, no-store, must-revalidate' : 'default',
