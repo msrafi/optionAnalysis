@@ -332,13 +332,14 @@
 
 /* Trade List Section */
 .trade-list-section {
-  padding: 1rem;
+  padding: 0.8rem; /* Reduced padding for more space */
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 500px; /* Ensure minimum height */
 }
 
 /* When trade list section is standalone (not in column) */
@@ -424,13 +425,13 @@
 
 .trade-table-header {
   display: grid;
-  grid-template-columns: 1fr 0.8fr 1.2fr 0.9fr 0.9fr 0.8fr 1fr 0.8fr 0.8fr 1fr;
-  gap: 0.5rem;
-  padding: 0.6rem 0.75rem;
+  grid-template-columns: 0.8fr 0.7fr 1fr 0.8fr 0.8fr 0.7fr 0.9fr 0.7fr 0.7fr 0.9fr; /* Optimized column widths */
+  gap: 0.4rem; /* Reduced gap for more space */
+  padding: 0.5rem 0.6rem; /* Reduced padding */
   background: rgba(0, 0, 0, 0.4);
   border-bottom: 2px solid rgba(255, 255, 255, 0.2);
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.75rem; /* Slightly smaller font */
   color: rgba(255, 255, 255, 0.9);
   position: sticky;
   top: 0;
@@ -2526,12 +2527,12 @@
 
 /* Heatmap responsive adjustments */
 @media (max-width: 1200px) {
-  .heatmap-column {
-    max-width: 50%; /* Reduce heatmap width on smaller screens */
+  .heatmap-trades-section {
+    grid-template-columns: 1fr 0.9fr; /* Adjust proportions for medium screens */
   }
   
   .heatmap-table {
-    min-width: 600px; /* Reduce minimum width for smaller screens */
+    min-width: 500px; /* Reduce minimum width for smaller screens */
   }
 }
 
@@ -2662,16 +2663,12 @@
   }
   
   .heatmap-trades-section {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr; /* Single column on mobile */
     gap: 1rem;
   }
   
-  .heatmap-column {
-    max-width: 100%; /* Full width on mobile */
-  }
-  
   .heatmap-table {
-    min-width: 500px; /* Smaller minimum width for mobile */
+    min-width: 400px; /* Smaller minimum width for mobile */
   }
   
   .volume-profile-chart {
@@ -2798,18 +2795,18 @@
 /* Heatmap & Trade History - Two Column Layout */
 .heatmap-trades-section {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  grid-template-columns: 1.2fr 0.8fr; /* Better proportion: 60% heatmap, 40% trades */
+  gap: 1.5rem;
   margin-bottom: 2rem;
   width: 100%;
   box-sizing: border-box;
   margin-top: 2em;
   min-height: 0; /* Allow grid items to shrink */
+  align-items: start; /* Align items to top */
 }
 
 .heatmap-column {
   width: 100%;
-  max-width: 60%; /* Limit heatmap width to leave space for trade history */
   box-sizing: border-box;
   overflow: hidden; /* Prevent overflow from affecting layout */
 }
@@ -2920,11 +2917,11 @@
 
 .heatmap-table {
   width: 100%;
-  min-width: 600px; /* Reduced minimum width */
+  min-width: 500px; /* Further reduced for better fit */
   max-width: 100%; /* Ensure table doesn't exceed container */
   border-collapse: collapse;
-  font-size: 0.85rem;
-  table-layout: fixed; /* Fixed layout for better control */
+  font-size: 0.8rem; /* Slightly smaller font for more data */
+  table-layout: auto; /* Auto layout for better content fitting */
 }
 
 .heatmap-table thead {
@@ -2997,13 +2994,14 @@
 }
 
 .heatmap-cell {
-  padding: 0.6rem 1rem;
+  padding: 0.4rem 0.6rem; /* Reduced padding for more compact layout */
   text-align: center;
   border: 1px solid rgba(255, 255, 255, 0.05);
-  min-width: 100px;
-  min-height: 40px;
+  min-width: 80px; /* Reduced minimum width */
+  min-height: 35px; /* Reduced height */
   transition: all 0.2s ease;
   cursor: default;
+  white-space: nowrap; /* Prevent text wrapping */
 }
 
 .heatmap-cell.has-data {
