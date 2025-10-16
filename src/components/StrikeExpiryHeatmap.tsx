@@ -1,6 +1,23 @@
 import React, { useMemo } from 'react';
 import { OptionData } from '../utils/dataParser';
 
+// Import the parsePremium function from dataParser
+function parsePremium(premium: string): number {
+  const hasK = premium.includes('K');
+  const hasM = premium.includes('M');
+  
+  const cleanPremium = premium.replace(/[$,]/g, '');
+  const num = parseFloat(cleanPremium);
+  
+  if (hasM) {
+    return num * 1000000;
+  } else if (hasK) {
+    return num * 1000;
+  }
+  
+  return num;
+}
+
 interface StrikeExpiryHeatmapProps {
   trades: OptionData[];
   currentPrice?: number;
@@ -37,9 +54,12 @@ const StrikeExpiryHeatmap: React.FC<StrikeExpiryHeatmapProps> = ({ trades, curre
       }
 
       const cell = dataMap.get(key)!;
-      const premium = parseFloat(trade.premium.replace(/[$,K]/g, ''));
-      const multiplier = trade.premium.includes('K') ? 1000 : 1;
-      const totalValue = premium * multiplier;
+      const totalValue = parsePremium(trade.premium);
+
+      // Debug logging for small values
+      if (Math.abs(totalValue) < 10 && trade.ticker === 'TSLA') {
+        console.log(`Small premium detected: ${trade.ticker} ${trade.strike} ${trade.expiry} ${trade.optionType} - Premium: "${trade.premium}" -> Parsed: ${totalValue}`);
+      }
 
       // Aggregate based on option type
       if (trade.optionType === 'Call') {
@@ -98,8 +118,12 @@ const StrikeExpiryHeatmap: React.FC<StrikeExpiryHeatmapProps> = ({ trades, curre
       return `${value >= 0 ? '' : '-'}$${(absValue / 1000000).toFixed(1)}M`;
     } else if (absValue >= 1000) {
       return `${value >= 0 ? '' : '-'}$${(absValue / 1000).toFixed(1)}K`;
+    } else if (absValue >= 1) {
+      return `${value >= 0 ? '' : '-'}$${absValue.toFixed(0)}`;
+    } else {
+      // For very small values, show more precision
+      return `${value >= 0 ? '' : '-'}$${absValue.toFixed(2)}`;
     }
-    return `${value >= 0 ? '' : '-'}$${absValue.toFixed(0)}`;
   };
 
   const isCurrentPriceStrike = (strike: number): boolean => {
