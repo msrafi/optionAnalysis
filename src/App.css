@@ -2804,12 +2804,14 @@
   width: 100%;
   box-sizing: border-box;
   margin-top: 2em;
+  min-height: 0; /* Allow grid items to shrink */
 }
 
 .heatmap-column {
   width: 100%;
   max-width: 60%; /* Limit heatmap width to leave space for trade history */
   box-sizing: border-box;
+  overflow: hidden; /* Prevent overflow from affecting layout */
 }
 
 .trades-column {
@@ -2827,6 +2829,9 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .heatmap-header {
@@ -2915,9 +2920,11 @@
 
 .heatmap-table {
   width: 100%;
-  min-width: 800px; /* Ensure minimum width for horizontal scroll */
+  min-width: 600px; /* Reduced minimum width */
+  max-width: 100%; /* Ensure table doesn't exceed container */
   border-collapse: collapse;
   font-size: 0.85rem;
+  table-layout: fixed; /* Fixed layout for better control */
 }
 
 .heatmap-table thead {
