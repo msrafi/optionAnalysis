@@ -46,7 +46,7 @@ export async function getDataFiles(): Promise<FileInfo[]> {
     // In a real application, you would fetch this from your backend
     // For now, we'll simulate by checking known files
     const baseUrl = import.meta.env.BASE_URL;
-    const response = await fetch(`${baseUrl}api/data-files`);
+    const response = await fetch(`${baseUrl}api/data-files.json`);
     
     if (!response.ok) {
       // Fallback to static file list for development
