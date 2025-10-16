@@ -3,6 +3,7 @@ import { ArrowLeft, Calendar, RefreshCw, Search } from 'lucide-react';
 import TickerList from './TickerList';
 import VolumeProfileChart from './VolumeProfileChart';
 import TradeList from './TradeList';
+import StrikeExpiryHeatmap from './StrikeExpiryHeatmap';
 import { 
   mergeDataFromFiles,
   getTickerSummaries, 
@@ -401,15 +402,28 @@ const OptionsDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Trade List */}
-          <div className="trade-list-section">
-            <h3>Trade History for {selectedTicker}</h3>
-            <p>Found {tickerTrades.length} trades</p>
-            <TradeList 
-              trades={tickerTrades}
-              ticker={selectedTicker}
-              expiry={selectedExpiry || undefined}
-            />
+          {/* Heatmap & Trade History - Two Column Layout */}
+          <div className="heatmap-trades-section">
+            {/* Left Column - Strike × Expiry Heatmap */}
+            <div className="heatmap-column">
+              <StrikeExpiryHeatmap 
+                trades={tickerTrades}
+                currentPrice={currentPrice || undefined}
+              />
+            </div>
+
+            {/* Right Column - Trade List */}
+            <div className="trades-column">
+              <div className="trade-list-section">
+                <h3>Trade History for {selectedTicker}</h3>
+                <p>Found {tickerTrades.length} trades</p>
+                <TradeList 
+                  trades={tickerTrades}
+                  ticker={selectedTicker}
+                  expiry={selectedExpiry || undefined}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}

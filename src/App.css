@@ -332,11 +332,18 @@
 
 /* Trade List Section */
 .trade-list-section {
-  margin-top: 2rem;
   padding: 1rem;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* When trade list section is standalone (not in column) */
+.ticker-detail-view > .trade-list-section {
+  margin-top: 2rem;
 }
 
 .trade-list-section h3 {
@@ -406,6 +413,7 @@
 .trade-list-content {
   max-height: 600px;
   overflow-y: auto;
+  flex: 1;
 }
 
 .trade-list-table {
@@ -1165,6 +1173,7 @@
   color: white;
   width: 100%;
   box-sizing: border-box;
+  padding: 1em;
 }
 
 .detail-header {
@@ -2641,6 +2650,11 @@
     gap: 1rem;
   }
   
+  .heatmap-trades-section {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
   .volume-profile-chart {
     height: 800px;
   }
@@ -2760,4 +2774,297 @@
 
 .current-price-label-inline{
   display: none;
+}
+
+/* Heatmap & Trade History - Two Column Layout */
+.heatmap-trades-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 2em;
+}
+
+.heatmap-column {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.trades-column {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Strike × Expiry Heatmap Styles */
+.strike-expiry-heatmap {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.heatmap-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 0.75rem;
+}
+
+.heatmap-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #4fc3f7, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.heatmap-legend {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.heatmap-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.heatmap-legend .legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+}
+
+.heatmap-scroll-container {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 600px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex: 1;
+}
+
+.heatmap-scroll-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.heatmap-scroll-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.heatmap-scroll-container::-webkit-scrollbar-thumb {
+  background: rgba(79, 195, 247, 0.3);
+  border-radius: 4px;
+}
+
+.heatmap-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(79, 195, 247, 0.5);
+}
+
+.heatmap-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.heatmap-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.heatmap-corner {
+  position: sticky;
+  left: 0;
+  z-index: 11;
+  background: rgba(0, 0, 0, 0.9) !important;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-right: 2px solid rgba(79, 195, 247, 0.3);
+  border-bottom: 2px solid rgba(79, 195, 247, 0.3);
+  min-width: 80px;
+}
+
+.heatmap-expiry {
+  background: rgba(0, 0, 0, 0.9);
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  text-align: center;
+  border-bottom: 2px solid rgba(79, 195, 247, 0.3);
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+.heatmap-strike {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0.8);
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  padding: 0.6rem 1rem;
+  text-align: left;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.heatmap-strike.at-money {
+  background: linear-gradient(90deg, rgba(255, 193, 7, 0.3), rgba(255, 193, 7, 0.15));
+  border-right: 2px solid rgba(255, 193, 7, 0.6);
+  font-weight: 700;
+  color: #ffc107;
+}
+
+.atm-indicator {
+  margin-left: 0.5rem;
+  color: #ffc107;
+  font-size: 0.75rem;
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.current-price-row {
+  background: rgba(255, 193, 7, 0.05);
+}
+
+.heatmap-cell {
+  padding: 0.6rem 1rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  min-width: 100px;
+  min-height: 40px;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.heatmap-cell.has-data {
+  cursor: pointer;
+}
+
+.heatmap-cell.has-data:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 16px rgba(79, 195, 247, 0.4);
+  border: 1px solid rgba(79, 195, 247, 0.5);
+  z-index: 2;
+}
+
+.heatmap-cell.at-money-cell {
+  border-top: 2px solid rgba(255, 193, 7, 0.3);
+  border-bottom: 2px solid rgba(255, 193, 7, 0.3);
+}
+
+.heatmap-cell.at-money-cell.has-data {
+  outline: 2px solid rgba(255, 193, 7, 0.5);
+  outline-offset: -2px;
+}
+
+.cell-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cell-value {
+  color: white;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .strike-expiry-heatmap {
+    padding: 1rem;
+  }
+  
+  .heatmap-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .heatmap-legend {
+    gap: 1rem;
+  }
+  
+  .heatmap-table {
+    font-size: 0.75rem;
+  }
+  
+  .heatmap-corner,
+  .heatmap-strike {
+    min-width: 60px;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .heatmap-expiry,
+  .heatmap-cell {
+    min-width: 80px;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .cell-value {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .heatmap-header h3 {
+    font-size: 1.1rem;
+  }
+  
+  .heatmap-legend {
+    font-size: 0.75rem;
+  }
+  
+  .heatmap-legend .legend-color {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .heatmap-table {
+    font-size: 0.7rem;
+  }
+  
+  .heatmap-corner,
+  .heatmap-strike {
+    min-width: 50px;
+    padding: 0.4rem 0.5rem;
+  }
+  
+  .heatmap-expiry,
+  .heatmap-cell {
+    min-width: 70px;
+    padding: 0.4rem 0.5rem;
+  }
+  
+  .cell-value {
+    font-size: 0.7rem;
+  }
 }
