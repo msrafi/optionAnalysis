@@ -6,7 +6,9 @@ import './index.css'
 // Register service worker for better performance
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
+    // Use dynamic base path for GitHub Pages
+    const basePath = import.meta.env.BASE_URL;
+    navigator.serviceWorker.register(`${basePath}sw.js`)
       .then((registration) => {
         console.log('SW registered: ', registration);
       })

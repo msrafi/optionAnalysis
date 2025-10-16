@@ -1,12 +1,8 @@
 // Service Worker for caching static assets
-const CACHE_NAME = 'option-analysis-v2';
+const CACHE_NAME = 'option-analysis-v3';
 const STATIC_ASSETS = [
   '/optionAnalysis/',
-  '/optionAnalysis/index.html',
-  '/optionAnalysis/assets/index.css',
-  '/optionAnalysis/assets/index.js',
-  '/optionAnalysis/assets/vendor.js',
-  '/optionAnalysis/assets/utils.js'
+  '/optionAnalysis/index.html'
 ];
 
 // Install event - cache static assets
