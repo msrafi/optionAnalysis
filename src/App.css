@@ -73,46 +73,123 @@
 
 /* Compact Dashboard Header */
 .dashboard-header {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  padding: 1rem 2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, 
+    rgba(79, 195, 247, 0.15) 0%, 
+    rgba(96, 165, 250, 0.12) 50%, 
+    rgba(139, 92, 246, 0.15) 100%);
+  backdrop-filter: blur(15px);
+  padding: 0.75rem 2rem;
+  border-bottom: 2px solid transparent;
+  border-image: linear-gradient(90deg, 
+    rgba(79, 195, 247, 0.4), 
+    rgba(139, 92, 246, 0.4), 
+    rgba(79, 195, 247, 0.4)) 1;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1.5rem;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* Animated gradient background */
+.dashboard-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(79, 195, 247, 0.1), 
+    transparent);
+  animation: shimmer 3s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(50%); }
 }
 
 .header-left {
   flex: 0 0 auto;
   min-width: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .dashboard-header h1 {
-  margin: 0 0 0.35rem 0;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: white;
+  margin: 0 0 0.25rem 0;
+  font-size: 1.65rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #4fc3f7, #60a5fa, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   white-space: nowrap;
+  text-shadow: 0 2px 8px rgba(79, 195, 247, 0.3);
+  letter-spacing: -0.5px;
+  animation: fadeInDown 0.5s ease-out;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .header-stats {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.7);
   white-space: nowrap;
+  position: relative;
+  z-index: 1;
 }
 
 .header-stat {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(79, 195, 247, 0.08);
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid rgba(79, 195, 247, 0.2);
+  font-weight: 600;
+  backdrop-filter: blur(5px);
+  transition: all 0.3s ease;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.header-stat:hover {
+  background: rgba(79, 195, 247, 0.15);
+  border-color: rgba(79, 195, 247, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(79, 195, 247, 0.2);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .stat-separator {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(79, 195, 247, 0.5);
+  font-weight: 700;
 }
 
 .search-container-header {
@@ -121,34 +198,68 @@
   align-items: center;
   flex: 1;
   max-width: 400px;
+  z-index: 1;
 }
 
 .refresh-button-compact {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: rgba(79, 195, 247, 0.15);
-  border: 1px solid rgba(79, 195, 247, 0.3);
-  border-radius: 6px;
+  padding: 0.6rem 1.2rem;
+  background: linear-gradient(135deg, 
+    rgba(79, 195, 247, 0.2), 
+    rgba(96, 165, 250, 0.15));
+  border: 1px solid rgba(79, 195, 247, 0.4);
+  border-radius: 8px;
   color: #4fc3f7;
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   white-space: nowrap;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(79, 195, 247, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.refresh-button-compact::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.5s ease, height 0.5s ease;
+}
+
+.refresh-button-compact:hover::before {
+  width: 300px;
+  height: 300px;
 }
 
 .refresh-button-compact:hover {
-  background: rgba(79, 195, 247, 0.25);
-  border-color: rgba(79, 195, 247, 0.5);
-  transform: translateY(-1px);
+  background: linear-gradient(135deg, 
+    rgba(79, 195, 247, 0.3), 
+    rgba(96, 165, 250, 0.25));
+  border-color: rgba(79, 195, 247, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(79, 195, 247, 0.3);
 }
 
 .refresh-icon {
   width: 16px;
   height: 16px;
+  transition: transform 0.6s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.refresh-button-compact:hover .refresh-icon {
+  transform: rotate(360deg);
 }
 
 
@@ -157,26 +268,36 @@
   left: 1rem;
   width: 18px;
   height: 18px;
-  color: rgba(255, 255, 255, 0.5);
+  color: #4fc3f7;
   pointer-events: none;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.search-container-header:focus-within .search-icon {
+  color: #60a5fa;
+  transform: scale(1.1);
 }
 
 .search-input {
   width: 100%;
   padding: 0.75rem 2.5rem 0.75rem 3rem;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(79, 195, 247, 0.3);
+  border-radius: 10px;
   color: white;
   font-size: 0.95rem;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .search-input:focus {
   outline: none;
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(79, 195, 247, 0.5);
-  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.1);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(79, 195, 247, 0.6);
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.15), 
+              inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
 }
 
 .search-input::placeholder {
@@ -189,7 +310,7 @@
   width: 24px;
   height: 24px;
   border: none;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(244, 67, 54, 0.2);
   color: white;
   border-radius: 50%;
   cursor: pointer;
@@ -198,12 +319,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  z-index: 2;
 }
 
 .clear-search:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.1);
+  background: rgba(244, 67, 54, 0.4);
+  transform: scale(1.15) rotate(90deg);
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
 }
 
 
@@ -665,7 +788,7 @@
 
 /* Options Dashboard Styles */
 .options-dashboard {
-  padding: 1rem;
+  padding: 0rem;
   width: 100%;
   margin: 0;
   color: white;
@@ -677,6 +800,7 @@
   color: white;
   width: 100%;
   box-sizing: border-box;
+  padding: 1em;
 }
 
 .ticker-list-header {
@@ -1047,86 +1171,181 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .back-button {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.1);
+  gap: 0.4rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.9rem;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .back-button:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, rgba(79, 195, 247, 0.2), rgba(79, 195, 247, 0.1));
+  border-color: rgba(79, 195, 247, 0.4);
+  transform: translateX(-2px);
+  box-shadow: 0 2px 12px rgba(79, 195, 247, 0.2);
 }
 
 .back-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
+  transition: transform 0.3s ease;
+}
+
+.back-button:hover .back-icon {
+  transform: translateX(-2px);
 }
 
 .detail-header h2 {
   margin: 0;
-  font-size: 2rem;
+  font-size: 1.5rem;
+  font-weight: 700;
   color: white;
+  background: linear-gradient(135deg, #4fc3f7, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-/* Expiry Filter Styles */
-.expiry-filter {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+.current-price-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.15));
+  border: 1px solid rgba(76, 175, 80, 0.5);
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
+  transition: all 0.3s ease;
+}
+
+.current-price-badge:hover {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.2));
+  border-color: rgba(76, 175, 80, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.25);
+}
+
+.price-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+.price-status {
+  opacity: 0.7;
+  font-size: 0.75rem;
+  margin-left: 0.15rem;
+}
+
+.price-unavailable {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+  white-space: nowrap;
+}
+
+/* Expiry Filter Styles - Compact Single Line */
+.expiry-filter {
+  background: linear-gradient(135deg, rgba(79, 195, 247, 0.08), rgba(96, 165, 250, 0.05));
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid rgba(79, 195, 247, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .filter-header {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  color: white;
+  gap: 0.4rem;
+  color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
 }
 
 .filter-icon {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
+  color: #4fc3f7;
 }
 
 .expiry-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  flex: 1;
 }
 
 .expiry-button {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: white;
-  padding: 0.5rem 1rem;
+  padding: 0.35rem 0.8rem;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  font-size: 0.8rem;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .expiry-button:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(79, 195, 247, 0.15);
+  border-color: rgba(79, 195, 247, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(79, 195, 247, 0.2);
 }
 
 .expiry-button.active {
-  background: #4fc3f7;
+  background: linear-gradient(135deg, #4fc3f7, #29b6f6);
   border-color: #4fc3f7;
-  color: #1a1a2e;
+  color: #0a0e27;
+  font-weight: 600;
+  box-shadow: 0 2px 12px rgba(79, 195, 247, 0.3);
 }
 
 /* Charts Section - Two Column Layout */
@@ -2298,9 +2517,9 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .options-dashboard {
+  /* .options-dashboard {
     padding: 0.5rem;
-  }
+  } */
   
   .ticker-list-header {
     flex-direction: column;
@@ -2322,19 +2541,28 @@
   }
   
   .dashboard-header {
-    padding: 0.85rem 1rem;
-    gap: 1rem;
+    padding: 0.7rem 1rem;
+    gap: 0.75rem;
     flex-wrap: wrap;
   }
   
   .header-left {
     flex: 1 1 100%;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
   }
   
   .search-container-header {
     flex: 1 1 auto;
     max-width: none;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 1.45rem;
+  }
+  
+  .header-stat {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
   }
 
   .chart-header {
@@ -2363,13 +2591,49 @@
   }
   
   .detail-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .detail-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .back-button {
+    padding: 0.45rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  .current-price-badge {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+  }
+  
+  .price-indicator {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .price-status {
+    font-size: 0.7rem;
+  }
+  
+  .expiry-filter {
+    padding: 0.5rem 0.75rem;
+    gap: 0.75rem;
+  }
+  
+  .filter-header {
+    font-size: 0.8rem;
   }
   
   .expiry-buttons {
-    flex-direction: column;
+    gap: 0.35rem;
+  }
+  
+  .expiry-button {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
   }
   
   .charts-section {
@@ -2400,17 +2664,28 @@
     padding: 0.75rem;
   }
   
+  .dashboard-header {
+    padding: 0.6rem 0.75rem;
+  }
+  
   .dashboard-header h1 {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
   }
   
   .header-stats {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
+    gap: 0.35rem;
+  }
+  
+  .header-stat {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.45rem;
   }
   
   .refresh-button-compact {
     width: 100%;
     justify-content: center;
+    padding: 0.5rem 1rem;
   }
   
   .volume-profile-chart {
@@ -2423,6 +2698,63 @@
   
   .summary-stats {
     grid-template-columns: 1fr;
+  }
+  
+  .detail-header {
+    gap: 0.5rem;
+  }
+  
+  .detail-header h2 {
+    font-size: 1.1rem;
+  }
+  
+  .back-button {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.75rem;
+  }
+  
+  .back-icon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .current-price-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    gap: 0.3rem;
+  }
+  
+  .price-indicator {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .price-status {
+    font-size: 0.65rem;
+  }
+  
+  .price-unavailable {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .expiry-filter {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+  
+  .filter-header {
+    font-size: 0.75rem;
+  }
+  
+  .filter-icon {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .expiry-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.7rem;
   }
 }
 

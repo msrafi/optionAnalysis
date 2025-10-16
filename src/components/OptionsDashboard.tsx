@@ -311,53 +311,20 @@ const OptionsDashboard: React.FC = () => {
               <ArrowLeft className="back-icon" />
               Back to Ticker List
             </button>
-            <div>
-              <h2>{selectedTicker} Options Analysis</h2>
-              {currentPrice && priceSource === 'api' ? (
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.5rem', 
-                  marginTop: '0.5rem',
-                  fontSize: '0.9rem',
-                  color: 'rgba(255, 255, 255, 0.8)'
-                }}>
-                  <span style={{
-                    padding: '0.25rem 0.75rem',
-                    borderRadius: '4px',
-                    background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.2), rgba(76, 175, 80, 0.3))',
-                    border: '1px solid rgba(76, 175, 80, 0.5)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    <span style={{
-                      width: '8px',
-                      height: '8px',
-                      borderRadius: '50%',
-                      background: '#4caf50'
-                    }}></span>
-                    Current Price: ${currentPrice.toFixed(2)}
-                    <span style={{ 
-                      opacity: 0.7, 
-                      fontSize: '0.75rem',
-                      marginLeft: '0.25rem'
-                    }}>
-                      ({isPriceCached ? 'Cached' : 'Live'})
-                    </span>
-                  </span>
-                </div>
-              ) : (
-                <div style={{ 
-                  marginTop: '0.5rem',
-                  fontSize: '0.85rem',
-                  color: 'rgba(255, 255, 255, 0.6)',
-                  fontStyle: 'italic'
-                }}>
-                  Real-time price unavailable
-                </div>
-              )}
-            </div>
+            <h2>{selectedTicker} Options Analysis</h2>
+            {currentPrice && priceSource === 'api' ? (
+              <span className="current-price-badge">
+                <span className="price-indicator"></span>
+                Current Price: ${currentPrice.toFixed(2)}
+                <span className="price-status">
+                  ({isPriceCached ? 'Cached' : 'Live'})
+                </span>
+              </span>
+            ) : (
+              <span className="price-unavailable">
+                Price unavailable
+              </span>
+            )}
           </div>
 
           {/* Expiry Date Filter */}
