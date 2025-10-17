@@ -1,33 +1,24 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { ArrowLeft, Calendar, RefreshCw, Search } from 'lucide-react';
-import TickerList from './TickerList';
-import VolumeProfileChart from './VolumeProfileChart';
-import TradeList from './TradeList';
-import StrikeExpiryHeatmap from './StrikeExpiryHeatmap';
+import { ArrowLeft, RefreshCw, Search } from 'lucide-react';
+import DarkPoolList from './DarkPoolList';
 import { 
-  mergeDataFromFiles,
-  getTickerSummaries, 
-  getVolumeProfileForTicker, 
-  getExpiryDatesForTicker,
-  getHighestVolumeData,
-  clearDataCache,
-  OptionData,
+  mergeDarkPoolDataFromFiles,
+  getDarkPoolTickerSummaries, 
+  clearDarkPoolDataCache,
+  DarkPoolData,
   MergedDataInfo
 } from '../utils/dataParser';
-import { loadAllDataFiles, clearFileCache } from '../utils/fileLoader';
+import { loadAllDarkPoolDataFiles, clearDarkPoolFileCache } from '../utils/fileLoader';
 import { getCurrentPrice, clearPriceCache } from '../utils/stockPrice';
 
-// We'll load the CSV data via fetch instead of import
-
-export interface OptionsDashboardProps {
+export interface DarkPoolDashboardProps {
   activeDashboard: 'options' | 'darkpool';
   setActiveDashboard: (dashboard: 'options' | 'darkpool') => void;
 }
 
-const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, setActiveDashboard }) => {
+const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, setActiveDashboard }) => {
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
-  const [selectedExpiry, setSelectedExpiry] = useState<string | null>(null);
-  const [optionData, setOptionData] = useState<OptionData[]>([]);
+  const [darkPoolData, setDarkPoolData] = useState<DarkPoolData[]>([]);
   const [dataInfo, setDataInfo] = useState<MergedDataInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -42,15 +33,15 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
         setLoading(true);
         setError(null);
         
-        // Load all CSV files from the data directory
-        const loadedFiles = await loadAllDataFiles(bustCache);
+        // Load all dark pool CSV files from the data directory
+        const loadedFiles = await loadAllDarkPoolDataFiles(bustCache);
         
         if (loadedFiles.length === 0) {
-          throw new Error('No data files found in the data directory');
+          throw new Error('No dark pool data files found in the data directory');
         }
         
         // Merge data from all files
-        const { mergedData, info } = mergeDataFromFiles(
+        const { mergedData, info } = mergeDarkPoolDataFromFiles(
           loadedFiles.map(file => ({
             filename: file.filename,
             data: file.data,
@@ -58,16 +49,16 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
           }))
         );
         
-        setOptionData(mergedData);
+        setDarkPoolData(mergedData);
         setDataInfo(info);
         setLoading(false);
         
         if (import.meta.env.DEV) {
-          console.log(`Loaded ${info.totalFiles} files with ${info.totalRecords} total records`);
+          console.log(`Loaded ${info.totalFiles} dark pool files with ${info.totalRecords} total records`);
         }
       } catch (error) {
-        console.error('Error loading data files:', error);
-        setError(error instanceof Error ? error.message : 'Failed to load data');
+        console.error('Error loading dark pool data files:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load dark pool data');
         setLoading(false);
       }
     };
@@ -76,8 +67,8 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
   }, []);
 
   const tickerSummaries = useMemo(() => {
-    return getTickerSummaries(optionData);
-  }, [optionData]);
+    return getDarkPoolTickerSummaries(darkPoolData);
+  }, [darkPoolData]);
 
   const filteredTickerSummaries = useMemo(() => {
     if (!searchTerm.trim()) {
@@ -90,78 +81,44 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
     );
   }, [tickerSummaries, searchTerm]);
 
-
-  const expiryDates = useMemo(() => {
-    if (!selectedTicker) return [];
-    return getExpiryDatesForTicker(optionData, selectedTicker);
-  }, [optionData, selectedTicker]);
-
-  const volumeProfileData = useMemo(() => {
-    if (!selectedTicker) return [];
-    return getVolumeProfileForTicker(optionData, selectedTicker, selectedExpiry || undefined);
-  }, [optionData, selectedTicker, selectedExpiry]);
-
-  // Get filtered trades for the selected ticker and expiry
+  // Get filtered trades for the selected ticker
   const filteredTrades = useMemo(() => {
     if (!selectedTicker) return [];
-    return optionData.filter(trade => {
-      const matchesTicker = trade.ticker === selectedTicker;
-      const matchesExpiry = !selectedExpiry || trade.expiry === selectedExpiry;
-      return matchesTicker && matchesExpiry;
-    });
-  }, [optionData, selectedTicker, selectedExpiry]);
-
-  const highestVolumeData = useMemo(() => {
-    if (!selectedTicker) return null;
-    return getHighestVolumeData(optionData, selectedTicker, selectedExpiry || undefined);
-  }, [optionData, selectedTicker, selectedExpiry]);
-
-  const tickerTrades = useMemo(() => {
-    if (!selectedTicker) return [];
-    return optionData.filter(option => 
-      option.ticker === selectedTicker && 
-      (!selectedExpiry || option.expiry === selectedExpiry)
-    );
-  }, [optionData, selectedTicker, selectedExpiry]);
+    return darkPoolData.filter(trade => trade.ticker === selectedTicker);
+  }, [darkPoolData, selectedTicker]);
 
   const handleTickerSelect = useCallback((ticker: string) => {
     setSelectedTicker(ticker);
-    setSelectedExpiry(null); // Reset expiry selection when changing ticker
   }, []);
 
   const handleBackToList = useCallback(() => {
     setSelectedTicker(null);
-    setSelectedExpiry(null);
   }, []);
-
-  const handleExpirySelect = useCallback((expiry: string) => {
-    setSelectedExpiry(expiry === selectedExpiry ? null : expiry);
-  }, [selectedExpiry]);
 
   const handleRefreshData = useCallback(async () => {
     try {
-      console.log('🔄 Performing hard refresh for options data...');
+      console.log('🔄 Performing hard refresh for dark pool data...');
       
-      // Clear only options related caches
-      clearDataCache();      // Clear options parsed data cache
-      clearFileCache();      // Clear options file loading cache
-      clearPriceCache();     // Clear stock price cache (shared)
+      // Clear only dark pool related caches
+      clearDarkPoolDataCache();      // Clear dark pool parsed data cache
+      clearDarkPoolFileCache();      // Clear dark pool file loading cache
+      clearPriceCache();             // Clear stock price cache (shared)
       
-      console.log('✓ Options caches cleared');
-      console.log('🔄 Reloading options data with cache bypass...');
+      console.log('✓ Dark pool caches cleared');
+      console.log('🔄 Reloading dark pool data with cache bypass...');
       
       setLoading(true);
       setError(null);
       
-      // Load all CSV files with cache busting enabled
-      const loadedFiles = await loadAllDataFiles(true);
+      // Load all dark pool CSV files with cache busting enabled
+      const loadedFiles = await loadAllDarkPoolDataFiles(true);
       
       if (loadedFiles.length === 0) {
-        throw new Error('No data files found in the data directory');
+        throw new Error('No dark pool data files found in the data directory');
       }
       
       // Merge data from all files
-      const { mergedData, info } = mergeDataFromFiles(
+      const { mergedData, info } = mergeDarkPoolDataFromFiles(
         loadedFiles.map(file => ({
           filename: file.filename,
           data: file.data,
@@ -169,7 +126,7 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
         }))
       );
       
-      setOptionData(mergedData);
+      setDarkPoolData(mergedData);
       setDataInfo(info);
       
       // Reset current price and reload it
@@ -187,14 +144,14 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
       
       setLoading(false);
       
-      console.log('✓ Data reloaded successfully:', {
+      console.log('✓ Dark pool data reloaded successfully:', {
         files: info.totalFiles,
         records: info.totalRecords,
         latestData: info.dateRange.latest
       });
     } catch (error) {
       console.error('Error during hard refresh:', error);
-      setError(error instanceof Error ? error.message : 'Failed to refresh data');
+      setError(error instanceof Error ? error.message : 'Failed to refresh dark pool data');
       setLoading(false);
     }
   }, [selectedTicker]);
@@ -226,7 +183,7 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
     return (
       <div className="dashboard-loading">
         <div className="loading-spinner"></div>
-        <p>Loading options data from multiple files...</p>
+        <p>Loading dark pool data from multiple files...</p>
       </div>
     );
   }
@@ -235,7 +192,7 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
     return (
       <div className="dashboard-error">
         <div className="error-icon">⚠️</div>
-        <h3>Error Loading Data</h3>
+        <h3>Error Loading Dark Pool Data</h3>
         <p>{error}</p>
         <button 
           className="retry-button" 
@@ -248,7 +205,7 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
   }
 
   return (
-    <div className="options-dashboard">
+    <div className="darkpool-dashboard">
       {/* Compact Header with Data Summary */}
       <header className="dashboard-header">
         <div className="header-left">
@@ -314,11 +271,57 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
       </header>
 
       {!selectedTicker ? (
-        <TickerList 
-          tickers={filteredTickerSummaries} 
-          onTickerSelect={handleTickerSelect}
-          allData={optionData}
-        />
+        <div className="ticker-list-container">
+          <div className="ticker-list-header">
+            <h2>Dark Pool Tickers</h2>
+            <p>Select a ticker to view detailed dark pool activity</p>
+          </div>
+          
+          <div className="ticker-grid">
+            {filteredTickerSummaries.map((ticker) => (
+              <div 
+                key={ticker.ticker}
+                className="ticker-card"
+                onClick={() => handleTickerSelect(ticker.ticker)}
+              >
+                <div className="ticker-symbol">{ticker.ticker}</div>
+                <div className="ticker-stats">
+                  <div className="stat-row">
+                    <span className="stat-label">Total Value:</span>
+                    <span className="stat-value">
+                      ${(ticker.totalValue / 1000000).toFixed(1)}M
+                    </span>
+                  </div>
+                  <div className="stat-row">
+                    <span className="stat-label">Quantity:</span>
+                    <span className="stat-value">
+                      {(ticker.totalQuantity / 1000).toFixed(0)}K
+                    </span>
+                  </div>
+                  <div className="stat-row">
+                    <span className="stat-label">Trades:</span>
+                    <span className="stat-value">{ticker.tradeCount}</span>
+                  </div>
+                  <div className="stat-row">
+                    <span className="stat-label">Avg Price:</span>
+                    <span className="stat-value">${ticker.averagePrice.toFixed(2)}</span>
+                  </div>
+                </div>
+                <div className="ticker-footer">
+                  <span className="last-activity">
+                    Last: {ticker.lastActivity}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {filteredTickerSummaries.length === 0 && (
+            <div className="no-tickers-message">
+              <p>No tickers found matching your search.</p>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="ticker-detail-view">
           <div className="detail-header">
@@ -326,7 +329,7 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
               <ArrowLeft className="back-icon" />
               Back to Ticker List
             </button>
-            <h2>{selectedTicker} Options Analysis</h2>
+            <h2>{selectedTicker} Dark Pool Analysis</h2>
             {currentPrice && priceSource === 'api' ? (
               <span className="current-price-badge">
                 <span className="price-indicator"></span>
@@ -342,102 +345,42 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
             )}
           </div>
 
-          {/* Expiry Date Filter */}
-          <div className="expiry-filter">
-            <div className="filter-header">
-              <Calendar className="filter-icon" />
-              <span>Filter by Expiry Date:</span>
-            </div>
-            <div className="expiry-buttons">
-              <button 
-                className={`expiry-button ${!selectedExpiry ? 'active' : ''}`}
-                onClick={() => setSelectedExpiry(null)}
-              >
-                All Expiries
-              </button>
-              {expiryDates.map((expiry) => (
-                <button
-                  key={expiry}
-                  className={`expiry-button ${selectedExpiry === expiry ? 'active' : ''}`}
-                  onClick={() => handleExpirySelect(expiry)}
-                >
-                  {new Date(expiry).toLocaleDateString()}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Charts Section - Two Column Layout */}
-          <div className="charts-section">
-            {/* Left Column - Call/Put Volume Chart */}
-            <div className="chart-column">
-              <VolumeProfileChart 
-                data={volumeProfileData}
-                highestVolumeData={highestVolumeData}
-                ticker={selectedTicker}
-                expiry={selectedExpiry || undefined}
-                chartType="callput"
-                currentPrice={currentPrice || undefined}
-                trades={filteredTrades}
-              />
-            </div>
-            
-            {/* Right Column - Total Volume Chart */}
-            <div className="chart-column">
-              <VolumeProfileChart 
-                data={volumeProfileData}
-                highestVolumeData={highestVolumeData}
-                ticker={selectedTicker}
-                expiry={selectedExpiry || undefined}
-                chartType="total"
-                currentPrice={currentPrice || undefined}
-                trades={filteredTrades}
-              />
-            </div>
-          </div>
-
           {/* Summary Statistics */}
           <div className="summary-stats">
             <div className="stat-card">
-              <h4>Total Volume</h4>
-              <p>{volumeProfileData.reduce((sum, item) => sum + item.totalVolume, 0).toLocaleString()}</p>
+              <h4>Total Trades</h4>
+              <p>{filteredTrades.length.toLocaleString()}</p>
             </div>
             <div className="stat-card">
-              <h4>Call Volume</h4>
-              <p>{volumeProfileData.reduce((sum, item) => sum + item.callVolume, 0).toLocaleString()}</p>
+              <h4>Total Quantity</h4>
+              <p>{filteredTrades.reduce((sum, trade) => sum + trade.quantity, 0).toLocaleString()}</p>
             </div>
             <div className="stat-card">
-              <h4>Put Volume</h4>
-              <p>{volumeProfileData.reduce((sum, item) => sum + item.putVolume, 0).toLocaleString()}</p>
+              <h4>Total Value</h4>
+              <p>
+                ${filteredTrades.reduce((sum, trade) => {
+                  const value = parseFloat(trade.totalValue.replace(/[$,]/g, ''));
+                  return sum + value;
+                }, 0).toLocaleString()}
+              </p>
             </div>
             <div className="stat-card">
-              <h4>Open Interest</h4>
-              <p>{volumeProfileData.reduce((sum, item) => sum + item.openInterest, 0).toLocaleString()}</p>
+              <h4>Average Price</h4>
+              <p>
+                ${filteredTrades.length > 0 
+                  ? (filteredTrades.reduce((sum, trade) => sum + trade.price, 0) / filteredTrades.length).toFixed(2)
+                  : '0.00'
+                }
+              </p>
             </div>
           </div>
 
-          {/* Heatmap & Trade History - Two Column Layout */}
-          <div className="heatmap-trades-section">
-            {/* Left Column - Strike × Expiry Heatmap */}
-            <div className="heatmap-column">
-              <StrikeExpiryHeatmap 
-                trades={tickerTrades}
-                currentPrice={currentPrice || undefined}
-              />
-            </div>
-
-            {/* Right Column - Trade List */}
-            <div className="trades-column">
-              <div className="trade-list-section">
-                <h3>Trade History for {selectedTicker}</h3>
-                <p>Found {tickerTrades.length} trades</p>
-                <TradeList 
-                  trades={tickerTrades}
-                  ticker={selectedTicker}
-                  expiry={selectedExpiry || undefined}
-                />
-              </div>
-            </div>
+          {/* Dark Pool Trade List */}
+          <div className="darkpool-trades-section">
+            <DarkPoolList 
+              trades={filteredTrades}
+              ticker={selectedTicker}
+            />
           </div>
         </div>
       )}
@@ -445,4 +388,4 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
   );
 };
 
-export default OptionsDashboard;
+export default DarkPoolDashboard;

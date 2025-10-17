@@ -11,7 +11,10 @@
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",
     "update-data": "node scripts/update-data-files.js",
-    "watch-data": "node scripts/update-data-files.js --watch"
+    "watch-data": "node scripts/update-data-files.js --watch",
+    "update-darkpool-data": "node scripts/update-darkpool-data-files.js",
+    "watch-darkpool-data": "node scripts/update-darkpool-data-files.js --watch",
+    "update-all-data": "node scripts/update-all-data-files.js"
   },
   "dependencies": {
     "lucide-react": "^0.263.1",

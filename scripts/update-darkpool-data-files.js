@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Script to automatically update the data files list
- * This script scans the data directory and updates the mock API file
+ * Script to automatically update the dark pool data files list
+ * This script scans the data directory for darkpool files and updates the mock API file
  */
 
 import fs from 'fs';
@@ -13,15 +13,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const DATA_DIR = path.join(__dirname, '../data');
-const API_FILE = path.join(__dirname, '../public/api/data-files.json');
+const API_FILE = path.join(__dirname, '../public/api/darkpool-data-files.json');
 
 /**
  * Parse timestamp from filename
- * Expected format: options_data_YYYY-MM-DD_HH-MM.csv or option_data_YYYY-MM-DD_HH-MM.csv
+ * Expected format: darkpool_data_YYYY-MM-DD_HH-MM.csv
  */
 function parseTimestampFromFilename(filename) {
   try {
-    const match = filename.match(/(?:options_data|option_data)_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2})\.csv/);
+    const match = filename.match(/darkpool_data_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2})\.csv/);
     if (!match) return null;
     
     const [, dateStr, timeStr] = match;
@@ -49,9 +49,9 @@ function getFileSize(filePath) {
 }
 
 /**
- * Scan data directory and generate file list
+ * Scan data directory and generate dark pool file list
  */
-function scanDataDirectory() {
+function scanDarkPoolDataDirectory() {
   try {
     if (!fs.existsSync(DATA_DIR)) {
       console.log('Data directory does not exist, creating it...');
@@ -60,12 +60,12 @@ function scanDataDirectory() {
     }
 
     const files = fs.readdirSync(DATA_DIR);
-    const csvFiles = files.filter(file => 
-      file.endsWith('.csv') && 
-      (file.startsWith('options_data_') || file.startsWith('option_data_'))
+    // Filter for darkpool CSV files only
+    const darkPoolFiles = files.filter(file => 
+      file.endsWith('.csv') && file.startsWith('darkpool_data_')
     );
     
-    const fileList = csvFiles.map(filename => {
+    const fileList = darkPoolFiles.map(filename => {
       const filePath = path.join(DATA_DIR, filename);
       const timestamp = parseTimestampFromFilename(filename);
       const size = getFileSize(filePath);
@@ -82,17 +82,17 @@ function scanDataDirectory() {
     
     return fileList;
   } catch (error) {
-    console.error('Error scanning data directory:', error);
+    console.error('Error scanning dark pool data directory:', error);
     return [];
   }
 }
 
 /**
- * Update the API file with current data files
+ * Update the API file with current dark pool data files
  */
-function updateApiFile() {
+function updateDarkPoolApiFile() {
   try {
-    const fileList = scanDataDirectory();
+    const fileList = scanDarkPoolDataDirectory();
     
     // Ensure public directory exists
     const publicDir = path.dirname(API_FILE);
@@ -103,23 +103,23 @@ function updateApiFile() {
     // Write the updated file list
     fs.writeFileSync(API_FILE, JSON.stringify(fileList, null, 2));
     
-    console.log(`✅ Updated data files list with ${fileList.length} files:`);
+    console.log(`✅ Updated dark pool data files list with ${fileList.length} files:`);
     fileList.forEach(file => {
       console.log(`   - ${file.name} (${(file.size / 1024).toFixed(1)}KB, ${file.timestamp})`);
     });
     
     return fileList;
   } catch (error) {
-    console.error('Error updating API file:', error);
+    console.error('Error updating dark pool API file:', error);
     return [];
   }
 }
 
 /**
- * Watch for new files and auto-update
+ * Watch for new dark pool files and auto-update
  */
-function watchForChanges() {
-  console.log('👀 Watching for new CSV files in data directory...');
+function watchForDarkPoolChanges() {
+  console.log('👀 Watching for new dark pool CSV files in data directory...');
   
   if (!fs.existsSync(DATA_DIR)) {
     console.log('Data directory does not exist, creating it...');
@@ -127,10 +127,10 @@ function watchForChanges() {
   }
   
   fs.watch(DATA_DIR, (eventType, filename) => {
-    if (filename && filename.endsWith('.csv')) {
-      console.log(`📁 Detected ${eventType} of ${filename}`);
+    if (filename && filename.endsWith('.csv') && filename.startsWith('darkpool_data_')) {
+      console.log(`📁 Detected ${eventType} of dark pool file: ${filename}`);
       setTimeout(() => {
-        updateApiFile();
+        updateDarkPoolApiFile();
       }, 1000); // Wait 1 second for file to be fully written
     }
   });
@@ -140,14 +140,14 @@ function watchForChanges() {
 const args = process.argv.slice(2);
 
 if (args.includes('--watch')) {
-  updateApiFile(); // Initial update
-  watchForChanges();
+  updateDarkPoolApiFile(); // Initial update
+  watchForDarkPoolChanges();
 } else {
-  updateApiFile();
+  updateDarkPoolApiFile();
 }
 
 export {
-  scanDataDirectory,
-  updateApiFile,
-  watchForChanges
+  scanDarkPoolDataDirectory,
+  updateDarkPoolApiFile,
+  watchForDarkPoolChanges
 };

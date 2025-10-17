@@ -95,7 +95,7 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
       <div className="ticker-list-header">
         <div className="header-content">
           <h2>Options Volume Dashboard</h2>
-          <p>Click on any ticker to view detailed volume profile</p>
+          {/* <p>Click on any ticker to view detailed volume profile</p> */}
         </div>
         <div className="sort-controls">
           <ArrowUpDown className="sort-icon" />

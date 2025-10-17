@@ -12,6 +12,15 @@ export interface OptionData {
   sourceFile?: string; // Track which file this data came from
 }
 
+export interface DarkPoolData {
+  ticker: string;
+  quantity: number;
+  price: number;
+  totalValue: string;
+  timestamp: string;
+  sourceFile?: string; // Track which file this data came from
+}
+
 export interface MergedDataInfo {
   totalFiles: number;
   totalRecords: number;
@@ -63,13 +72,23 @@ export interface HighestVolumeData {
 
 // Cache for parsed data to avoid re-parsing
 const parseCache = new Map<string, OptionData[]>();
+const darkPoolParseCache = new Map<string, DarkPoolData[]>();
 
 // Clear cache function for development
 export function clearDataCache() {
   parseCache.clear();
   tickerSummaryCache.clear();
   if (import.meta.env.DEV) {
-    console.log('Data cache cleared - all caches reset');
+    console.log('Options data cache cleared - all caches reset');
+  }
+}
+
+// Clear dark pool cache function
+export function clearDarkPoolDataCache() {
+  darkPoolParseCache.clear();
+  darkPoolTickerSummaryCache.clear();
+  if (import.meta.env.DEV) {
+    console.log('Dark pool data cache cleared');
   }
 }
 
@@ -179,7 +198,7 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
     // Parse CSV line (handle quoted fields)
     const fields = parseCSVLine(line);
     
-    if (fields.length < 20) continue;
+    if (fields.length < 19) continue;
     
     try {
       // Extract relevant fields based on the CSV structure
@@ -240,30 +259,10 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
   return data;
 }
 
-function parseCSVLine(line: string): string[] {
-  const fields: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    
-    if (char === '"') {
-      inQuotes = !inQuotes;
-    } else if (char === ',' && !inQuotes) {
-      fields.push(current.trim());
-      current = '';
-    } else {
-      current += char;
-    }
-  }
-  
-  fields.push(current.trim());
-  return fields;
-}
 
 // Cache for ticker summaries
 const tickerSummaryCache = new Map<string, TickerSummary[]>();
+const darkPoolTickerSummaryCache = new Map<string, any[]>();
 
 export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
   // Create cache key based on data length and first few items
@@ -1030,4 +1029,242 @@ export function getTickerAnalytics(
     maxPainStrike: calculateMaxPain(tickerData),
     currentPrice
   };
+}
+
+// Dark Pool Data Parsing Functions
+
+/**
+ * Parse dark pool CSV data
+ * Expected CSV format: avatar, username, botText, timestamp, separator, hiddenVisually, ticker, quantity, price, totalValue, relativeTime, timestamp2, time, separator2
+ */
+export function parseDarkPoolData(csvContent: string, filename: string): DarkPoolData[] {
+  // Check cache first
+  const cacheKey = `${filename}-${csvContent.length}`;
+  const cached = darkPoolParseCache.get(cacheKey);
+  if (cached) {
+    if (import.meta.env.DEV) {
+      console.log(`Using cached dark pool data for ${filename}`);
+    }
+    return cached;
+  }
+
+  const lines = csvContent.split('\n');
+  const darkPoolData: DarkPoolData[] = [];
+  
+  // Skip header row
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    try {
+      // Parse CSV line - handle quoted fields
+      const fields = parseCSVLine(line);
+      
+      if (fields.length < 14) continue;
+      
+      const ticker = fields[6]?.replace(/"/g, '').trim();
+      const quantityStr = fields[7]?.replace(/"/g, '').replace(/,/g, '').trim();
+      const priceStr = fields[8]?.replace(/"/g, '').trim();
+      const totalValue = fields[9]?.replace(/"/g, '').trim();
+      const timestampStr = fields[5]?.replace(/"/g, '').trim();
+      
+      // Skip rows without ticker or if ticker is empty
+      if (!ticker || ticker === '' || ticker === '[') continue;
+      
+      // Parse quantity
+      const quantity = parseInt(quantityStr);
+      if (isNaN(quantity) || quantity <= 0) continue;
+      
+      // Parse price
+      const price = parseFloat(priceStr);
+      if (isNaN(price) || price <= 0) continue;
+      
+      // Parse timestamp
+      const timestamp = parseTimestampFromData(timestampStr);
+      if (!timestamp) continue;
+      
+      darkPoolData.push({
+        ticker,
+        quantity,
+        price,
+        totalValue,
+        timestamp: timestamp.toISOString(),
+        sourceFile: filename
+      });
+      
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.warn(`Error parsing dark pool line ${i}:`, error, line);
+      }
+      continue;
+    }
+  }
+  
+  // Cache the parsed data
+  darkPoolParseCache.set(cacheKey, darkPoolData);
+  
+  return darkPoolData;
+}
+
+/**
+ * Parse CSV line handling quoted fields
+ */
+function parseCSVLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      fields.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  fields.push(current);
+  return fields;
+}
+
+/**
+ * Merge dark pool data from multiple files
+ */
+export function mergeDarkPoolDataFromFiles(
+  files: Array<{ filename: string; data: string; timestamp: Date }>
+): { mergedData: DarkPoolData[]; info: MergedDataInfo } {
+  const allData: DarkPoolData[] = [];
+  let totalRecords = 0;
+  let earliestDate: Date | null = null;
+  let latestDate: Date | null = null;
+  
+  const fileInfo = files.map(file => {
+    const parsedData = parseDarkPoolData(file.data, file.filename);
+    allData.push(...parsedData);
+    totalRecords += parsedData.length;
+    
+    // Update date range
+    parsedData.forEach(record => {
+      const recordDate = new Date(record.timestamp);
+      if (!earliestDate || recordDate < earliestDate) {
+        earliestDate = recordDate;
+      }
+      if (!latestDate || recordDate > latestDate) {
+        latestDate = recordDate;
+      }
+    });
+    
+    return {
+      filename: file.filename,
+      recordCount: parsedData.length,
+      timestamp: file.timestamp
+    };
+  });
+  
+  // Sort by timestamp (newest first)
+  allData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  
+  return {
+    mergedData: allData,
+    info: {
+      totalFiles: files.length,
+      totalRecords,
+      dateRange: {
+        earliest: earliestDate,
+        latest: latestDate
+      },
+      files: fileInfo
+    }
+  };
+}
+
+/**
+ * Get dark pool summaries by ticker
+ */
+export function getDarkPoolTickerSummaries(darkPoolData: DarkPoolData[]): Array<{
+  ticker: string;
+  totalQuantity: number;
+  totalValue: number;
+  averagePrice: number;
+  tradeCount: number;
+  lastActivity: string;
+  lastActivityDate: Date | null;
+  largestTrade: {
+    quantity: number;
+    price: number;
+    totalValue: string;
+    timestamp: string;
+  } | null;
+}> {
+  // Check cache first
+  const cacheKey = `${darkPoolData.length}_${darkPoolData.slice(0, 3).map(d => `${d.ticker}_${d.timestamp}`).join('_')}`;
+  const cached = darkPoolTickerSummaryCache.get(cacheKey);
+  if (cached) {
+    if (import.meta.env.DEV) {
+      console.log('Using cached dark pool ticker summaries');
+    }
+    return cached;
+  }
+
+  const tickerMap = new Map<string, {
+    ticker: string;
+    totalQuantity: number;
+    totalValue: number;
+    tradeCount: number;
+    lastActivityDate: Date | null;
+    largestTrade: {
+      quantity: number;
+      price: number;
+      totalValue: string;
+      timestamp: string;
+    } | null;
+  }>();
+  
+  darkPoolData.forEach(trade => {
+    const existing = tickerMap.get(trade.ticker) || {
+      ticker: trade.ticker,
+      totalQuantity: 0,
+      totalValue: 0,
+      tradeCount: 0,
+      lastActivityDate: null,
+      largestTrade: null
+    };
+    
+    existing.totalQuantity += trade.quantity;
+    existing.totalValue += trade.quantity * trade.price;
+    existing.tradeCount += 1;
+    
+    // Update last activity
+    const tradeDate = new Date(trade.timestamp);
+    if (!existing.lastActivityDate || tradeDate > existing.lastActivityDate) {
+      existing.lastActivityDate = tradeDate;
+    }
+    
+    // Update largest trade
+    if (!existing.largestTrade || trade.quantity > existing.largestTrade.quantity) {
+      existing.largestTrade = {
+        quantity: trade.quantity,
+        price: trade.price,
+        totalValue: trade.totalValue,
+        timestamp: trade.timestamp
+      };
+    }
+    
+    tickerMap.set(trade.ticker, existing);
+  });
+  
+  const result = Array.from(tickerMap.values()).map(data => ({
+    ...data,
+    averagePrice: data.totalValue / data.totalQuantity,
+    lastActivity: data.lastActivityDate ? data.lastActivityDate.toLocaleString() : 'Unknown'
+  })).sort((a, b) => b.totalValue - a.totalValue);
+
+  // Cache the result
+  darkPoolTickerSummaryCache.set(cacheKey, result);
+  
+  return result;
 }

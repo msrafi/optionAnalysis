@@ -17,12 +17,12 @@ export interface LoadedFileData {
 
 /**
  * Parse timestamp from filename
- * Expected format: options_data_YYYY-MM-DD_HH-MM.csv
+ * Expected format: options_data_YYYY-MM-DD_HH-MM.csv or darkpool_data_YYYY-MM-DD_HH-MM.csv
  */
 export function parseTimestampFromFilename(filename: string): Date | null {
   try {
-    // Extract timestamp from filename: options_data_2024-01-15_10-00.csv
-    const match = filename.match(/options_data_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2})\.csv/);
+    // Extract timestamp from filename: options_data_2024-01-15_10-00.csv, option_data_2025-10-17_15-45.csv, or darkpool_data_2025-10-17_15-00.csv
+    const match = filename.match(/(?:options_data|option_data|darkpool_data)_(\d{4}-\d{2}-\d{2})_(\d{2}-\d{2})\.csv/);
     if (!match) return null;
     
     const [, dateStr, timeStr] = match;
@@ -44,6 +44,7 @@ export function parseTimestampFromFilename(filename: string): Date | null {
 export async function getDataFiles(): Promise<FileInfo[]> {
   // Use hardcoded list of available files for now
   const knownFiles = [
+    'options_data_2025-10-17_15-45.csv',
     'options_data_2025-10-15_TSLA.csv',
     'options_data_2025-10-16_16-00.csv',
     'options_data_2025-10-16_15-00.csv',
@@ -70,6 +71,24 @@ export async function getDataFiles(): Promise<FileInfo[]> {
   ];
 
   return knownFiles.map(filename => ({
+    filename,
+    timestamp: parseTimestampFromFilename(filename) || new Date(),
+    size: 0 // Will be updated when file is loaded
+  })).sort((a: FileInfo, b: FileInfo) => 
+    b.timestamp.getTime() - a.timestamp.getTime() // Most recent first
+  );
+}
+
+/**
+ * Get all dark pool CSV files from the data directory
+ */
+export async function getDarkPoolDataFiles(): Promise<FileInfo[]> {
+  // Use hardcoded list of available dark pool files for now
+  const knownDarkPoolFiles = [
+    'darkpool_data_2025-10-17_15-00.csv'
+  ];
+
+  return knownDarkPoolFiles.map(filename => ({
     filename,
     timestamp: parseTimestampFromFilename(filename) || new Date(),
     size: 0 // Will be updated when file is loaded
@@ -118,6 +137,7 @@ export async function loadCSVFile(filename: string, bustCache: boolean = false):
 
 // Cache for loaded files to avoid re-fetching
 const fileCache = new Map<string, { data: LoadedFileData; timestamp: number }>();
+const darkPoolFileCache = new Map<string, { data: LoadedFileData; timestamp: number }>();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 /**
@@ -198,10 +218,94 @@ export async function loadAllDataFiles(bustCache: boolean = false): Promise<Load
 }
 
 /**
+ * Load all dark pool CSV files from the data directory with caching
+ */
+export async function loadAllDarkPoolDataFiles(bustCache: boolean = false): Promise<LoadedFileData[]> {
+  try {
+    const files = await getDarkPoolDataFiles();
+    const now = Date.now();
+    
+    // If busting cache, skip cache check and load all files fresh
+    if (bustCache) {
+      if (import.meta.env.DEV) {
+        console.log('🔄 Cache busting enabled - loading all dark pool files fresh...');
+      }
+      const loadPromises = files.map(file => loadCSVFile(file.filename, true));
+      const results = await Promise.all(loadPromises);
+      
+      // Update dark pool cache with fresh data
+      results.forEach(result => {
+        if (!result.error) {
+          darkPoolFileCache.set(result.filename, { data: result, timestamp: now });
+        }
+      });
+      
+      const successful = results.filter(result => !result.error);
+      if (import.meta.env.DEV) {
+        console.log(`✓ Loaded ${successful.length} dark pool files fresh (cache bypassed)`);
+      }
+      return successful;
+    }
+    
+    // Normal caching behavior
+    const cachedResults: LoadedFileData[] = [];
+    const filesToLoad: string[] = [];
+    
+    files.forEach(file => {
+      const cached = darkPoolFileCache.get(file.filename);
+      if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+        cachedResults.push(cached.data);
+      } else {
+        filesToLoad.push(file.filename);
+      }
+    });
+    
+    // Load only uncached files
+    let newResults: LoadedFileData[] = [];
+    if (filesToLoad.length > 0) {
+      const loadPromises = filesToLoad.map(filename => loadCSVFile(filename, false));
+      newResults = await Promise.all(loadPromises);
+      
+      // Update dark pool cache
+      newResults.forEach(result => {
+        if (!result.error) {
+          darkPoolFileCache.set(result.filename, { data: result, timestamp: now });
+        }
+      });
+    }
+    
+    const allResults = [...cachedResults, ...newResults];
+    
+    // Filter out files with errors and log them
+    const successful = allResults.filter(result => !result.error);
+    const failed = allResults.filter(result => result.error);
+    
+    if (import.meta.env.DEV && failed.length > 0) {
+      console.warn('Failed to load some dark pool data files:', failed);
+    }
+    
+    if (import.meta.env.DEV) {
+      console.log(`Successfully loaded ${successful.length} dark pool data files (${cachedResults.length} cached, ${newResults.filter(r => !r.error).length} new)`);
+    }
+    return successful;
+  } catch (error) {
+    console.error('Failed to load dark pool data files:', error);
+    return [];
+  }
+}
+
+/**
  * Clear the file cache
  */
 export function clearFileCache(): void {
   fileCache.clear();
+}
+
+/**
+ * Clear the dark pool file cache
+ */
+export function clearDarkPoolFileCache(): void {
+  darkPoolFileCache.clear();
 }
 
 /**
