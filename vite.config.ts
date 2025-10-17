@@ -53,7 +53,11 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom'],
           utils: ['lucide-react']
-        }
+        },
+        // Add timestamp to force cache busting
+        entryFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
+        chunkFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
+        assetFileNames: `assets/[name]-[hash]-${Date.now()}.[ext]`
       }
     },
     // Enable source maps for debugging

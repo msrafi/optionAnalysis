@@ -133,6 +133,9 @@ const StrikeExpiryHeatmap: React.FC<StrikeExpiryHeatmapProps> = ({ trades, curre
 
   const getCellKey = (strike: number, expiry: string) => `${strike}_${expiry}`;
 
+  // Check if we have any data to display
+  const hasData = strikes.length > 0 && expiries.length > 0;
+
   return (
     <div className="strike-expiry-heatmap">
       <div className="heatmap-header">
@@ -156,59 +159,66 @@ const StrikeExpiryHeatmap: React.FC<StrikeExpiryHeatmapProps> = ({ trades, curre
       </div>
 
       <div className="heatmap-scroll-container">
-        <table className="heatmap-table">
-          <thead>
-            <tr>
-              <th className="heatmap-corner">Strike</th>
-              {expiries.map(expiry => (
-                <th key={expiry} className="heatmap-expiry">
-                  {new Date(expiry).toLocaleDateString('en-US', { 
-                    month: '2-digit', 
-                    day: '2-digit',
-                    year: '2-digit'
-                  })}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {strikes.map(strike => {
-              const isAtMoney = isCurrentPriceStrike(strike);
-              return (
-                <tr key={strike} className={isAtMoney ? 'current-price-row' : ''}>
-                  <td className={`heatmap-strike ${isAtMoney ? 'at-money' : ''}`}>
-                    {strike.toFixed(1)}
-                    {isAtMoney && <span className="atm-indicator">▶</span>}
-                  </td>
-                  {expiries.map(expiry => {
-                    const cell = heatmapData.get(getCellKey(strike, expiry));
-                    const hasData = cell && cell.volume > 0;
-                    
-                    return (
-                      <td
-                        key={`${strike}_${expiry}`}
-                        className={`heatmap-cell ${hasData ? 'has-data' : ''} ${isAtMoney ? 'at-money-cell' : ''}`}
-                        style={{
-                          background: hasData ? getColor(cell!.value, cell!.volume) : undefined
-                        }}
-                        title={hasData ? 
-                          `Strike: $${strike}\nExpiry: ${expiry}\nNet Premium: ${formatValue(cell!.value)}\nVolume: ${cell!.volume}\nCalls: ${cell!.callVolume}\nPuts: ${cell!.putVolume}\nTrades: ${cell!.trades}` 
-                          : undefined
-                        }
-                      >
-                        {hasData && (
-                          <div className="cell-content">
-                            <span className="cell-value">{formatValue(cell!.value)}</span>
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        {hasData ? (
+          <table className="heatmap-table">
+            <thead>
+              <tr>
+                <th className="heatmap-corner">Strike</th>
+                {expiries.map(expiry => (
+                  <th key={expiry} className="heatmap-expiry">
+                    {new Date(expiry).toLocaleDateString('en-US', { 
+                      month: '2-digit', 
+                      day: '2-digit',
+                      year: '2-digit'
+                    })}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {strikes.map(strike => {
+                const isAtMoney = isCurrentPriceStrike(strike);
+                return (
+                  <tr key={strike} className={isAtMoney ? 'current-price-row' : ''}>
+                    <td className={`heatmap-strike ${isAtMoney ? 'at-money' : ''}`}>
+                      {strike.toFixed(1)}
+                      {isAtMoney && <span className="atm-indicator">▶</span>}
+                    </td>
+                    {expiries.map(expiry => {
+                      const cell = heatmapData.get(getCellKey(strike, expiry));
+                      const hasData = cell && cell.volume > 0;
+                      
+                      return (
+                        <td
+                          key={`${strike}_${expiry}`}
+                          className={`heatmap-cell ${hasData ? 'has-data' : ''} ${isAtMoney ? 'at-money-cell' : ''}`}
+                          style={{
+                            background: hasData ? getColor(cell!.value, cell!.volume) : undefined
+                          }}
+                          title={hasData ? 
+                            `Strike: $${strike}\nExpiry: ${expiry}\nNet Premium: ${formatValue(cell!.value)}\nVolume: ${cell!.volume}\nCalls: ${cell!.callVolume}\nPuts: ${cell!.putVolume}\nTrades: ${cell!.trades}` 
+                            : undefined
+                          }
+                        >
+                          {hasData && (
+                            <div className="cell-content">
+                              <span className="cell-value">{formatValue(cell!.value)}</span>
+                            </div>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <div className="heatmap-no-data">
+            <p>No heatmap data available</p>
+            <p>Select a ticker with options data to view the heatmap</p>
+          </div>
+        )}
       </div>
     </div>
   );
