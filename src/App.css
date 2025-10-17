@@ -2142,7 +2142,7 @@
 /* X-Axis Labels for Total Volume Chart */
 .x-axis-labels {
   position: relative;
-  bottom: 0;
+  bottom: 10px;
   left: 0;
   right: 0;
   height: 0px;
