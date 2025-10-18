@@ -4386,11 +4386,134 @@
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
 }
 
+
+/* Dark Pool Card Styles */
+.darkpool-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* .darkpool-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #8b5cf6, #4fc3f7, #8b5cf6);
+} */
+
+.darkpool-card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.darkpool-card .metric-icon.value {
+  color: #4fc3f7;
+}
+
+.darkpool-card .metric-icon.quantity {
+  color: #8b5cf6;
+}
+
+.darkpool-card .key-levels-badge {
+  background: rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.darkpool-card .max-pain-badge {
+  background: rgba(79, 195, 247, 0.2);
+  border: 1px solid rgba(79, 195, 247, 0.3);
+}
+
+/* Charts Container - 2 Column Layout */
+.charts-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1rem 0;
+  height: 70vh;
+}
+
+.chart-column {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Dark Pool Legend Styles */
+.darkpool-legend {
+  background: rgba(79, 195, 247, 0.1);
+  border: 1px solid rgba(79, 195, 247, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+}
+
+.legend-title {
+  color: #4fc3f7;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.legend-items {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+  font-size: 0.8rem;
+}
+
+.legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.legend-color.unusual {
+  background: rgba(0, 200, 0, 0.6);
+}
+
+.legend-color.normal {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive Charts Layout */
+@media (max-width: 1200px) {
+  .charts-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    height: 60vh;
+  }
+}
+
+@media (max-width: 768px) {
+  .charts-container {
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+    height: 50vh;
+  }
+}
+
 /* Dark Pool Ticker List Styles */
 .ticker-list-container {
   padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
 }
 
 .ticker-list-header {
@@ -4416,9 +4539,10 @@
 
 .ticker-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
   margin-bottom: 2rem;
+  width: 100%;
 }
 
 .ticker-card {
@@ -4643,6 +4767,282 @@
   margin: 2rem;
 }
 
+/* Dark Pool Trade Chart Styles */
+.chart-container {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0.5rem;
+  margin: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chart-header h3 {
+  color: white;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.chart-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.chart-stats .stat {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.chart-content {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.chart-y-axis {
+  display: flex;
+  flex-direction: column;
+  width: 60px;
+  position: relative;
+}
+
+.y-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  text-align: center;
+  margin-bottom: 1rem;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.y-scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0.5rem 0;
+}
+
+.scale-value {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.7rem;
+  text-align: right;
+}
+
+.chart-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.chart-bars {
+  display: flex;
+  align-items: end;
+  justify-content: flex-start;
+  flex: 1;
+  padding: 0 0.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.chart-bars::-webkit-scrollbar {
+  height: 4px;
+}
+
+.chart-bars::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chart-bars::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.chart-bar {
+  background: linear-gradient(135deg, #4fc3f7, #29b6f6);
+  border-radius: 2px 2px 0 0;
+  min-width: 8px;
+  max-width: 20px;
+  width: 12px;
+  margin: 0 1px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.chart-bar:hover {
+  background: linear-gradient(135deg, #29b6f6, #0288d1);
+  transform: scaleY(1.05);
+}
+
+.chart-bar.high-volume {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.chart-bar.high-volume:hover {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+}
+
+.bar-value {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.chart-bar:hover .bar-value {
+  opacity: 1;
+}
+
+.chart-x-axis {
+  display: flex;
+  flex-direction: column;
+  margin-top: 0.5rem;
+  height: 80px;
+  overflow: visible;
+}
+
+.x-label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.x-scale {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  height: 60px;
+  padding-top: 10px;
+  overflow-x: auto;
+  gap: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.x-scale::-webkit-scrollbar {
+  height: 4px;
+}
+
+.x-scale::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.x-scale::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.x-tick {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  height: 60px;
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.price-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.6rem;
+  transform: rotate(-45deg);
+  white-space: nowrap;
+  transform-origin: center;
+  text-align: center;
+  width: 60px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.time-label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.6rem;
+  transform: rotate(-45deg);
+  white-space: nowrap;
+  transform-origin: center;
+  text-align: center;
+  width: 60px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.legend-color.high-volume {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.legend-color.normal {
+  background: linear-gradient(135deg, #4fc3f7, #29b6f6);
+}
+
+.no-data {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 2rem;
+  font-style: italic;
+}
+
 /* Responsive Design for Dark Pool */
 @media (max-width: 768px) {
   .dashboard-header {
@@ -4668,7 +5068,8 @@
   }
   
   .ticker-grid {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
   }
   
   .darkpool-header-row,
@@ -4706,9 +5107,57 @@
     padding: 1rem;
   }
   
+  .ticker-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
   .darkpool-list-container {
     margin: 1rem;
     padding: 1rem;
+  }
+  
+  .chart-container {
+    padding: 0.5rem;
+    margin: 0;
+  }
+  
+  .chart-content {
+    flex: 1;
+  }
+  
+  .chart-bars {
+    flex: 1;
+  }
+  
+  .chart-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .chart-x-axis {
+    height: 60px;
+  }
+  
+  .x-scale {
+    height: 40px;
+  }
+  
+  .x-tick {
+    height: 40px;
+    width: 50px;
+  }
+  
+  .price-label,
+  .time-label {
+    font-size: 0.5rem;
+    width: 50px;
+    height: 15px;
+  }
+  
+  .chart-legend {
+    flex-direction: column;
+    gap: 0.5rem;
   }
   
   .darkpool-trades-section {

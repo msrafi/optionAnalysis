@@ -8,9 +8,23 @@ interface DarkPoolListProps {
 
 interface DarkPoolRowProps {
   trade: DarkPoolData;
+  volumeStats: {
+    mean: number;
+    stdDev: number;
+    q75: number;
+    q90: number;
+    q95: number;
+  };
+  valueStats: {
+    mean: number;
+    stdDev: number;
+    q75: number;
+    q90: number;
+    q95: number;
+  };
 }
 
-const DarkPoolRow: React.FC<DarkPoolRowProps> = memo(({ trade }) => {
+const DarkPoolRow: React.FC<DarkPoolRowProps> = memo(({ trade, volumeStats, valueStats }) => {
   const formatExecutionDateTime = (timestamp: string): string => {
     try {
       const date = new Date(timestamp);
@@ -51,15 +65,27 @@ const DarkPoolRow: React.FC<DarkPoolRowProps> = memo(({ trade }) => {
   };
 
   const totalValue = parseTotalValue(trade.totalValue);
-  const isHighValue = totalValue >= 100000000; // $100M+
+  
+  // Determine color based on statistical analysis
+  const getRowColor = () => {
+    
+    // Unusual trades (top 10% in volume or value)
+    if (trade.quantity >= volumeStats.q90 || totalValue >= valueStats.q90) {
+      return 'rgba(0, 200, 0, 0.6)'; // Green for unusual trades
+    }
+    
+    // Default: White for all other trades
+    return 'rgba(255, 255, 255, 0.1)'; // White for normal trades
+  };
 
   return (
     <div 
       className="darkpool-row-horizontal"
       style={{
-        backgroundColor: isHighValue 
-          ? 'rgba(255, 165, 0, 0.7)' // Orange for high value trades
-          : 'rgba(0, 100, 200, 0.5)', // Blue for normal trades
+        backgroundColor: getRowColor(),
+        borderLeft: trade.quantity >= volumeStats.q90 || totalValue >= valueStats.q90
+          ? '4px solid #00c800'
+          : 'none'
       }}
     >
       <div className="darkpool-cell-h symbol">{trade.ticker}</div>
@@ -75,9 +101,57 @@ DarkPoolRow.displayName = 'DarkPoolRow';
 
 type SortOption = 'timestamp' | 'quantity' | 'total-value' | 'price';
 
+// Helper function to calculate statistics
+const calculateStats = (values: number[]) => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mean = values.reduce((sum, val) => sum + val, 0) / values.length;
+  const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+  const stdDev = Math.sqrt(variance);
+  
+  const q75Index = Math.floor(sorted.length * 0.75);
+  const q90Index = Math.floor(sorted.length * 0.90);
+  const q95Index = Math.floor(sorted.length * 0.95);
+  
+  return {
+    mean,
+    stdDev,
+    q75: sorted[q75Index] || 0,
+    q90: sorted[q90Index] || 0,
+    q95: sorted[q95Index] || 0
+  };
+};
+
 const DarkPoolList: React.FC<DarkPoolListProps> = memo(({ trades, ticker }) => {
   const [sortBy, setSortBy] = useState<SortOption>('timestamp');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Calculate statistics for volume and value
+  const { volumeStats, valueStats } = useMemo(() => {
+    if (trades.length === 0) {
+      return {
+        volumeStats: { mean: 0, stdDev: 0, q75: 0, q90: 0, q95: 0 },
+        valueStats: { mean: 0, stdDev: 0, q75: 0, q90: 0, q95: 0 }
+      };
+    }
+
+    const volumes = trades.map(trade => trade.quantity);
+    const values = trades.map(trade => {
+      const cleanValue = trade.totalValue.replace(/[$,]/g, '');
+      const num = parseFloat(cleanValue);
+      
+      if (trade.totalValue.includes('M')) {
+        return num * 1000000;
+      } else if (trade.totalValue.includes('K')) {
+        return num * 1000;
+      }
+      return num;
+    });
+
+    return {
+      volumeStats: calculateStats(volumes),
+      valueStats: calculateStats(values)
+    };
+  }, [trades]);
 
   const sortedTrades = useMemo(() => {
     const sorted = [...trades].sort((a, b) => {
@@ -152,6 +226,21 @@ const DarkPoolList: React.FC<DarkPoolListProps> = memo(({ trades, ticker }) => {
         </div>
       </div>
       
+      {/* Color Legend */}
+      <div className="darkpool-legend">
+        <div className="legend-title">Trade Volume/Value Indicators:</div>
+        <div className="legend-items">
+          <div className="legend-item">
+            <div className="legend-color unusual"></div>
+            <span>Unusual (Top 10%)</span>
+          </div>
+          <div className="legend-item">
+            <div className="legend-color normal"></div>
+            <span>Normal</span>
+          </div>
+        </div>
+      </div>
+      
       <div className="darkpool-list-table">
         <div className="darkpool-header-row">
           <div 
@@ -188,7 +277,12 @@ const DarkPoolList: React.FC<DarkPoolListProps> = memo(({ trades, ticker }) => {
         
         <div className="darkpool-trades-container">
           {sortedTrades.map((trade, index) => (
-            <DarkPoolRow key={`${trade.ticker}-${trade.timestamp}-${index}`} trade={trade} />
+            <DarkPoolRow 
+              key={`${trade.ticker}-${trade.timestamp}-${index}`} 
+              trade={trade}
+              volumeStats={volumeStats}
+              valueStats={valueStats}
+            />
           ))}
         </div>
       </div>

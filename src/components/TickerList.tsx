@@ -23,7 +23,7 @@ const formatDateTime = (timestamp: string, parsedDate?: Date | null): string => 
     
     // Check if the date is valid
     if (isNaN(time.getTime())) {
-      return 'Unknown';
+      return '';
     }
     
     // Format as "Oct 8, 2025 3:02 PM"
@@ -40,7 +40,7 @@ const formatDateTime = (timestamp: string, parsedDate?: Date | null): string => 
     if (import.meta.env.DEV) {
       console.warn('Error parsing timestamp:', timestamp, error);
     }
-    return 'Unknown';
+    return '';
   }
 };
 

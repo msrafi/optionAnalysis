@@ -259,7 +259,7 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
               <span className="stat-separator">•</span>
               <span className="header-stat">{dataInfo.totalRecords.toLocaleString()} records</span>
               <span className="stat-separator">•</span>
-              <span className="header-stat">{dataInfo.dateRange.latest?.toLocaleString() || 'Unknown'}</span>
+              <span className="header-stat">{dataInfo.dateRange.latest?.toLocaleString() || ''}</span>
             </div>
           )}
         </div>

@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ArrowLeft, RefreshCw, Search } from 'lucide-react';
 import DarkPoolList from './DarkPoolList';
+import DarkPoolTickerList from './DarkPoolTickerList';
+import DarkPoolTradeChart from './DarkPoolTradeChart';
+import DarkPoolTimeChart from './DarkPoolTimeChart';
 import { 
   mergeDarkPoolDataFromFiles,
   getDarkPoolTickerSummaries, 
@@ -67,7 +70,42 @@ const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, 
   }, []);
 
   const tickerSummaries = useMemo(() => {
-    return getDarkPoolTickerSummaries(darkPoolData);
+    const summaries = getDarkPoolTickerSummaries(darkPoolData);
+    
+    // Transform to match the new structure
+    return summaries.map(summary => {
+      const tickerTrades = darkPoolData.filter(trade => trade.ticker === summary.ticker);
+      const quantities = tickerTrades.map(trade => trade.quantity);
+      const values = tickerTrades.map(trade => trade.price * trade.quantity);
+      const prices = tickerTrades.map(trade => trade.price);
+      
+      // Find the highest volume trade
+      const highestVolumeTrade = tickerTrades.reduce((max, trade) => 
+        trade.quantity > max.quantity ? trade : max, tickerTrades[0]);
+      
+      // Calculate additional metrics
+      const avgTradeSize = summary.totalValue / summary.tradeCount;
+      const priceVolatility = prices.length > 1 ? 
+        Math.sqrt(prices.reduce((acc, price) => acc + Math.pow(price - summary.averagePrice, 2), 0) / prices.length) : 0;
+      
+      return {
+        ticker: summary.ticker,
+        totalValue: summary.totalValue,
+        totalQuantity: summary.totalQuantity,
+        tradeCount: summary.tradeCount,
+        averagePrice: summary.averagePrice,
+        lastActivity: summary.lastActivity,
+        maxTradeValue: Math.max(...values),
+        minTradeValue: Math.min(...values),
+        maxQuantity: Math.max(...quantities),
+        minQuantity: Math.min(...quantities),
+        avgTradeSize: avgTradeSize,
+        priceVolatility: priceVolatility,
+        highestVolumePrice: highestVolumeTrade?.price || 0,
+        highestVolumeTime: highestVolumeTrade?.timestamp || '',
+        highestVolumeQuantity: highestVolumeTrade?.quantity || 0
+      };
+    });
   }, [darkPoolData]);
 
   const filteredTickerSummaries = useMemo(() => {
@@ -216,7 +254,7 @@ const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, 
               <span className="stat-separator">•</span>
               <span className="header-stat">{dataInfo.totalRecords.toLocaleString()} records</span>
               <span className="stat-separator">•</span>
-              <span className="header-stat">{dataInfo.dateRange.latest?.toLocaleString() || 'Unknown'}</span>
+              <span className="header-stat">{dataInfo.dateRange.latest?.toLocaleString() || ''}</span>
             </div>
           )}
         </div>
@@ -271,57 +309,11 @@ const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, 
       </header>
 
       {!selectedTicker ? (
-        <div className="ticker-list-container">
-          <div className="ticker-list-header">
-            <h2>Dark Pool Tickers</h2>
-            <p>Select a ticker to view detailed dark pool activity</p>
-          </div>
-          
-          <div className="ticker-grid">
-            {filteredTickerSummaries.map((ticker) => (
-              <div 
-                key={ticker.ticker}
-                className="ticker-card"
-                onClick={() => handleTickerSelect(ticker.ticker)}
-              >
-                <div className="ticker-symbol">{ticker.ticker}</div>
-                <div className="ticker-stats">
-                  <div className="stat-row">
-                    <span className="stat-label">Total Value:</span>
-                    <span className="stat-value">
-                      ${(ticker.totalValue / 1000000).toFixed(1)}M
-                    </span>
-                  </div>
-                  <div className="stat-row">
-                    <span className="stat-label">Quantity:</span>
-                    <span className="stat-value">
-                      {(ticker.totalQuantity / 1000).toFixed(0)}K
-                    </span>
-                  </div>
-                  <div className="stat-row">
-                    <span className="stat-label">Trades:</span>
-                    <span className="stat-value">{ticker.tradeCount}</span>
-                  </div>
-                  <div className="stat-row">
-                    <span className="stat-label">Avg Price:</span>
-                    <span className="stat-value">${ticker.averagePrice.toFixed(2)}</span>
-                  </div>
-                </div>
-                <div className="ticker-footer">
-                  <span className="last-activity">
-                    Last: {ticker.lastActivity}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          {filteredTickerSummaries.length === 0 && (
-            <div className="no-tickers-message">
-              <p>No tickers found matching your search.</p>
-            </div>
-          )}
-        </div>
+        <DarkPoolTickerList 
+          tickers={filteredTickerSummaries} 
+          onTickerSelect={handleTickerSelect}
+          allData={darkPoolData}
+        />
       ) : (
         <div className="ticker-detail-view">
           <div className="detail-header">
@@ -345,33 +337,19 @@ const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, 
             )}
           </div>
 
-          {/* Summary Statistics */}
-          <div className="summary-stats">
-            <div className="stat-card">
-              <h4>Total Trades</h4>
-              <p>{filteredTrades.length.toLocaleString()}</p>
+          {/* Charts Section - 2 Column Layout */}
+          <div className="charts-container">
+            <div className="chart-column">
+              <DarkPoolTradeChart 
+                trades={filteredTrades}
+                ticker={selectedTicker}
+              />
             </div>
-            <div className="stat-card">
-              <h4>Total Quantity</h4>
-              <p>{filteredTrades.reduce((sum, trade) => sum + trade.quantity, 0).toLocaleString()}</p>
-            </div>
-            <div className="stat-card">
-              <h4>Total Value</h4>
-              <p>
-                ${filteredTrades.reduce((sum, trade) => {
-                  const value = parseFloat(trade.totalValue.replace(/[$,]/g, ''));
-                  return sum + value;
-                }, 0).toLocaleString()}
-              </p>
-            </div>
-            <div className="stat-card">
-              <h4>Average Price</h4>
-              <p>
-                ${filteredTrades.length > 0 
-                  ? (filteredTrades.reduce((sum, trade) => sum + trade.price, 0) / filteredTrades.length).toFixed(2)
-                  : '0.00'
-                }
-              </p>
+            <div className="chart-column">
+              <DarkPoolTimeChart 
+                trades={filteredTrades}
+                ticker={selectedTicker}
+              />
             </div>
           </div>
 
