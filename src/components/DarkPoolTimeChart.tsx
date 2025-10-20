@@ -74,13 +74,12 @@ const DarkPoolTimeChart: React.FC<DarkPoolTimeChartProps> = ({ trades }) => {
       const time = new Date(timestamp);
       if (isNaN(time.getTime())) return '';
       
-      return time.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
+      const month = String(time.getMonth() + 1).padStart(2, '0');
+      const day = String(time.getDate()).padStart(2, '0');
+      const hour = String(time.getHours()).padStart(2, '0');
+      const minute = String(time.getMinutes()).padStart(2, '0');
+      
+      return `${month}/${day}-${hour}:${minute}`;
     } catch (error) {
       return '';
     }

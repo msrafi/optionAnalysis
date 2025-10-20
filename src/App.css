@@ -4434,7 +4434,8 @@
 /* Charts Container - 2 Column Layout */
 .charts-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* grid-template-columns: 1fr 1fr; */
+  grid-template-columns: 49% 49%;
   gap: 1rem;
   margin: 1rem 0;
   height: 70vh;
@@ -4774,6 +4775,7 @@
   border-radius: 12px;
   padding: 0.5rem;
   margin: 0;
+  min-height: 500px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -4861,42 +4863,26 @@
 .chart-bars {
   display: flex;
   align-items: end;
-  justify-content: flex-start;
+  justify-content: space-between;
   flex: 1;
   padding: 0 0.25rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
   min-height: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  overflow: hidden;
+  width: 100%;
 }
 
-.chart-bars::-webkit-scrollbar {
-  height: 4px;
-}
-
-.chart-bars::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.chart-bars::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
-}
 
 .chart-bar {
   background: linear-gradient(135deg, #4fc3f7, #29b6f6);
   border-radius: 2px 2px 0 0;
-  min-width: 8px;
-  max-width: 20px;
-  width: 12px;
-  margin: 0 1px;
+  min-width: 4px;
+  flex: 1;
+  margin: 0 0.5px;
   position: relative;
   cursor: pointer;
   transition: all 0.2s ease;
-  flex-shrink: 0;
 }
 
 .chart-bar:hover {
@@ -4933,7 +4919,7 @@
   display: flex;
   flex-direction: column;
   margin-top: 0.5rem;
-  height: 80px;
+  height: 135px;
   overflow: visible;
 }
 
@@ -4946,64 +4932,57 @@
 
 .x-scale {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: flex-start;
-  height: 60px;
-  padding-top: 10px;
-  overflow-x: auto;
+  height: 140px;
+  padding-top: 0;
+  overflow: visible;
   gap: 0;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  width: 100%;
 }
 
-.x-scale::-webkit-scrollbar {
-  height: 4px;
-}
-
-.x-scale::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.x-scale::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 2px;
-}
 
 .x-tick {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  height: 60px;
-  width: 60px;
-  flex-shrink: 0;
+  height: 140px;
+  flex: 1;
+  min-width: 0;
 }
 
 .price-label {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 0.6rem;
-  transform: rotate(-45deg);
+  writing-mode: sideways-lr;
+  text-orientation: mixed;
   white-space: nowrap;
-  transform-origin: center;
   text-align: center;
-  width: 60px;
-  height: 20px;
+  width: 100%;
+  height: 25px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 500;
+  overflow: visible;
+  padding: 10px 0;
 }
 
 .time-label {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 0.6rem;
-  transform: rotate(-45deg);
+  writing-mode: sideways-lr;
+  text-orientation: mixed;
   white-space: nowrap;
-  transform-origin: center;
   text-align: center;
-  width: 60px;
-  height: 20px;
+  width: 100%;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 500;
+  overflow: visible;
+  padding: 10px 0;
 }
 
 .chart-legend {
@@ -5136,7 +5115,7 @@
   }
   
   .chart-x-axis {
-    height: 60px;
+    height: 130px;
   }
   
   .x-scale {
