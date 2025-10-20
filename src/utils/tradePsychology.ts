@@ -423,16 +423,34 @@ function isTradingDay(date: Date): boolean {
 }
 
 /**
+ * Get the most recent date from the trades data
+ */
+function getMostRecentTradeDate(trades: OptionData[]): Date {
+  let mostRecentDate = new Date(0); // Start with epoch
+  
+  trades.forEach(trade => {
+    const tradeDate = parseTimestampFromData(trade.timestamp);
+    if (tradeDate && tradeDate > mostRecentDate) {
+      mostRecentDate = tradeDate;
+    }
+  });
+  
+  return mostRecentDate;
+}
+
+/**
  * Analyze trade psychology for the past 5 trading days
  */
 export function analyzeFourDayTradePsychology(trades: OptionData[]): FourDayPsychologyAnalysis {
-  const today = new Date();
   const days: DailyTradePsychology[] = [];
   
-  // Start from the most recent trading day
-  let currentDate = new Date(today);
+  // Get the most recent date from the actual trade data
+  const mostRecentDate = getMostRecentTradeDate(trades);
+  
+  // Start from the most recent trading day in the data
+  let currentDate = new Date(mostRecentDate);
   if (!isTradingDay(currentDate)) {
-    // If today is weekend, start from the last trading day
+    // If the most recent date is weekend, start from the last trading day
     currentDate = getPreviousTradingDay(currentDate);
   }
   

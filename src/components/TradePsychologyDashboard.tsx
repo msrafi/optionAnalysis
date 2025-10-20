@@ -300,7 +300,22 @@ interface DayColumnProps {
 }
 
 const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick, index }) => {
-  const dayLabels = ['5 Days Ago', '4 Days Ago', '3 Days Ago', '2 Days Ago', 'Yesterday'];
+  // Get the actual date from the day data
+  const dayDate = new Date(day.date);
+  const today = new Date();
+  const diffTime = today.getTime() - dayDate.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  // Create appropriate labels based on the actual date difference
+  const getDayLabel = (index: number, diffDays: number) => {
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays === 2) return '2 Days Ago';
+    if (diffDays === 3) return '3 Days Ago';
+    if (diffDays === 4) return '4 Days Ago';
+    if (diffDays === 5) return '5 Days Ago';
+    return `${diffDays} Days Ago`;
+  };
   
   return (
     <div 
@@ -308,7 +323,7 @@ const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick, index }
       onClick={onClick}
     >
       <div className="day-header">
-        <h4>{dayLabels[index]}</h4>
+        <h4>{getDayLabel(index, diffDays)}</h4>
         <p className="day-date">{day.dayOfWeek}</p>
         <p className="day-date-short">{day.date}</p>
       </div>

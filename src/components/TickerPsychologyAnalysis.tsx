@@ -62,50 +62,17 @@ const TickerPsychologyAnalysis: React.FC<TickerPsychologyAnalysisProps> = ({ tic
         ))}
       </div>
 
-      <div className="detailed-analysis">
-        <div className="day-selector">
-          <h4>Detailed Analysis: {selectedDayData.dayOfWeek}, {selectedDayData.date}</h4>
-          <div className="day-summary">
-            <div className="summary-metrics">
-              <div className="metric">
-                <span className="metric-label">Total Volume</span>
-                <span className="metric-value">{formatVolume(selectedDayData.dailySummary.totalVolume)}</span>
-              </div>
-              <div className="metric">
-                <span className="metric-label">Total Trades</span>
-                <span className="metric-value">{selectedDayData.dailySummary.totalTrades.toLocaleString()}</span>
-              </div>
-              <div className="metric">
-                <span className="metric-label">Call/Put Ratio</span>
-                <span className="metric-value">{selectedDayData.dailySummary.callPutRatio.toFixed(2)}:1</span>
-              </div>
-              <div className="metric">
-                <span className="metric-label">Peak Hour</span>
-                <span className="metric-value">{formatHour(selectedDayData.dailySummary.peakHour)}</span>
-              </div>
-            </div>
-            <div className="psychology-summary">
-              <div className={`psychology-indicator ${selectedDayData.dailySummary.psychology.sentiment}`}>
-                <span className="psychology-sentiment">{selectedDayData.dailySummary.psychology.sentiment.toUpperCase()}</span>
-                <span className="psychology-confidence">{selectedDayData.dailySummary.psychology.confidence} confidence</span>
-              </div>
-              <p className="psychology-description">{selectedDayData.dailySummary.psychology.description}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="hourly-chart">
-          <h4>Hourly Breakdown</h4>
-          <div className="chart-container">
-            <div className="chart-grid">
-              {selectedDayData.hourlyData.map((hourData) => (
-                <HourBar
-                  key={hourData.hour}
-                  hourData={hourData}
-                  maxVolume={Math.max(...selectedDayData.hourlyData.map(h => h.totalVolume))}
-                />
-              ))}
-            </div>
+      <div className="hourly-chart">
+        <h4>Hourly Breakdown: {selectedDayData.dayOfWeek}, {selectedDayData.date}</h4>
+        <div className="chart-container">
+          <div className="chart-grid">
+            {selectedDayData.hourlyData.map((hourData) => (
+              <HourBar
+                key={hourData.hour}
+                hourData={hourData}
+                maxVolume={Math.max(...selectedDayData.hourlyData.map(h => h.totalVolume))}
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -121,7 +88,22 @@ interface DayColumnProps {
 }
 
 const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick, index }) => {
-  const dayLabels = ['5 Days Ago', '4 Days Ago', '3 Days Ago', '2 Days Ago', 'Yesterday'];
+  // Get the actual date from the day data
+  const dayDate = new Date(day.date);
+  const today = new Date();
+  const diffTime = today.getTime() - dayDate.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  // Create appropriate labels based on the actual date difference
+  const getDayLabel = (index: number, diffDays: number) => {
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays === 2) return '2 Days Ago';
+    if (diffDays === 3) return '3 Days Ago';
+    if (diffDays === 4) return '4 Days Ago';
+    if (diffDays === 5) return '5 Days Ago';
+    return `${diffDays} Days Ago`;
+  };
   
   return (
     <div 
@@ -129,7 +111,7 @@ const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick, index }
       onClick={onClick}
     >
       <div className="day-header">
-        <h4>{dayLabels[index]}</h4>
+        <h4>{getDayLabel(index, diffDays)}</h4>
         <p className="day-date">{day.dayOfWeek}</p>
         <p className="day-date-short">{day.date}</p>
       </div>
