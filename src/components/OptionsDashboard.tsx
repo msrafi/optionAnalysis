@@ -4,6 +4,7 @@ import TickerList from './TickerList';
 import VolumeProfileChart from './VolumeProfileChart';
 import TradeList from './TradeList';
 import StrikeExpiryHeatmap from './StrikeExpiryHeatmap';
+import TickerPsychologyAnalysis from './TickerPsychologyAnalysis';
 import { 
   mergeDataFromFiles,
   getTickerSummaries, 
@@ -20,8 +21,8 @@ import { getCurrentPrice, clearPriceCache } from '../utils/stockPrice';
 // We'll load the CSV data via fetch instead of import
 
 export interface OptionsDashboardProps {
-  activeDashboard: 'options' | 'darkpool';
-  setActiveDashboard: (dashboard: 'options' | 'darkpool') => void;
+  activeDashboard: 'options' | 'darkpool' | 'psychology';
+  setActiveDashboard: (dashboard: 'options' | 'darkpool' | 'psychology') => void;
 }
 
 const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, setActiveDashboard }) => {
@@ -300,6 +301,12 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
             >
               Dark Pool Analysis
             </button>
+            <button 
+              className={`nav-button ${activeDashboard === 'psychology' ? 'active' : ''}`}
+              onClick={() => setActiveDashboard('psychology')}
+            >
+              Trade Psychology
+            </button>
           </div>
           
           <button 
@@ -415,6 +422,12 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
               <p>{volumeProfileData.reduce((sum, item) => sum + item.openInterest, 0).toLocaleString()}</p>
             </div>
           </div>
+
+          {/* Trade Psychology Analysis */}
+          <TickerPsychologyAnalysis 
+            ticker={selectedTicker}
+            trades={tickerTrades}
+          />
 
           {/* Heatmap & Trade History - Two Column Layout */}
           <div className="heatmap-trades-section">

@@ -15,8 +15,8 @@ import { loadAllDarkPoolDataFiles, clearDarkPoolFileCache } from '../utils/fileL
 import { getCurrentPrice, clearPriceCache } from '../utils/stockPrice';
 
 export interface DarkPoolDashboardProps {
-  activeDashboard: 'options' | 'darkpool';
-  setActiveDashboard: (dashboard: 'options' | 'darkpool') => void;
+  activeDashboard: 'options' | 'darkpool' | 'psychology';
+  setActiveDashboard: (dashboard: 'options' | 'darkpool' | 'psychology') => void;
 }
 
 const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, setActiveDashboard }) => {
@@ -294,6 +294,12 @@ const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, 
               onClick={() => setActiveDashboard('darkpool')}
             >
               Dark Pool Analysis
+            </button>
+            <button 
+              className={`nav-button ${activeDashboard === 'psychology' ? 'active' : ''}`}
+              onClick={() => setActiveDashboard('psychology')}
+            >
+              Trade Psychology
             </button>
           </div>
           
