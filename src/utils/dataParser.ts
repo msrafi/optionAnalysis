@@ -246,16 +246,8 @@ export function parseTimestampFromData(timestampStr: string): Date | null {
   try {
     if (!timestampStr) return null;
     
-    // Handle format: "Wednesday, October 8, 2025 at 3:02 PM"
-    const match = timestampStr.match(/(\w+),\s+(\w+)\s+(\d+),\s+(\d+)\s+at\s+(\d+):(\d+)\s+(AM|PM)/i);
-    if (!match) {
-      if (import.meta.env.DEV) {
-        console.warn(`Timestamp format not recognized: ${timestampStr}`);
-      }
-      return null;
-    }
-    
-    const [, , monthName, day, year, hour, minute, ampm] = match;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
     // Convert month name to number
     const monthMap: { [key: string]: number } = {
@@ -264,24 +256,54 @@ export function parseTimestampFromData(timestampStr: string): Date | null {
       'september': 8, 'october': 9, 'november': 10, 'december': 11
     };
     
-    const month = monthMap[monthName.toLowerCase()];
-    if (month === undefined) {
-      if (import.meta.env.DEV) {
-        console.warn(`Unknown month: ${monthName}`);
+    // Helper function to convert 12-hour to 24-hour format
+    const convertTo24Hour = (hour: string, ampm: string): number => {
+      let hour24 = parseInt(hour);
+      if (ampm.toUpperCase() === 'PM' && hour24 !== 12) {
+        hour24 += 12;
+      } else if (ampm.toUpperCase() === 'AM' && hour24 === 12) {
+        hour24 = 0;
       }
-      return null;
+      return hour24;
+    };
+    
+    // Handle format: "Wednesday, October 8, 2025 at 3:02 PM"
+    let match = timestampStr.match(/(\w+),\s+(\w+)\s+(\d+),\s+(\d+)\s+at\s+(\d+):(\d+)\s+(AM|PM)/i);
+    if (match) {
+      const [, , monthName, day, year, hour, minute, ampm] = match;
+      const month = monthMap[monthName.toLowerCase()];
+      if (month === undefined) {
+        if (import.meta.env.DEV) {
+          console.warn(`Unknown month: ${monthName}`);
+        }
+        return null;
+      }
+      const hour24 = convertTo24Hour(hour, ampm);
+      return new Date(parseInt(year), month, parseInt(day), hour24, parseInt(minute));
     }
     
-    // Convert 12-hour to 24-hour format
-    let hour24 = parseInt(hour);
-    if (ampm.toUpperCase() === 'PM' && hour24 !== 12) {
-      hour24 += 12;
-    } else if (ampm.toUpperCase() === 'AM' && hour24 === 12) {
-      hour24 = 0;
+    // Handle format: "Yesterday at 3:55 PM"
+    match = timestampStr.match(/Yesterday at (\d+):(\d+)\s+(AM|PM)/i);
+    if (match) {
+      const [, hour, minute, ampm] = match;
+      const hour24 = convertTo24Hour(hour, ampm);
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), hour24, parseInt(minute));
     }
     
-    const parsedDate = new Date(parseInt(year), month, parseInt(day), hour24, parseInt(minute));
-    return parsedDate;
+    // Handle format: "9:45 AM" (today's time)
+    match = timestampStr.match(/(\d+):(\d+)\s+(AM|PM)/i);
+    if (match) {
+      const [, hour, minute, ampm] = match;
+      const hour24 = convertTo24Hour(hour, ampm);
+      return new Date(today.getFullYear(), today.getMonth(), today.getDate(), hour24, parseInt(minute));
+    }
+    
+    if (import.meta.env.DEV) {
+      console.warn(`Timestamp format not recognized: ${timestampStr}`);
+    }
+    return null;
   } catch (error) {
     if (import.meta.env.DEV) {
       console.warn(`Failed to parse timestamp: ${timestampStr}`, error);
