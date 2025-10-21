@@ -42,7 +42,31 @@ export function parseTimestampFromFilename(filename: string): Date | null {
  * Get all CSV files from the data directory
  */
 export async function getDataFiles(): Promise<FileInfo[]> {
-  // Use hardcoded list of available files for now
+  try {
+    // Try to load from the API file first (dynamically generated)
+    const baseUrl = import.meta.env.BASE_URL;
+    const response = await fetch(`${baseUrl}api/data-files.json`);
+    
+    if (response.ok) {
+      const apiData = await response.json();
+      if (Array.isArray(apiData) && apiData.length > 0) {
+        if (import.meta.env.DEV) {
+          console.log(`📁 Loaded ${apiData.length} data files from API`);
+        }
+        return apiData.map((file: any) => ({
+          filename: file.name,
+          timestamp: new Date(file.timestamp),
+          size: file.size
+        }));
+      }
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to load data files from API, falling back to hardcoded list:', error);
+    }
+  }
+
+  // Fallback to hardcoded list if API fails
   const knownFiles = [
     'options_data_2025-10-21_16-51.csv',
     'options_data_2025-10-21_15-00.csv',
