@@ -14,11 +14,36 @@ interface TickerPsychologyAnalysisProps {
 
 const TickerPsychologyAnalysis: React.FC<TickerPsychologyAnalysisProps> = ({ ticker, trades }) => {
   const [selectedDay, setSelectedDay] = useState<number>(0);
+  const [tooltip, setTooltip] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    content: HourlyTradeData | null;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    content: null
+  });
   
   const analysis = useMemo(() => {
     if (!trades || trades.length === 0) return null;
     return analyzeFourDayTradePsychology(trades);
   }, [trades]);
+
+  const handleBarMouseEnter = (event: React.MouseEvent, hourData: HourlyTradeData) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTooltip({
+      visible: true,
+      x: rect.left + rect.width / 2,
+      y: rect.top,
+      content: hourData
+    });
+  };
+
+  const handleBarMouseLeave = () => {
+    setTooltip(prev => ({ ...prev, visible: false }));
+  };
 
   if (!analysis || analysis.days.length === 0) {
     return (
@@ -71,11 +96,111 @@ const TickerPsychologyAnalysis: React.FC<TickerPsychologyAnalysisProps> = ({ tic
                 key={hourData.hour}
                 hourData={hourData}
                 maxVolume={Math.max(...selectedDayData.hourlyData.map(h => h.totalVolume))}
+                onMouseEnter={(e) => handleBarMouseEnter(e, hourData)}
+                onMouseLeave={handleBarMouseLeave}
               />
             ))}
           </div>
         </div>
       </div>
+
+      {/* Modern Tooltip */}
+      {tooltip.visible && tooltip.content && (
+        <div 
+          className="modern-tooltip"
+          style={{
+            position: 'fixed',
+            left: `${tooltip.x + 15}px`,
+            top: `${tooltip.y}px`,
+            transform: 'translateY(-50%)',
+            pointerEvents: 'auto',
+            zIndex: 9999
+          }}
+          onMouseEnter={() => setTooltip(prev => ({ ...prev, visible: true }))}
+          onMouseLeave={handleBarMouseLeave}
+        >
+          <div className="tooltip-header">
+            <span className="tooltip-strike">{formatHour(tooltip.content.hour)}</span>
+            <span className={`tooltip-type ${tooltip.content.psychology.sentiment}`}>
+              {tooltip.content.psychology.sentiment.toUpperCase()}
+            </span>
+          </div>
+          <div className="tooltip-body">
+            <div className="tooltip-row">
+              <span className="tooltip-label">Total Volume</span>
+              <span className="tooltip-value">{formatVolume(tooltip.content.totalVolume)}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Total Trades</span>
+              <span className="tooltip-value">{tooltip.content.totalTrades}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Call Volume</span>
+              <span className="tooltip-value">{formatVolume(tooltip.content.callVolume)}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Put Volume</span>
+              <span className="tooltip-value">{formatVolume(tooltip.content.putVolume)}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Call/Put Ratio</span>
+              <span className="tooltip-value">{tooltip.content.callPutRatio.toFixed(2)}:1</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Call Trades</span>
+              <span className="tooltip-value">{tooltip.content.callTrades}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Put Trades</span>
+              <span className="tooltip-value">{tooltip.content.putTrades}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Total Premium</span>
+              <span className="tooltip-value">${tooltip.content.totalPremium.toLocaleString()}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Call Premium</span>
+              <span className="tooltip-value">${tooltip.content.callPremium.toLocaleString()}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Put Premium</span>
+              <span className="tooltip-value">${tooltip.content.putPremium.toLocaleString()}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Avg Trade Size</span>
+              <span className="tooltip-value">{formatVolume(tooltip.content.avgTradeSize)}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Regular Sweeps</span>
+              <span className="tooltip-value">{tooltip.content.sweepCount}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Unusual Sweeps</span>
+              <span className="tooltip-value">{tooltip.content.unusualSweepCount}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Highly Unusual Sweeps</span>
+              <span className="tooltip-value">{tooltip.content.highlyUnusualSweepCount}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Total Sweeps</span>
+              <span className="tooltip-value">{tooltip.content.sweepCount + tooltip.content.unusualSweepCount + tooltip.content.highlyUnusualSweepCount}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Confidence</span>
+              <span className="tooltip-value">{tooltip.content.psychology.confidence}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Activity</span>
+              <span className="tooltip-value">{tooltip.content.psychology.activity}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Sweep Intensity</span>
+              <span className="tooltip-value">{tooltip.content.psychology.sweepIntensity}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -88,31 +213,13 @@ interface DayColumnProps {
 }
 
 const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick, index }) => {
-  // Get the actual date from the day data
-  const dayDate = new Date(day.date);
-  const today = new Date();
-  const diffTime = today.getTime() - dayDate.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  // Create appropriate labels based on the actual date difference
-  const getDayLabel = (index: number, diffDays: number) => {
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays === 2) return '2 Days Ago';
-    if (diffDays === 3) return '3 Days Ago';
-    if (diffDays === 4) return '4 Days Ago';
-    if (diffDays === 5) return '5 Days Ago';
-    return `${diffDays} Days Ago`;
-  };
-  
   return (
     <div 
       className={`day-column ${isSelected ? 'selected' : ''}`}
       onClick={onClick}
     >
       <div className="day-header">
-        <h4>{getDayLabel(index, diffDays)}</h4>
-        <p className="day-date">{day.dayOfWeek}</p>
+        <h4>{day.dayOfWeek}</h4>
         <p className="day-date-short">{day.date}</p>
       </div>
       
@@ -159,9 +266,11 @@ const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick, index }
 interface HourBarProps {
   hourData: HourlyTradeData;
   maxVolume: number;
+  onMouseEnter: (event: React.MouseEvent) => void;
+  onMouseLeave: () => void;
 }
 
-const HourBar: React.FC<HourBarProps> = ({ hourData, maxVolume }) => {
+const HourBar: React.FC<HourBarProps> = ({ hourData, maxVolume, onMouseEnter, onMouseLeave }) => {
   const height = maxVolume > 0 ? (hourData.totalVolume / maxVolume) * 100 : 0;
   
   return (
@@ -171,24 +280,24 @@ const HourBar: React.FC<HourBarProps> = ({ hourData, maxVolume }) => {
         <div
           className={`hour-bar ${hourData.psychology.sentiment} ${hourData.psychology.activity}`}
           style={{ height: `${Math.max(5, height)}%` }}
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
         >
           <div className="bar-content">
             <div className="volume-info">
               <span className="volume">{formatVolume(hourData.totalVolume)}</span>
               <span className="trades">{hourData.totalTrades}</span>
             </div>
-            <div className="psychology-info">
-              <span className="sentiment">{hourData.psychology.sentiment}</span>
-              {hourData.psychology.sweepIntensity !== 'low' && (
-                <span className="sweep-intensity">{hourData.psychology.sweepIntensity} sweeps</span>
-              )}
+            <div className="call-put-info">
+              <span className="call-volume">C: {formatVolume(hourData.callVolume)}</span>
+              <span className="put-volume">P: {formatVolume(hourData.putVolume)}</span>
             </div>
           </div>
         </div>
       </div>
       <div className="hour-details">
         <div className="cp-ratio">C/P: {hourData.callPutRatio.toFixed(1)}</div>
-        <div className="sweep-count">{hourData.sweepCount + hourData.unusualSweepCount + hourData.highlyUnusualSweepCount} sweeps</div>
+        <div className="volume-breakdown">C: {formatVolume(hourData.callVolume)} | P: {formatVolume(hourData.putVolume)}</div>
       </div>
     </div>
   );
