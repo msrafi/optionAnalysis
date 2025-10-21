@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { OptionData } from '../utils/dataParser';
+import { OptionData, formatPremium } from '../utils/dataParser';
 import { 
   analyzeFourDayTradePsychology, 
   DailyTradePsychology,
@@ -238,6 +238,14 @@ const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick }) => {
         <div className="metric-row">
           <span className="metric-label">Sweeps</span>
           <span className="metric-value">{day.dailySummary.sweepCount}</span>
+        </div>
+        <div className="metric-row">
+          <span className="metric-label">Premium</span>
+          <span className="metric-value">{formatPremium(day.dailySummary.totalPremium)}</span>
+        </div>
+        <div className="metric-row">
+          <span className="metric-label">Expiries</span>
+          <span className="metric-value">{day.dailySummary.uniqueExpiries.length}</span>
         </div>
       </div>
       

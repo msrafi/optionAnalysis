@@ -4,7 +4,8 @@ import {
   mergeDataFromFiles,
   clearDataCache,
   OptionData,
-  MergedDataInfo
+  MergedDataInfo,
+  formatPremium
 } from '../utils/dataParser';
 import { loadAllDataFiles } from '../utils/fileLoader';
 import { 
@@ -278,12 +279,20 @@ const TradePsychologyDashboard: React.FC<TradePsychologyDashboardProps> = ({ set
                 <span className="metric-value">{selectedDayData.dailySummary.totalTrades.toLocaleString()}</span>
               </div>
               <div className="metric">
+                <span className="metric-label">Total Premium</span>
+                <span className="metric-value">{formatPremium(selectedDayData.dailySummary.totalPremium)}</span>
+              </div>
+              <div className="metric">
                 <span className="metric-label">Call/Put Ratio</span>
                 <span className="metric-value">{selectedDayData.dailySummary.callPutRatio.toFixed(2)}:1</span>
               </div>
               <div className="metric">
                 <span className="metric-label">Peak Hour</span>
                 <span className="metric-value">{formatHour(selectedDayData.dailySummary.peakHour)}</span>
+              </div>
+              <div className="metric">
+                <span className="metric-label">Expiries</span>
+                <span className="metric-value">{selectedDayData.dailySummary.uniqueExpiries.length}</span>
               </div>
             </div>
             <div className="psychology-summary">
@@ -449,6 +458,14 @@ const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick }) => {
         <div className="metric-row">
           <span className="metric-label">Sweeps</span>
           <span className="metric-value">{day.dailySummary.sweepCount}</span>
+        </div>
+        <div className="metric-row">
+          <span className="metric-label">Premium</span>
+          <span className="metric-value">{formatPremium(day.dailySummary.totalPremium)}</span>
+        </div>
+        <div className="metric-row">
+          <span className="metric-label">Expiries</span>
+          <span className="metric-value">{day.dailySummary.uniqueExpiries.length}</span>
         </div>
       </div>
       

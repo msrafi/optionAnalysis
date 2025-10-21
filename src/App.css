@@ -665,7 +665,7 @@
 }
 
 .no-trades {
-  padding: 3rem;
+  padding: 0.1rem;
   text-align: center;
   color: rgba(255, 255, 255, 0.6);
 }

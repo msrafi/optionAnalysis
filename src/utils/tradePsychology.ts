@@ -38,6 +38,7 @@ export interface DailyTradePsychology {
     totalPremium: number;
     callPutRatio: number;
     sweepCount: number;
+    uniqueExpiries: string[];
     psychology: TradePsychology;
     peakHour: number;
     peakVolume: number;
@@ -322,6 +323,7 @@ export function analyzeDailyTradePsychology(trades: OptionData[], targetDate: Da
         peakHour: 0,
         peakTrades: 0,
         sweepCount: 0,
+        uniqueExpiries: [],
         psychology: {
           sentiment: 'neutral',
           confidence: 'low',
@@ -356,6 +358,7 @@ export function analyzeDailyTradePsychology(trades: OptionData[], targetDate: Da
     totalPremium: 0,
     callPutRatio: 0,
     sweepCount: 0,
+    uniqueExpiries: [] as string[],
     psychology: { sentiment: 'neutral' as 'bullish' | 'bearish' | 'neutral' | 'mixed', confidence: 'low' as 'high' | 'medium' | 'low', activity: 'low' as 'high' | 'medium' | 'low', sweepIntensity: 'low' as 'high' | 'medium' | 'low', description: '' },
     peakHour: 0,
     peakVolume: 0,
@@ -366,6 +369,16 @@ export function analyzeDailyTradePsychology(trades: OptionData[], targetDate: Da
   const totalCallVolume = hourlyData.reduce((sum, h) => sum + h.callVolume, 0);
   const totalPutVolume = hourlyData.reduce((sum, h) => sum + h.putVolume, 0);
   dailySummary.callPutRatio = totalPutVolume > 0 ? totalCallVolume / totalPutVolume : totalCallVolume;
+  
+  // Calculate unique expiries for the day
+  const expirySet = new Set<string>();
+  trades.forEach(trade => {
+    const tradeDate = parseTimestampFromData(trade.timestamp);
+    if (tradeDate && tradeDate.toISOString().split('T')[0] === targetDate.toISOString().split('T')[0]) {
+      expirySet.add(trade.expiry);
+    }
+  });
+  dailySummary.uniqueExpiries = Array.from(expirySet).sort((a, b) => new Date(a).getTime() - new Date(b).getTime()) as string[];
   
   // Analyze overall daily psychology
   dailySummary.psychology = analyzeTradePsychology({
