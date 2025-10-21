@@ -5138,7 +5138,7 @@
   }
 }
 
-/* Trade Psychology Dashboard Styles */
+/* Overall Analysis Dashboard Styles */
 .trade-psychology-dashboard {
   padding: 1rem;
   background: var(--bg-primary);
@@ -5813,5 +5813,411 @@
   
   .ticker-psychology-analysis .detailed-analysis {
     padding: 1rem;
+  }
+}
+
+/* Ticker Weekly Analysis Styles */
+.ticker-weekly-analysis {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.ticker-weekly-analysis h3 {
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.ticker-weekly-analysis > p {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.ticker-analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.ticker-analysis-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1.25rem;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.ticker-analysis-card.bullish {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.02), var(--bg-primary));
+  border-color: rgba(34, 197, 94, 0.1);
+}
+
+.ticker-analysis-card.bearish {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.02), var(--bg-primary));
+  border-color: rgba(239, 68, 68, 0.1);
+}
+
+.ticker-analysis-card.neutral {
+  background: linear-gradient(135deg, rgba(107, 114, 128, 0.02), var(--bg-primary));
+  border-color: rgba(107, 114, 128, 0.1);
+}
+
+.ticker-analysis-card.mixed {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.02), var(--bg-primary));
+  border-color: rgba(168, 85, 247, 0.1);
+}
+
+.ticker-analysis-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.ticker-analysis-card.bullish::before {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.ticker-analysis-card.bearish::before {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.ticker-analysis-card.neutral::before {
+  background: linear-gradient(90deg, #6b7280, #4b5563);
+}
+
+.ticker-analysis-card.mixed::before {
+  background: linear-gradient(90deg, #a855f7, #9333ea);
+}
+
+.ticker-analysis-card:hover {
+  border-color: var(--accent-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.ticker-analysis-card.bullish:hover {
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.15);
+}
+
+.ticker-analysis-card.bearish:hover {
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.15);
+}
+
+.ticker-analysis-card.neutral:hover {
+  box-shadow: 0 6px 20px rgba(107, 114, 128, 0.15);
+}
+
+.ticker-analysis-card.mixed:hover {
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.15);
+}
+
+.ticker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ticker-header h4 {
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.overall-sentiment {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.overall-sentiment.bullish {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.overall-sentiment.bearish {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.overall-sentiment.neutral {
+  background: rgba(156, 163, 175, 0.1);
+  color: #9ca3af;
+  border: 1px solid rgba(156, 163, 175, 0.2);
+}
+
+.overall-sentiment.mixed {
+  background: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+.ticker-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.summary-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+}
+
+.metric-label {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.metric-value {
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.trend-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+}
+
+.trend-direction, .confidence {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.trend-label, .confidence-label {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.trend-value, .confidence-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.trend-direction.improving .trend-value {
+  color: #22c55e;
+}
+
+.trend-direction.declining .trend-value {
+  color: #ef4444;
+}
+
+.trend-direction.stable .trend-value {
+  color: #6b7280;
+}
+
+.confidence.high .confidence-value {
+  color: #22c55e;
+}
+
+.confidence.medium .confidence-value {
+  color: #f59e0b;
+}
+
+.confidence.low .confidence-value {
+  color: #ef4444;
+}
+
+.weekly-breakdown h5 {
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.weeks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.week-row {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.75rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.week-row.bullish {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.03), var(--bg-secondary));
+  border-color: rgba(34, 197, 94, 0.08);
+}
+
+.week-row.bearish {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.03), var(--bg-secondary));
+  border-color: rgba(239, 68, 68, 0.08);
+}
+
+.week-row.neutral {
+  background: linear-gradient(135deg, rgba(107, 114, 128, 0.03), var(--bg-secondary));
+  border-color: rgba(107, 114, 128, 0.08);
+}
+
+.week-row.mixed {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.03), var(--bg-secondary));
+  border-color: rgba(168, 85, 247, 0.08);
+}
+
+.week-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+
+.week-row.bullish::before {
+  background: linear-gradient(180deg, #22c55e, #16a34a);
+}
+
+.week-row.bearish::before {
+  background: linear-gradient(180deg, #ef4444, #dc2626);
+}
+
+.week-row.neutral::before {
+  background: linear-gradient(180deg, #6b7280, #4b5563);
+}
+
+.week-row.mixed::before {
+  background: linear-gradient(180deg, #a855f7, #9333ea);
+}
+
+.week-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.week-date {
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.week-sentiment {
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.week-sentiment.bullish {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.week-sentiment.bearish {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.week-sentiment.neutral {
+  background: rgba(156, 163, 175, 0.1);
+  color: #9ca3af;
+}
+
+.week-sentiment.mixed {
+  background: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
+}
+
+.week-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.week-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.4rem;
+  background: var(--bg-primary);
+  border-radius: 4px;
+}
+
+.week-metric .metric-label {
+  font-size: 0.7rem;
+  margin-bottom: 0.2rem;
+}
+
+.week-metric .metric-value {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.week-psychology {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.psychology-description {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+/* Responsive design for ticker weekly analysis */
+@media (max-width: 768px) {
+  .ticker-analysis-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .ticker-summary {
+    grid-template-columns: 1fr;
+  }
+  
+  .week-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .trend-info {
+    flex-direction: column;
+    gap: 0.5rem;
   }
 }

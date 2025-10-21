@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import OptionsDashboard from './components/OptionsDashboard';
 import DarkPoolDashboard from './components/DarkPoolDashboard';
-import TradePsychologyDashboard from './components/TradePsychologyDashboard';
+import OverallAnalysisDashboard from './components/OverallAnalysisDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
@@ -25,7 +25,7 @@ function App() {
               setActiveDashboard={setActiveDashboard}
             />
           ) : (
-            <TradePsychologyDashboard 
+            <OverallAnalysisDashboard 
               activeDashboard={activeDashboard}
               setActiveDashboard={setActiveDashboard}
             />

@@ -13,6 +13,7 @@ import {
   DailyTradePsychology,
   HourlyTradeData 
 } from '../utils/tradePsychology';
+import TickerWeeklyAnalysisComponent from './TickerWeeklyAnalysis';
 
 type DashboardType = 'options' | 'darkpool' | 'psychology';
 
@@ -420,6 +421,9 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
           </div>
         </div>
       )}
+
+      {/* Ticker Weekly Analysis */}
+      <TickerWeeklyAnalysisComponent trades={optionData} />
     </div>
   );
 };

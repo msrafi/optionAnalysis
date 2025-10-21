@@ -304,7 +304,7 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
               className={`nav-button ${activeDashboard === 'psychology' ? 'active' : ''}`}
               onClick={() => setActiveDashboard('psychology')}
             >
-              Trade Psychology
+              Overall Analysis
             </button>
           </div>
           
@@ -422,7 +422,7 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
             </div>
           </div>
 
-          {/* Trade Psychology Analysis */}
+          {/* Overall Analysis */}
           <TickerPsychologyAnalysis 
             ticker={selectedTicker}
             trades={tickerTrades}

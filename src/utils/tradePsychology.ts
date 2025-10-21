@@ -634,3 +634,316 @@ export function getRecentTradingDays(trades: OptionData[]): Date[] {
   
   return sortedDates;
 }
+
+// New interfaces for ticker weekly analysis
+export interface WeeklyTickerData {
+  weekStart: string; // YYYY-MM-DD format
+  weekEnd: string;   // YYYY-MM-DD format
+  ticker: string;
+  totalVolume: number;
+  callVolume: number;
+  putVolume: number;
+  totalTrades: number;
+  callTrades: number;
+  putTrades: number;
+  totalPremium: number;
+  callPremium: number;
+  putPremium: number;
+  callPutRatio: number;
+  premiumCallPutRatio: number;
+  sweepCount: number;
+  unusualSweepCount: number;
+  highlyUnusualSweepCount: number;
+  avgTradeSize: number;
+  uniqueExpiries: string[];
+  psychology: TradePsychology;
+}
+
+export interface TickerWeeklyAnalysis {
+  ticker: string;
+  weeks: WeeklyTickerData[];
+  overallSentiment: 'bullish' | 'bearish' | 'neutral' | 'mixed';
+  trendDirection: 'improving' | 'declining' | 'stable';
+  confidence: 'high' | 'medium' | 'low';
+}
+
+/**
+ * Get week start date (Monday) for a given date
+ */
+function getWeekStart(date: Date): Date {
+  const day = date.getDay();
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+  return new Date(date.setDate(diff));
+}
+
+/**
+ * Get week end date (Friday) for a given date
+ */
+function getWeekEnd(weekStart: Date): Date {
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 4); // Friday is 4 days after Monday
+  return weekEnd;
+}
+
+/**
+ * Format date to YYYY-MM-DD string
+ */
+function formatDate(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+/**
+ * Analyze weekly trade psychology (similar to hourly but for weekly data)
+ */
+function analyzeWeeklyTradePsychology(weeklyData: {
+  callPutRatio: number;
+  premiumCallPutRatio: number;
+  totalVolume: number;
+  totalTrades: number;
+  sweepCount: number;
+  unusualSweepCount: number;
+  highlyUnusualSweepCount: number;
+  avgTradeSize: number;
+}): TradePsychology {
+  const { callPutRatio, premiumCallPutRatio, sweepCount, unusualSweepCount, highlyUnusualSweepCount, totalVolume, totalTrades } = weeklyData;
+  
+  // Determine sentiment based on call/put ratios
+  let sentiment: 'bullish' | 'bearish' | 'neutral' | 'mixed' = 'neutral';
+  if (callPutRatio > 1.5 && premiumCallPutRatio > 1.3) {
+    sentiment = 'bullish';
+  } else if (callPutRatio < 0.7 && premiumCallPutRatio < 0.8) {
+    sentiment = 'bearish';
+  } else if (Math.abs(callPutRatio - 1) < 0.3 && Math.abs(premiumCallPutRatio - 1) < 0.3) {
+    sentiment = 'neutral';
+  } else {
+    sentiment = 'mixed';
+  }
+
+  // Determine activity level
+  let activity: 'high' | 'medium' | 'low' = 'low';
+  if (totalVolume > 100000 || totalTrades > 1000) {
+    activity = 'high';
+  } else if (totalVolume > 10000 || totalTrades > 100) {
+    activity = 'medium';
+  }
+
+  // Determine sweep intensity
+  let sweepIntensity: 'high' | 'medium' | 'low' = 'low';
+  const totalSweeps = sweepCount + unusualSweepCount + highlyUnusualSweepCount;
+  if (totalSweeps > 50 || highlyUnusualSweepCount > 10) {
+    sweepIntensity = 'high';
+  } else if (totalSweeps > 10 || unusualSweepCount > 5) {
+    sweepIntensity = 'medium';
+  }
+
+  // Determine confidence
+  let confidence: 'high' | 'medium' | 'low' = 'low';
+  const volumeThreshold = 50000;
+  const tradesThreshold = 500;
+  
+  if (totalVolume > volumeThreshold && totalTrades > tradesThreshold && totalSweeps > 20) {
+    confidence = 'high';
+  } else if (totalVolume > volumeThreshold / 2 && totalTrades > tradesThreshold / 2 && totalSweeps > 5) {
+    confidence = 'medium';
+  }
+
+  // Generate description
+  let description = '';
+  if (sentiment === 'bullish') {
+    description = `Strong bullish sentiment with ${callPutRatio.toFixed(1)}:1 call/put ratio and high call premium dominance`;
+  } else if (sentiment === 'bearish') {
+    description = `Bearish sentiment with ${callPutRatio.toFixed(1)}:1 call/put ratio indicating put buying pressure`;
+  } else if (sentiment === 'neutral') {
+    description = `Balanced sentiment with neutral call/put ratios around 1:1`;
+  } else {
+    description = `Mixed sentiment with varying call/put ratios indicating uncertainty`;
+  }
+
+  if (sweepIntensity === 'high') {
+    description += ` and high sweep activity (${totalSweeps} sweeps)`;
+  } else if (sweepIntensity === 'medium') {
+    description += ` with moderate sweep activity`;
+  }
+
+  return {
+    sentiment,
+    confidence,
+    activity,
+    sweepIntensity,
+    description
+  };
+}
+
+/**
+ * Analyze ticker sentiment by week
+ */
+export function analyzeTickerWeeklySentiment(trades: OptionData[]): TickerWeeklyAnalysis[] {
+  // Group trades by ticker
+  const tickerGroups = new Map<string, OptionData[]>();
+  
+  trades.forEach(trade => {
+    if (!tickerGroups.has(trade.ticker)) {
+      tickerGroups.set(trade.ticker, []);
+    }
+    tickerGroups.get(trade.ticker)!.push(trade);
+  });
+
+  const analyses: TickerWeeklyAnalysis[] = [];
+
+  tickerGroups.forEach((tickerTrades, ticker) => {
+    // Group by week
+    const weekGroups = new Map<string, OptionData[]>();
+    
+    tickerTrades.forEach(trade => {
+      const tradeDate = parseTimestampFromData(trade.timestamp);
+      if (tradeDate) {
+        const weekStart = getWeekStart(new Date(tradeDate));
+        const weekKey = formatDate(weekStart);
+        
+        if (!weekGroups.has(weekKey)) {
+          weekGroups.set(weekKey, []);
+        }
+        weekGroups.get(weekKey)!.push(trade);
+      }
+    });
+
+    // Analyze each week
+    const weeks: WeeklyTickerData[] = [];
+    
+    weekGroups.forEach((weekTrades, weekKey) => {
+      const weekStartDate = new Date(weekKey);
+      const weekEndDate = getWeekEnd(new Date(weekStartDate));
+      
+      // Calculate weekly metrics
+      const totalVolume = weekTrades.reduce((sum, trade) => sum + trade.volume, 0);
+      const callTrades = weekTrades.filter(trade => trade.optionType === 'Call');
+      const putTrades = weekTrades.filter(trade => trade.optionType === 'Put');
+      
+      const callVolume = callTrades.reduce((sum, trade) => sum + trade.volume, 0);
+      const putVolume = putTrades.reduce((sum, trade) => sum + trade.volume, 0);
+      
+      const totalTrades = weekTrades.length;
+      const callTradeCount = callTrades.length;
+      const putTradeCount = putTrades.length;
+      
+      const totalPremium = weekTrades.reduce((sum, trade) => {
+        const premium = parseFloat(trade.premium.replace(/[$,]/g, ''));
+        return sum + (isNaN(premium) ? 0 : premium);
+      }, 0);
+      
+      const callPremium = callTrades.reduce((sum, trade) => {
+        const premium = parseFloat(trade.premium.replace(/[$,]/g, ''));
+        return sum + (isNaN(premium) ? 0 : premium);
+      }, 0);
+      
+      const putPremium = putTrades.reduce((sum, trade) => {
+        const premium = parseFloat(trade.premium.replace(/[$,]/g, ''));
+        return sum + (isNaN(premium) ? 0 : premium);
+      }, 0);
+      
+      const callPutRatio = putVolume > 0 ? callVolume / putVolume : callVolume;
+      const premiumCallPutRatio = putPremium > 0 ? callPremium / putPremium : callPremium;
+      
+      const sweepCount = weekTrades.filter(trade => 
+        trade.sweepType && trade.sweepType.toLowerCase().includes('sweep')
+      ).length;
+      
+      const unusualSweepCount = weekTrades.filter(trade => 
+        trade.sweepType && trade.sweepType.toLowerCase().includes('unusual')
+      ).length;
+      
+      const highlyUnusualSweepCount = weekTrades.filter(trade => 
+        trade.sweepType && trade.sweepType.toLowerCase().includes('highly unusual')
+      ).length;
+      
+      const avgTradeSize = totalTrades > 0 ? totalVolume / totalTrades : 0;
+      
+      const uniqueExpiries = [...new Set(weekTrades.map(trade => trade.expiry))];
+      
+      // Analyze psychology for this week
+      const psychology = analyzeWeeklyTradePsychology({
+        callPutRatio,
+        premiumCallPutRatio,
+        totalVolume,
+        totalTrades,
+        sweepCount,
+        unusualSweepCount,
+        highlyUnusualSweepCount,
+        avgTradeSize
+      });
+
+      weeks.push({
+        weekStart: formatDate(weekStartDate),
+        weekEnd: formatDate(weekEndDate),
+        ticker,
+        totalVolume,
+        callVolume,
+        putVolume,
+        totalTrades,
+        callTrades: callTradeCount,
+        putTrades: putTradeCount,
+        totalPremium,
+        callPremium,
+        putPremium,
+        callPutRatio,
+        premiumCallPutRatio,
+        sweepCount,
+        unusualSweepCount,
+        highlyUnusualSweepCount,
+        avgTradeSize,
+        uniqueExpiries,
+        psychology
+      });
+    });
+
+    // Sort weeks by date (most recent first)
+    weeks.sort((a, b) => new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime());
+
+    // Determine overall sentiment and trend
+    const sentiments = weeks.map(w => w.psychology.sentiment);
+    const sentimentCounts = sentiments.reduce((acc, sentiment) => {
+      acc[sentiment] = (acc[sentiment] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const overallSentiment = Object.entries(sentimentCounts)
+      .sort(([,a], [,b]) => b - a)[0][0] as 'bullish' | 'bearish' | 'neutral' | 'mixed';
+
+    // Determine trend direction by comparing recent weeks
+    let trendDirection: 'improving' | 'declining' | 'stable' = 'stable';
+    if (weeks.length >= 2) {
+      const recentSentiment = weeks[0].psychology.sentiment;
+      const previousSentiment = weeks[1].psychology.sentiment;
+      
+      if ((recentSentiment === 'bullish' && previousSentiment !== 'bullish') ||
+          (recentSentiment === 'bearish' && previousSentiment !== 'bearish')) {
+        trendDirection = 'improving';
+      } else if ((recentSentiment === 'bearish' && previousSentiment === 'bullish') ||
+                 (recentSentiment === 'neutral' && previousSentiment === 'bullish')) {
+        trendDirection = 'declining';
+      }
+    }
+
+    // Calculate confidence based on consistency
+    const maxCount = Math.max(...Object.values(sentimentCounts));
+    const confidence = maxCount / sentiments.length > 0.7 ? 'high' : 
+                      maxCount / sentiments.length > 0.5 ? 'medium' : 'low';
+
+    analyses.push({
+      ticker,
+      weeks,
+      overallSentiment,
+      trendDirection,
+      confidence
+    });
+  });
+
+  // Sort by total volume across all weeks (most active tickers first)
+  analyses.sort((a, b) => {
+    const aTotalVolume = a.weeks.reduce((sum, week) => sum + week.totalVolume, 0);
+    const bTotalVolume = b.weeks.reduce((sum, week) => sum + week.totalVolume, 0);
+    return bTotalVolume - aTotalVolume;
+  });
+
+  return analyses;
+}

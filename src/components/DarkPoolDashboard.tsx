@@ -298,7 +298,7 @@ const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, 
               className={`nav-button ${activeDashboard === 'psychology' ? 'active' : ''}`}
               onClick={() => setActiveDashboard('psychology')}
             >
-              Trade Psychology
+              Overall Analysis
             </button>
           </div>
           
