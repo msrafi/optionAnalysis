@@ -274,6 +274,14 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                     <Clock className="activity-icon" />
                     <span>{formatDateTime(ticker.lastActivity, ticker.lastActivityDate)}</span>
                   </div>
+                  <div className="current-time">
+                    <Clock className="activity-icon" />
+                    <span>{new Date().toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true
+                    })}</span>
+                  </div>
                 </div>
           </div>
           );
