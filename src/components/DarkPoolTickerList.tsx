@@ -213,13 +213,6 @@ const DarkPoolTickerList: React.FC<DarkPoolTickerListProps> = memo(({ tickers, o
                   </span>
                 </div>
               )}
-              
-              <div className="ticker-footer">
-                <div className="last-activity">
-                  <Clock className="activity-icon" />
-                  <span>{formatDateTime(ticker.lastActivity)}</span>
-                </div>
-              </div>
             </div>
           );
         })}

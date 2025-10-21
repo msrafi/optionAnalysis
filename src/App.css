@@ -1147,20 +1147,6 @@
   color: #ffc107;
 }
 
-.ticker-footer {
-  text-align: right;
-}
-
-.last-activity {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.25rem;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-
 .activity-icon {
   width: 12px;
   height: 12px;

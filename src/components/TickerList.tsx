@@ -1,5 +1,5 @@
 import React, { memo, useMemo, useState } from 'react';
-import { TrendingUp, TrendingDown, Calendar, Clock, ArrowUpDown, Target, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, ArrowUpDown, Target, Zap } from 'lucide-react';
 import { TickerSummary, formatVolume, formatPremium, OptionData, getTickerAnalytics } from '../utils/dataParser';
 
 interface TickerListProps {
@@ -268,21 +268,6 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                     </span>
                   </div>
                 )}
-                
-                <div className="ticker-footer">
-                  <div className="last-activity">
-                    <Clock className="activity-icon" />
-                    <span>{formatDateTime(ticker.lastActivity, ticker.lastActivityDate)}</span>
-                  </div>
-                  <div className="current-time">
-                    <Clock className="activity-icon" />
-                    <span>{new Date().toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: true
-                    })}</span>
-                  </div>
-                </div>
           </div>
           );
         })}
