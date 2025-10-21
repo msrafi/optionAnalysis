@@ -178,20 +178,6 @@ const DarkPoolTickerList: React.FC<DarkPoolTickerListProps> = memo(({ tickers, o
                   <span className="detail-label">Max Trade:</span>
                   <span className="detail-value">{formatValue(ticker.maxTradeValue)}</span>
                 </div>
-                {lastTrade && (
-                  <div className="detail-row last-trade-row">
-                    <span className="detail-label">Last Trade:</span>
-                    <span className="detail-value last-trade">
-                      {formatValue(lastTrade.price * lastTrade.quantity)} 
-                      <span className="trade-side">
-                        {formatVolume(lastTrade.quantity)} @ ${lastTrade.price.toFixed(2)}
-                      </span>
-                      <span className="trade-timestamp">
-                        {formatDateTime(lastTrade.timestamp)}
-                      </span>
-                    </span>
-                  </div>
-                )}
               </div>
               
               {/* Analytics Section */}
@@ -211,6 +197,22 @@ const DarkPoolTickerList: React.FC<DarkPoolTickerListProps> = memo(({ tickers, o
                   </span>
                 </div>
               </div>
+              
+              {/* Last Trade Section - Moved to bottom */}
+              {lastTrade && (
+                <div className="detail-row last-trade-row">
+                  <span className="detail-label">Last Trade:</span>
+                  <span className="detail-value last-trade">
+                    {formatValue(lastTrade.price * lastTrade.quantity)} 
+                    <span className="trade-side">
+                      {formatVolume(lastTrade.quantity)} @ ${lastTrade.price.toFixed(2)}
+                    </span>
+                    <span className="trade-timestamp">
+                      {formatDateTime(lastTrade.timestamp)}
+                    </span>
+                  </span>
+                </div>
+              )}
             </div>
           );
         })}

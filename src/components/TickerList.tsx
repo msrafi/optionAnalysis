@@ -219,21 +219,6 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                     <span className="detail-label">Expiries:</span>
                     <span className="detail-value">{ticker.uniqueExpiries.length}</span>
                   </div>
-                  {ticker.lastTrade && (
-                    <div className="detail-row last-trade-row">
-                      <span className="detail-label">Last Trade:</span>
-                      <span className="detail-value last-trade">
-                        {ticker.lastTrade.optionType} ${ticker.lastTrade.strike} 
-                        <span className={`trade-side ${ticker.lastTrade.optionType.toLowerCase()}`}>
-                          {ticker.lastTrade.optionType === 'Call' ? '↗' : '↘'}
-                        </span>
-                        {formatVolume(ticker.lastTrade.volume)}
-                        <span className="trade-timestamp">
-                          {formatDateTime(ticker.lastTrade.timestamp)}
-                        </span>
-                      </span>
-                    </div>
-                  )}
                 </div>
                 
                 {/* Analytics Section */}
@@ -264,6 +249,23 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                         <span className="badge-value">${analytics.maxPainStrike}</span>
                       </div>
                     )}
+                  </div>
+                )}
+                
+                {/* Last Trade Section - Moved to bottom */}
+                {ticker.lastTrade && (
+                  <div className="detail-row last-trade-row">
+                    <span className="detail-label">Last Trade:</span>
+                    <span className="detail-value last-trade">
+                      {ticker.lastTrade.optionType} ${ticker.lastTrade.strike} 
+                      <span className={`trade-side ${ticker.lastTrade.optionType.toLowerCase()}`}>
+                        {ticker.lastTrade.optionType === 'Call' ? '↗' : '↘'}
+                      </span>
+                      {formatVolume(ticker.lastTrade.volume)}
+                      <span className="trade-timestamp">
+                        {formatDateTime(ticker.lastTrade.timestamp)}
+                      </span>
+                    </span>
                   </div>
                 )}
                 
