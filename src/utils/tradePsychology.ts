@@ -157,20 +157,20 @@ function analyzeTradePsychology(hourlyData: HourlyTradeData): TradePsychology {
 }
 
 /**
- * Check if an hour is within trading hours (9:30 AM - 4:00 PM ET)
+ * Check if an hour is within trading hours (9:30 AM - 4:15 PM ET)
  */
 function isTradingHour(hour: number): boolean {
-  // Trading hours: 9:30 AM (9.5) to 4:00 PM (16)
-  return hour >= 9.5 && hour <= 16;
+  // Trading hours: 9:30 AM (9.5) to 4:15 PM (16.25)
+  return hour >= 9.5 && hour <= 16.25;
 }
 
 /**
- * Get trading hours for the day (9:30 AM - 4:00 PM)
+ * Get trading hours for the day (9:30 AM - 4:15 PM)
  */
 function getTradingHours(): number[] {
   const hours: number[] = [];
-  // Start at 9:30 AM (9.5) and go to 4:00 PM (16)
-  for (let hour = 9.5; hour <= 16; hour += 0.5) {
+  // Start at 9:30 AM (9.5) and go to 4:15 PM (16.25)
+  for (let hour = 9.5; hour <= 16.25; hour += 0.5) {
     hours.push(hour);
   }
   return hours;
@@ -195,7 +195,7 @@ export function aggregateTradesByHour(trades: OptionData[], targetDate: Date): H
     highlyUnusualSweepCount: number;
   }>();
   
-  // Initialize only trading hours (9:30 AM - 4:00 PM)
+  // Initialize only trading hours (9:30 AM - 4:15 PM)
   const tradingHours = getTradingHours();
   tradingHours.forEach(hour => {
     hourlyMap.set(hour, {
@@ -567,7 +567,7 @@ function analyzeOverallTrend(days: DailyTradePsychology[]): FourDayPsychologyAna
 function analyzeHourlyPatterns(days: DailyTradePsychology[]): FourDayPsychologyAnalysis['hourlyPatterns'] {
   const patterns: FourDayPsychologyAnalysis['hourlyPatterns'] = {};
   
-  // Initialize only trading hours
+  // Initialize only trading hours (9:30 AM - 4:15 PM)
   const tradingHours = getTradingHours();
   tradingHours.forEach(hour => {
     patterns[hour] = {
