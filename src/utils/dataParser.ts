@@ -70,14 +70,147 @@ export interface HighestVolumeData {
   openInterest: number;
 }
 
-// Cache for parsed data to avoid re-parsing
-const parseCache = new Map<string, OptionData[]>();
-const darkPoolParseCache = new Map<string, DarkPoolData[]>();
+// Session storage keys for caching
+const PARSE_CACHE_KEY = 'optionAnalysis_parseCache';
+const DARKPOOL_PARSE_CACHE_KEY = 'optionAnalysis_darkPoolParseCache';
+const TICKER_SUMMARY_CACHE_KEY = 'optionAnalysis_tickerSummaryCache';
+const DARKPOOL_TICKER_SUMMARY_CACHE_KEY = 'optionAnalysis_darkPoolTickerSummaryCache';
+
+// Helper functions for session storage
+function getSessionParseCache(key: string): Map<string, OptionData[]> {
+  try {
+    const cached = sessionStorage.getItem(key);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      const map = new Map<string, OptionData[]>();
+      for (const [k, v] of Object.entries(parsed)) {
+        map.set(k, v as OptionData[]);
+      }
+      return map;
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to load parse cache from session storage:', error);
+    }
+  }
+  return new Map<string, OptionData[]>();
+}
+
+function setSessionParseCache(key: string, cache: Map<string, OptionData[]>): void {
+  try {
+    const obj = Object.fromEntries(cache);
+    sessionStorage.setItem(key, JSON.stringify(obj));
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to save parse cache to session storage:', error);
+    }
+  }
+}
+
+function getSessionDarkPoolParseCache(key: string): Map<string, DarkPoolData[]> {
+  try {
+    const cached = sessionStorage.getItem(key);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      const map = new Map<string, DarkPoolData[]>();
+      for (const [k, v] of Object.entries(parsed)) {
+        map.set(k, v as DarkPoolData[]);
+      }
+      return map;
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to load dark pool parse cache from session storage:', error);
+    }
+  }
+  return new Map<string, DarkPoolData[]>();
+}
+
+function setSessionDarkPoolParseCache(key: string, cache: Map<string, DarkPoolData[]>): void {
+  try {
+    const obj = Object.fromEntries(cache);
+    sessionStorage.setItem(key, JSON.stringify(obj));
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to save dark pool parse cache to session storage:', error);
+    }
+  }
+}
+
+function getSessionTickerSummaryCache(key: string): Map<string, TickerSummary[]> {
+  try {
+    const cached = sessionStorage.getItem(key);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      const map = new Map<string, TickerSummary[]>();
+      for (const [k, v] of Object.entries(parsed)) {
+        map.set(k, v as TickerSummary[]);
+      }
+      return map;
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to load ticker summary cache from session storage:', error);
+    }
+  }
+  return new Map<string, TickerSummary[]>();
+}
+
+function setSessionTickerSummaryCache(key: string, cache: Map<string, TickerSummary[]>): void {
+  try {
+    const obj = Object.fromEntries(cache);
+    sessionStorage.setItem(key, JSON.stringify(obj));
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to save ticker summary cache to session storage:', error);
+    }
+  }
+}
+
+function getSessionDarkPoolTickerSummaryCache(key: string): Map<string, any[]> {
+  try {
+    const cached = sessionStorage.getItem(key);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      const map = new Map<string, any[]>();
+      for (const [k, v] of Object.entries(parsed)) {
+        map.set(k, v as any[]);
+      }
+      return map;
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to load dark pool ticker summary cache from session storage:', error);
+    }
+  }
+  return new Map<string, any[]>();
+}
+
+function setSessionDarkPoolTickerSummaryCache(key: string, cache: Map<string, any[]>): void {
+  try {
+    const obj = Object.fromEntries(cache);
+    sessionStorage.setItem(key, JSON.stringify(obj));
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to save dark pool ticker summary cache to session storage:', error);
+    }
+  }
+}
+
+function clearSessionCache(key: string): void {
+  try {
+    sessionStorage.removeItem(key);
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to clear session storage:', error);
+    }
+  }
+}
 
 // Clear cache function for development
 export function clearDataCache() {
-  parseCache.clear();
-  tickerSummaryCache.clear();
+  clearSessionCache(PARSE_CACHE_KEY);
+  clearSessionCache(TICKER_SUMMARY_CACHE_KEY);
   if (import.meta.env.DEV) {
     console.log('Options data cache cleared - all caches reset');
   }
@@ -85,10 +218,23 @@ export function clearDataCache() {
 
 // Clear dark pool cache function
 export function clearDarkPoolDataCache() {
-  darkPoolParseCache.clear();
-  darkPoolTickerSummaryCache.clear();
+  clearSessionCache(DARKPOOL_PARSE_CACHE_KEY);
+  clearSessionCache(DARKPOOL_TICKER_SUMMARY_CACHE_KEY);
   if (import.meta.env.DEV) {
     console.log('Dark pool data cache cleared');
+  }
+}
+
+/**
+ * Clear all data parser session storage caches
+ */
+export function clearAllDataParserCaches(): void {
+  clearSessionCache(PARSE_CACHE_KEY);
+  clearSessionCache(DARKPOOL_PARSE_CACHE_KEY);
+  clearSessionCache(TICKER_SUMMARY_CACHE_KEY);
+  clearSessionCache(DARKPOOL_TICKER_SUMMARY_CACHE_KEY);
+  if (import.meta.env.DEV) {
+    console.log('🧹 All data parser session storage caches cleared');
   }
 }
 
@@ -177,6 +323,7 @@ function isOptionExpired(expiryStr: string): boolean {
 export function parseCSVData(csvText: string, sourceFile?: string): OptionData[] {
   // Check cache first
   const cacheKey = `${sourceFile || 'unknown'}_${csvText.length}_${csvText.slice(0, 100)}`;
+  const parseCache = getSessionParseCache(PARSE_CACHE_KEY);
   const cached = parseCache.get(cacheKey);
   if (cached) {
     return cached;
@@ -255,18 +402,16 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
   
   // Cache the result
   parseCache.set(cacheKey, data);
+  setSessionParseCache(PARSE_CACHE_KEY, parseCache);
   
   return data;
 }
 
 
-// Cache for ticker summaries
-const tickerSummaryCache = new Map<string, TickerSummary[]>();
-const darkPoolTickerSummaryCache = new Map<string, any[]>();
-
 export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
   // Create cache key based on data length and first few items
   const cacheKey = `${data.length}_${data.slice(0, 3).map(d => `${d.ticker}_${d.timestamp}`).join('_')}`;
+  const tickerSummaryCache = getSessionTickerSummaryCache(TICKER_SUMMARY_CACHE_KEY);
   const cached = tickerSummaryCache.get(cacheKey);
   if (cached) {
     return cached;
@@ -366,6 +511,7 @@ export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
   
   // Cache the result
   tickerSummaryCache.set(cacheKey, result);
+  setSessionTickerSummaryCache(TICKER_SUMMARY_CACHE_KEY, tickerSummaryCache);
   
   return result;
 }
@@ -1040,6 +1186,7 @@ export function getTickerAnalytics(
 export function parseDarkPoolData(csvContent: string, filename: string): DarkPoolData[] {
   // Check cache first
   const cacheKey = `${filename}-${csvContent.length}`;
+  const darkPoolParseCache = getSessionDarkPoolParseCache(DARKPOOL_PARSE_CACHE_KEY);
   const cached = darkPoolParseCache.get(cacheKey);
   if (cached) {
     if (import.meta.env.DEV) {
@@ -1102,6 +1249,7 @@ export function parseDarkPoolData(csvContent: string, filename: string): DarkPoo
   
   // Cache the parsed data
   darkPoolParseCache.set(cacheKey, darkPoolData);
+  setSessionDarkPoolParseCache(DARKPOOL_PARSE_CACHE_KEY, darkPoolParseCache);
   
   return darkPoolData;
 }
@@ -1202,6 +1350,7 @@ export function getDarkPoolTickerSummaries(darkPoolData: DarkPoolData[]): Array<
 }> {
   // Check cache first
   const cacheKey = `${darkPoolData.length}_${darkPoolData.slice(0, 3).map(d => `${d.ticker}_${d.timestamp}`).join('_')}`;
+  const darkPoolTickerSummaryCache = getSessionDarkPoolTickerSummaryCache(DARKPOOL_TICKER_SUMMARY_CACHE_KEY);
   const cached = darkPoolTickerSummaryCache.get(cacheKey);
   if (cached) {
     if (import.meta.env.DEV) {
@@ -1265,6 +1414,7 @@ export function getDarkPoolTickerSummaries(darkPoolData: DarkPoolData[]): Array<
 
   // Cache the result
   darkPoolTickerSummaryCache.set(cacheKey, result);
+  setSessionDarkPoolTickerSummaryCache(DARKPOOL_TICKER_SUMMARY_CACHE_KEY, darkPoolTickerSummaryCache);
   
   return result;
 }

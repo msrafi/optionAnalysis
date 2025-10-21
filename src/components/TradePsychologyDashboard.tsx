@@ -1,15 +1,14 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, RefreshCw } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { 
   mergeDataFromFiles,
   clearDataCache,
   OptionData,
   MergedDataInfo
 } from '../utils/dataParser';
-import { loadAllDataFiles, clearFileCache } from '../utils/fileLoader';
+import { loadAllDataFiles } from '../utils/fileLoader';
 import { 
   analyzeFourDayTradePsychology, 
-  FourDayPsychologyAnalysis, 
   DailyTradePsychology,
   HourlyTradeData 
 } from '../utils/tradePsychology';
@@ -21,10 +20,10 @@ interface TradePsychologyDashboardProps {
   setActiveDashboard: (dashboard: DashboardType) => void;
 }
 
-const TradePsychologyDashboard: React.FC<TradePsychologyDashboardProps> = ({ activeDashboard, setActiveDashboard }) => {
+const TradePsychologyDashboard: React.FC<TradePsychologyDashboardProps> = ({ setActiveDashboard }) => {
   const [selectedDay, setSelectedDay] = useState<number>(0);
   const [optionData, setOptionData] = useState<OptionData[]>([]);
-  const [dataInfo, setDataInfo] = useState<MergedDataInfo | null>(null);
+  const [, setDataInfo] = useState<MergedDataInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<{
@@ -95,7 +94,6 @@ const TradePsychologyDashboard: React.FC<TradePsychologyDashboardProps> = ({ act
 
   const handleRefresh = async () => {
     clearDataCache();
-    clearFileCache();
     const loadAllData = async () => {
       try {
         setLoading(true);
@@ -424,7 +422,7 @@ interface DayColumnProps {
   index: number;
 }
 
-const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick, index }) => {
+const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick }) => {
   return (
     <div 
       className={`day-column ${isSelected ? 'selected' : ''}`}

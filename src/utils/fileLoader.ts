@@ -136,10 +136,62 @@ export async function loadCSVFile(filename: string, bustCache: boolean = false):
   }
 }
 
-// Cache for loaded files to avoid re-fetching
-const fileCache = new Map<string, { data: LoadedFileData; timestamp: number }>();
-const darkPoolFileCache = new Map<string, { data: LoadedFileData; timestamp: number }>();
+// Session storage keys for caching
+const FILE_CACHE_KEY = 'optionAnalysis_fileCache';
+const DARKPOOL_FILE_CACHE_KEY = 'optionAnalysis_darkPoolFileCache';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Helper functions for session storage
+function getSessionCache(key: string): Map<string, { data: LoadedFileData; timestamp: number }> {
+  try {
+    const cached = sessionStorage.getItem(key);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      const map = new Map<string, { data: LoadedFileData; timestamp: number }>();
+      for (const [k, v] of Object.entries(parsed)) {
+        map.set(k, v as { data: LoadedFileData; timestamp: number });
+      }
+      return map;
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to load from session storage:', error);
+    }
+  }
+  return new Map<string, { data: LoadedFileData; timestamp: number }>();
+}
+
+function setSessionCache(key: string, cache: Map<string, { data: LoadedFileData; timestamp: number }>): void {
+  try {
+    const obj = Object.fromEntries(cache);
+    sessionStorage.setItem(key, JSON.stringify(obj));
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to save to session storage:', error);
+    }
+  }
+}
+
+function clearSessionCache(key: string): void {
+  try {
+    sessionStorage.removeItem(key);
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to clear session storage:', error);
+    }
+  }
+}
+
+/**
+ * Clear all session storage caches for the application
+ */
+export function clearAllSessionCaches(): void {
+  clearSessionCache(FILE_CACHE_KEY);
+  clearSessionCache(DARKPOOL_FILE_CACHE_KEY);
+  if (import.meta.env.DEV) {
+    console.log('🧹 All session storage caches cleared');
+  }
+}
 
 /**
  * Load all CSV files from the data directory with caching
@@ -148,6 +200,9 @@ export async function loadAllDataFiles(bustCache: boolean = false): Promise<Load
   try {
     const files = await getDataFiles();
     const now = Date.now();
+    
+    // Get cache from session storage
+    const fileCache = getSessionCache(FILE_CACHE_KEY);
     
     // If busting cache, skip cache check and load all files fresh
     if (bustCache) {
@@ -163,6 +218,9 @@ export async function loadAllDataFiles(bustCache: boolean = false): Promise<Load
           fileCache.set(result.filename, { data: result, timestamp: now });
         }
       });
+      
+      // Save updated cache to session storage
+      setSessionCache(FILE_CACHE_KEY, fileCache);
       
       const successful = results.filter(result => !result.error);
       if (import.meta.env.DEV) {
@@ -196,6 +254,9 @@ export async function loadAllDataFiles(bustCache: boolean = false): Promise<Load
           fileCache.set(result.filename, { data: result, timestamp: now });
         }
       });
+      
+      // Save updated cache to session storage
+      setSessionCache(FILE_CACHE_KEY, fileCache);
     }
     
     const allResults = [...cachedResults, ...newResults];
@@ -226,6 +287,9 @@ export async function loadAllDarkPoolDataFiles(bustCache: boolean = false): Prom
     const files = await getDarkPoolDataFiles();
     const now = Date.now();
     
+    // Get dark pool cache from session storage
+    const darkPoolFileCache = getSessionCache(DARKPOOL_FILE_CACHE_KEY);
+    
     // If busting cache, skip cache check and load all files fresh
     if (bustCache) {
       if (import.meta.env.DEV) {
@@ -240,6 +304,9 @@ export async function loadAllDarkPoolDataFiles(bustCache: boolean = false): Prom
           darkPoolFileCache.set(result.filename, { data: result, timestamp: now });
         }
       });
+      
+      // Save updated cache to session storage
+      setSessionCache(DARKPOOL_FILE_CACHE_KEY, darkPoolFileCache);
       
       const successful = results.filter(result => !result.error);
       if (import.meta.env.DEV) {
@@ -273,6 +340,9 @@ export async function loadAllDarkPoolDataFiles(bustCache: boolean = false): Prom
           darkPoolFileCache.set(result.filename, { data: result, timestamp: now });
         }
       });
+      
+      // Save updated cache to session storage
+      setSessionCache(DARKPOOL_FILE_CACHE_KEY, darkPoolFileCache);
     }
     
     const allResults = [...cachedResults, ...newResults];
@@ -295,19 +365,6 @@ export async function loadAllDarkPoolDataFiles(bustCache: boolean = false): Prom
   }
 }
 
-/**
- * Clear the file cache
- */
-export function clearFileCache(): void {
-  fileCache.clear();
-}
-
-/**
- * Clear the dark pool file cache
- */
-export function clearDarkPoolFileCache(): void {
-  darkPoolFileCache.clear();
-}
 
 /**
  * Preload data files in the background

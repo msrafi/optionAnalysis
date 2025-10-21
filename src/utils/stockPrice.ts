@@ -83,11 +83,50 @@ export async function fetchStockPrice(ticker: string): Promise<number | null> {
   }
 }
 
-/**
- * Cache for stock prices to avoid excessive API calls
- */
-const priceCache = new Map<string, { price: number; timestamp: number }>();
+// Session storage key for price caching
+const PRICE_CACHE_KEY = 'optionAnalysis_priceCache';
 const CACHE_DURATION = 900000; // 15 minutes cache (15 * 60 * 1000)
+
+// Helper functions for session storage
+function getSessionPriceCache(): Map<string, { price: number; timestamp: number }> {
+  try {
+    const cached = sessionStorage.getItem(PRICE_CACHE_KEY);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      const map = new Map<string, { price: number; timestamp: number }>();
+      for (const [k, v] of Object.entries(parsed)) {
+        map.set(k, v as { price: number; timestamp: number });
+      }
+      return map;
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to load price cache from session storage:', error);
+    }
+  }
+  return new Map<string, { price: number; timestamp: number }>();
+}
+
+function setSessionPriceCache(cache: Map<string, { price: number; timestamp: number }>): void {
+  try {
+    const obj = Object.fromEntries(cache);
+    sessionStorage.setItem(PRICE_CACHE_KEY, JSON.stringify(obj));
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to save price cache to session storage:', error);
+    }
+  }
+}
+
+function clearSessionPriceCache(): void {
+  try {
+    sessionStorage.removeItem(PRICE_CACHE_KEY);
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to clear price cache from session storage:', error);
+    }
+  }
+}
 
 /**
  * Get real-time stock price with intelligent caching
@@ -100,6 +139,7 @@ export async function getCurrentPrice(
   source: 'api' | 'none';
   cached: boolean;
 }> {
+  const priceCache = getSessionPriceCache();
   const cached = priceCache.get(ticker);
   const now = Date.now();
   
@@ -117,6 +157,7 @@ export async function getCurrentPrice(
   
   if (apiPrice !== null) {
     priceCache.set(ticker, { price: apiPrice, timestamp: now });
+    setSessionPriceCache(priceCache);
     if (import.meta.env.DEV) {
       console.log(`Fetched fresh price for ${ticker}: $${apiPrice}`);
     }
@@ -135,6 +176,9 @@ export async function getCachedStockPrice(ticker: string): Promise<number | null
  * Clear the price cache
  */
 export function clearPriceCache(): void {
-  priceCache.clear();
+  clearSessionPriceCache();
+  if (import.meta.env.DEV) {
+    console.log('🧹 Price cache cleared from session storage');
+  }
 }
 

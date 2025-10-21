@@ -284,7 +284,7 @@ export function aggregateTradesByHour(trades: OptionData[], targetDate: Date): H
         avgTradeSize,
         callPutRatio,
         premiumCallPutRatio,
-        psychology: { sentiment: 'neutral', confidence: 'low', activity: 'low', sweepIntensity: 'low', description: '' }
+        psychology: { sentiment: 'neutral' as const, confidence: 'low' as const, activity: 'low' as const, sweepIntensity: 'low' as const, description: '' }
       })
     };
     
@@ -306,7 +306,11 @@ export function analyzeDailyTradePsychology(trades: OptionData[], targetDate: Da
   // Handle case where no hourly data is available
   if (!hourlyData || hourlyData.length === 0) {
     return {
-      date: formatDateForDisplay(targetDate),
+      date: targetDate.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }),
       dayOfWeek: targetDate.toLocaleDateString('en-US', { weekday: 'long' }),
       hourlyData: [],
       dailySummary: {
@@ -352,7 +356,7 @@ export function analyzeDailyTradePsychology(trades: OptionData[], targetDate: Da
     totalPremium: 0,
     callPutRatio: 0,
     sweepCount: 0,
-    psychology: { sentiment: 'neutral', confidence: 'low', activity: 'low', sweepIntensity: 'low', description: '' },
+    psychology: { sentiment: 'neutral' as 'bullish' | 'bearish' | 'neutral' | 'mixed', confidence: 'low' as 'high' | 'medium' | 'low', activity: 'low' as 'high' | 'medium' | 'low', sweepIntensity: 'low' as 'high' | 'medium' | 'low', description: '' },
     peakHour: 0,
     peakVolume: 0,
     peakTrades: 0
@@ -381,7 +385,7 @@ export function analyzeDailyTradePsychology(trades: OptionData[], targetDate: Da
     avgTradeSize: dailySummary.totalTrades > 0 ? dailySummary.totalVolume / dailySummary.totalTrades : 0,
     callPutRatio: dailySummary.callPutRatio,
     premiumCallPutRatio: 0,
-    psychology: { sentiment: 'neutral', confidence: 'low', activity: 'low', sweepIntensity: 'low', description: '' }
+    psychology: { sentiment: 'neutral' as const, confidence: 'low' as const, activity: 'low' as const, sweepIntensity: 'low' as const, description: '' }
   });
   
   const dateStr = targetDate.toISOString().split('T')[0];

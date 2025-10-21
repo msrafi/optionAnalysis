@@ -15,7 +15,7 @@ import {
   OptionData,
   MergedDataInfo
 } from '../utils/dataParser';
-import { loadAllDataFiles, clearFileCache } from '../utils/fileLoader';
+import { loadAllDataFiles } from '../utils/fileLoader';
 import { getCurrentPrice, clearPriceCache } from '../utils/stockPrice';
 
 // We'll load the CSV data via fetch instead of import
@@ -145,7 +145,6 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
       
       // Clear only options related caches
       clearDataCache();      // Clear options parsed data cache
-      clearFileCache();      // Clear options file loading cache
       clearPriceCache();     // Clear stock price cache (shared)
       
       console.log('✓ Options caches cleared');

@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+import { initializeSessionStorageCleanup } from './utils/sessionStorageManager'
 
 // Register service worker for better performance
 if ('serviceWorker' in navigator) {
@@ -17,6 +18,9 @@ if ('serviceWorker' in navigator) {
       });
   });
 }
+
+// Initialize session storage cleanup
+initializeSessionStorageCleanup();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

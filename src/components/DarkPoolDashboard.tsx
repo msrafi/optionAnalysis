@@ -11,7 +11,7 @@ import {
   DarkPoolData,
   MergedDataInfo
 } from '../utils/dataParser';
-import { loadAllDarkPoolDataFiles, clearDarkPoolFileCache } from '../utils/fileLoader';
+import { loadAllDarkPoolDataFiles } from '../utils/fileLoader';
 import { getCurrentPrice, clearPriceCache } from '../utils/stockPrice';
 
 export interface DarkPoolDashboardProps {
@@ -139,7 +139,6 @@ const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, 
       
       // Clear only dark pool related caches
       clearDarkPoolDataCache();      // Clear dark pool parsed data cache
-      clearDarkPoolFileCache();      // Clear dark pool file loading cache
       clearPriceCache();             // Clear stock price cache (shared)
       
       console.log('✓ Dark pool caches cleared');

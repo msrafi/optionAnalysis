@@ -2,7 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { OptionData } from '../utils/dataParser';
 import { 
   analyzeFourDayTradePsychology, 
-  FourDayPsychologyAnalysis, 
   DailyTradePsychology,
   HourlyTradeData 
 } from '../utils/tradePsychology';
@@ -212,7 +211,7 @@ interface DayColumnProps {
   index: number;
 }
 
-const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick, index }) => {
+const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick }) => {
   return (
     <div 
       className={`day-column ${isSelected ? 'selected' : ''}`}
