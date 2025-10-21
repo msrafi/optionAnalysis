@@ -44,6 +44,7 @@ export function parseTimestampFromFilename(filename: string): Date | null {
 export async function getDataFiles(): Promise<FileInfo[]> {
   // Use hardcoded list of available files for now
   const knownFiles = [
+    'options_data_2025-10-21_15-00.csv',
     'options_data_2025-10-20_16-00.csv',
     'options_data_2025-10-17_15-45.csv',
     'options_data_2025-10-15_TSLA.csv',
