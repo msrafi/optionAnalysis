@@ -271,16 +271,17 @@ interface HourBarProps {
 
 const HourBar: React.FC<HourBarProps> = ({ hourData, maxVolume, onMouseEnter, onMouseLeave }) => {
   const height = maxVolume > 0 ? (hourData.totalVolume / maxVolume) * 100 : 0;
+  const hasTrades = hourData.totalVolume > 0;
   
   return (
     <div className="hour-bar-container">
       <div className="hour-label">{formatHour(hourData.hour)}</div>
       <div className="hour-bar-wrapper">
         <div
-          className={`hour-bar ${hourData.psychology.sentiment} ${hourData.psychology.activity}`}
+          className={`hour-bar ${hasTrades ? `${hourData.psychology.sentiment} ${hourData.psychology.activity}` : 'no-trades'}`}
           style={{ height: `${Math.max(5, height)}%` }}
-          onMouseEnter={onMouseEnter}
-          onMouseLeave={onMouseLeave}
+          onMouseEnter={hasTrades ? onMouseEnter : undefined}
+          onMouseLeave={hasTrades ? onMouseLeave : undefined}
         >
           <div className="bar-content">
             <div className="volume-info">

@@ -5529,6 +5529,16 @@
   background: linear-gradient(to top, #a855f7, #9333ea);
 }
 
+.hour-bar.no-trades {
+  background: linear-gradient(to top, #d1d5db, #9ca3af);
+  cursor: default;
+}
+
+.hour-bar.no-trades:hover {
+  transform: none;
+  box-shadow: none;
+}
+
 .bar-content {
   position: absolute;
   bottom: 100%;
