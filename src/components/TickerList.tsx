@@ -18,7 +18,57 @@ const formatDateTime = (timestamp: string, parsedDate?: Date | null): string => 
     if (parsedDate) {
       time = parsedDate;
     } else {
-      time = new Date(timestamp);
+      // Try to parse the timestamp using the same logic as parseTimestampFromData
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      // Convert month name to number
+      const monthMap: { [key: string]: number } = {
+        'january': 0, 'february': 1, 'march': 2, 'april': 3,
+        'may': 4, 'june': 5, 'july': 6, 'august': 7,
+        'september': 8, 'october': 9, 'november': 10, 'december': 11
+      };
+      
+      // Helper function to convert 12-hour to 24-hour format
+      const convertTo24Hour = (hour: string, ampm: string): number => {
+        let hour24 = parseInt(hour);
+        if (ampm.toUpperCase() === 'PM' && hour24 !== 12) {
+          hour24 += 12;
+        } else if (ampm.toUpperCase() === 'AM' && hour24 === 12) {
+          hour24 = 0;
+        }
+        return hour24;
+      };
+      
+      // Handle format: "Wednesday, October 8, 2025 at 3:02 PM"
+      let match = timestamp.match(/(\w+),\s+(\w+)\s+(\d+),\s+(\d+)\s+at\s+(\d+):(\d+)\s+(AM|PM)/i);
+      if (match) {
+        const [, , monthName, day, year, hour, minute, ampm] = match;
+        const month = monthMap[monthName.toLowerCase()];
+        if (month !== undefined) {
+          const hour24 = convertTo24Hour(hour, ampm);
+          time = new Date(parseInt(year), month, parseInt(day), hour24, parseInt(minute));
+        } else {
+          time = new Date(timestamp);
+        }
+      }
+      // Handle format: "Yesterday at 3:55 PM"
+      else if ((match = timestamp.match(/Yesterday at (\d+):(\d+)\s+(AM|PM)/i))) {
+        const [, hour, minute, ampm] = match;
+        const hour24 = convertTo24Hour(hour, ampm);
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        time = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), hour24, parseInt(minute));
+      }
+      // Handle format: "9:45 AM" (today's time)
+      else if ((match = timestamp.match(/(\d+):(\d+)\s+(AM|PM)/i))) {
+        const [, hour, minute, ampm] = match;
+        const hour24 = convertTo24Hour(hour, ampm);
+        time = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hour24, parseInt(minute));
+      }
+      else {
+        time = new Date(timestamp);
+      }
     }
     
     // Check if the date is valid
