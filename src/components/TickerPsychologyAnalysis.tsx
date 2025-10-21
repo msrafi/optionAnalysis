@@ -279,7 +279,7 @@ const HourBar: React.FC<HourBarProps> = ({ hourData, maxVolume, onMouseEnter, on
       <div className="hour-bar-wrapper">
         <div
           className={`hour-bar ${hasTrades ? `${hourData.psychology.sentiment} ${hourData.psychology.activity}` : 'no-trades'}`}
-          style={{ height: `${Math.max(5, height)}%` }}
+          style={{ height: hasTrades ? `${Math.max(5, height)}%` : '2px' }}
           onMouseEnter={hasTrades ? onMouseEnter : undefined}
           onMouseLeave={hasTrades ? onMouseLeave : undefined}
         >
