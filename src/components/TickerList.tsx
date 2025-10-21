@@ -178,6 +178,9 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                           {ticker.lastTrade.optionType === 'Call' ? '↗' : '↘'}
                         </span>
                         {formatVolume(ticker.lastTrade.volume)}
+                        <span className="trade-timestamp">
+                          {formatDateTime(ticker.lastTrade.timestamp)}
+                        </span>
                       </span>
                     </div>
                   )}

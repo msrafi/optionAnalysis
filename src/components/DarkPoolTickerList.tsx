@@ -186,6 +186,9 @@ const DarkPoolTickerList: React.FC<DarkPoolTickerListProps> = memo(({ tickers, o
                       <span className="trade-side">
                         {formatVolume(lastTrade.quantity)} @ ${lastTrade.price.toFixed(2)}
                       </span>
+                      <span className="trade-timestamp">
+                        {formatDateTime(lastTrade.timestamp)}
+                      </span>
                     </span>
                   </div>
                 )}
