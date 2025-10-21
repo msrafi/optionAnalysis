@@ -53,16 +53,22 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
     switch (sortBy) {
       case 'recent':
         return sorted.sort((a, b) => {
-          if (a.lastActivityDate && b.lastActivityDate) {
-            return b.lastActivityDate.getTime() - a.lastActivityDate.getTime();
+          const dateA = a.lastActivityDate instanceof Date ? a.lastActivityDate : (a.lastActivityDate ? new Date(a.lastActivityDate) : null);
+          const dateB = b.lastActivityDate instanceof Date ? b.lastActivityDate : (b.lastActivityDate ? new Date(b.lastActivityDate) : null);
+          
+          if (dateA && dateB) {
+            return dateB.getTime() - dateA.getTime();
           }
           return 0;
         });
       
       case 'oldest':
         return sorted.sort((a, b) => {
-          if (a.lastActivityDate && b.lastActivityDate) {
-            return a.lastActivityDate.getTime() - b.lastActivityDate.getTime();
+          const dateA = a.lastActivityDate instanceof Date ? a.lastActivityDate : (a.lastActivityDate ? new Date(a.lastActivityDate) : null);
+          const dateB = b.lastActivityDate instanceof Date ? b.lastActivityDate : (b.lastActivityDate ? new Date(b.lastActivityDate) : null);
+          
+          if (dateA && dateB) {
+            return dateA.getTime() - dateB.getTime();
           }
           return 0;
         });

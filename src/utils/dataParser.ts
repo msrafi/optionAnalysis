@@ -497,8 +497,8 @@ export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
   // Remove the expirySet before returning (it was just for performance)
   const result = Array.from(tickerMap.values()).map(({ expirySet, ...summary }) => summary).sort((a, b) => {
     // Use parsed dates for more accurate sorting
-    const dateA = a.lastActivityDate;
-    const dateB = b.lastActivityDate;
+    const dateA = a.lastActivityDate instanceof Date ? a.lastActivityDate : (a.lastActivityDate ? new Date(a.lastActivityDate) : null);
+    const dateB = b.lastActivityDate instanceof Date ? b.lastActivityDate : (b.lastActivityDate ? new Date(b.lastActivityDate) : null);
     
     // First sort by most recent activity
     if (dateA && dateB && dateA.getTime() !== dateB.getTime()) {
