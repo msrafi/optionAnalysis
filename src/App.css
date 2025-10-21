@@ -5532,7 +5532,7 @@
 .hour-bar.no-trades {
   background: linear-gradient(to top, #d1d5db, #9ca3af);
   cursor: default;
-  min-height: 2px;
+  min-height: 2px !important;
   height: 2px !important;
   border-radius: 1px;
 }
