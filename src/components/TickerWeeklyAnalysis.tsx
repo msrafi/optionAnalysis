@@ -8,13 +8,18 @@ import {
 
 interface TickerWeeklyAnalysisProps {
   trades: OptionData[];
+  sortedAnalyses?: TickerWeeklyAnalysis[];
 }
 
-const TickerWeeklyAnalysisComponent: React.FC<TickerWeeklyAnalysisProps> = ({ trades }) => {
+const TickerWeeklyAnalysisComponent: React.FC<TickerWeeklyAnalysisProps> = ({ trades, sortedAnalyses }) => {
   const tickerAnalyses = useMemo(() => {
+    // Use sorted analyses if provided, otherwise compute from trades
+    if (sortedAnalyses) {
+      return sortedAnalyses;
+    }
     if (!trades || trades.length === 0) return [];
     return analyzeTickerWeeklySentiment(trades);
-  }, [trades]);
+  }, [trades, sortedAnalyses]);
 
   if (tickerAnalyses.length === 0) {
     return (

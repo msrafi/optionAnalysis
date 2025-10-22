@@ -90,7 +90,6 @@
   width: 100%;
   box-sizing: border-box;
   position: relative;
-  overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
@@ -5144,6 +5143,7 @@
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
+  overflow: visible;
 }
 
 .dashboard-header {
@@ -5157,6 +5157,98 @@
   justify-content: space-between;
   margin-bottom: 1rem;
   padding: 0 1rem;
+  position: relative;
+  overflow: visible;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.sort-controls {
+  position: relative;
+  display: flex;
+  align-items: center;
+  z-index: 1000;
+}
+
+.sort-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: white;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sort-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(79, 195, 247, 0.5);
+}
+
+.sort-button .rotated {
+  transform: rotate(180deg);
+}
+
+.sort-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: rgba(0, 0, 0, 0.98);
+  border: 2px solid rgba(79, 195, 247, 0.5);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  min-width: 200px;
+  margin-top: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+  backdrop-filter: blur(10px);
+}
+
+.sort-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: left;
+}
+
+.sort-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sort-option.active {
+  background: rgba(79, 195, 247, 0.2);
+  color: #4fc3f7;
+}
+
+.sort-option:first-child {
+  border-radius: 6px 6px 0 0;
+}
+
+.sort-option:last-child {
+  border-radius: 0 0 6px 6px;
+}
+
+.sort-direction {
+  font-weight: bold;
+  color: #4fc3f7;
+  margin-left: 0.5rem;
 }
 
 .back-button,

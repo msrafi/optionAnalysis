@@ -897,7 +897,11 @@ export function analyzeTickerWeeklySentiment(trades: OptionData[]): TickerWeekly
     });
 
     // Sort weeks by date (most recent first)
-    weeks.sort((a, b) => new Date(b.weekStart).getTime() - new Date(a.weekStart).getTime());
+    weeks.sort((a, b) => {
+      const dateA = new Date(a.weekStart);
+      const dateB = new Date(b.weekStart);
+      return dateB.getTime() - dateA.getTime();
+    });
 
     // Determine overall sentiment and trend
     const sentiments = weeks.map(w => w.psychology.sentiment);
