@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { OptionData, formatPremium } from '../utils/dataParser';
+import { OptionData, formatPremium, parseTimestampFromData, parsePremium } from '../utils/dataParser';
 import { 
   analyzeFourDayTradePsychology, 
   DailyTradePsychology,
@@ -125,78 +125,61 @@ const TickerPsychologyAnalysis: React.FC<TickerPsychologyAnalysisProps> = ({ tic
             </span>
           </div>
           <div className="tooltip-body">
-            <div className="tooltip-row">
-              <span className="tooltip-label">Total Volume</span>
-              <span className="tooltip-value">{formatVolume(tooltip.content.totalVolume)}</span>
+            <div className="tooltip-section">
+              <div className="tooltip-section-title">Summary</div>
+              <div className="tooltip-row">
+                <span className="tooltip-label">Total Volume</span>
+                <span className="tooltip-value">{formatVolume(tooltip.content.totalVolume)}</span>
+              </div>
+              <div className="tooltip-row">
+                <span className="tooltip-label">Total Trades</span>
+                <span className="tooltip-value">{tooltip.content.totalTrades}</span>
+              </div>
+              <div className="tooltip-row">
+                <span className="tooltip-label">Call/Put Ratio</span>
+                <span className="tooltip-value">{tooltip.content.callPutRatio.toFixed(2)}:1</span>
+              </div>
+              <div className="tooltip-row">
+                <span className="tooltip-label">Total Premium</span>
+                <span className="tooltip-value">{formatPremium(tooltip.content.totalPremium)}</span>
+              </div>
             </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Total Trades</span>
-              <span className="tooltip-value">{tooltip.content.totalTrades}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Call Volume</span>
-              <span className="tooltip-value">{formatVolume(tooltip.content.callVolume)}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Put Volume</span>
-              <span className="tooltip-value">{formatVolume(tooltip.content.putVolume)}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Call/Put Ratio</span>
-              <span className="tooltip-value">{tooltip.content.callPutRatio.toFixed(2)}:1</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Call Trades</span>
-              <span className="tooltip-value">{tooltip.content.callTrades}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Put Trades</span>
-              <span className="tooltip-value">{tooltip.content.putTrades}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Total Premium</span>
-              <span className="tooltip-value">${tooltip.content.totalPremium.toLocaleString()}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Call Premium</span>
-              <span className="tooltip-value">${tooltip.content.callPremium.toLocaleString()}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Put Premium</span>
-              <span className="tooltip-value">${tooltip.content.putPremium.toLocaleString()}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Avg Trade Size</span>
-              <span className="tooltip-value">{formatVolume(tooltip.content.avgTradeSize)}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Regular Sweeps</span>
-              <span className="tooltip-value">{tooltip.content.sweepCount}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Unusual Sweeps</span>
-              <span className="tooltip-value">{tooltip.content.unusualSweepCount}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Highly Unusual Sweeps</span>
-              <span className="tooltip-value">{tooltip.content.highlyUnusualSweepCount}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Total Sweeps</span>
-              <span className="tooltip-value">{tooltip.content.sweepCount + tooltip.content.unusualSweepCount + tooltip.content.highlyUnusualSweepCount}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Confidence</span>
-              <span className="tooltip-value">{tooltip.content.psychology.confidence}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Activity</span>
-              <span className="tooltip-value">{tooltip.content.psychology.activity}</span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Sweep Intensity</span>
-              <span className="tooltip-value">{tooltip.content.psychology.sweepIntensity}</span>
-            </div>
+            
+            {tooltip.content.trades && tooltip.content.trades.length > 0 && (
+              <div className="tooltip-section">
+                <div className="tooltip-section-title">Individual Trades</div>
+                <div className="trades-list">
+                  {tooltip.content.trades.slice(0, 5).map((trade, index) => (
+                    <div key={index} className={`trade-item ${trade.optionType.toLowerCase()}-trade`}>
+                      <div className="trade-header">
+                        <span className={`trade-type ${trade.optionType.toLowerCase()}`}>{trade.optionType}</span>
+                        <span className="trade-strike">${trade.strike}</span>
+                        <span className="trade-expiry">{new Date(trade.expiry).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                      </div>
+                      <div className="trade-details">
+                        <span className="trade-volume">Vol: {trade.volume}</span>
+                        <span className="trade-premium">Premium: {formatPremium(parsePremium(trade.premium))}</span>
+                        {trade.sweepType && (
+                          <span className="trade-sweep">{trade.sweepType}</span>
+                        )}
+                      </div>
+                      <div className="trade-time">
+                        {new Date(parseTimestampFromData(trade.timestamp) || trade.timestamp).toLocaleTimeString('en-US', { 
+                          hour: 'numeric', 
+                          minute: '2-digit',
+                          hour12: true 
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                  {tooltip.content.trades.length > 5 && (
+                    <div className="more-trades">
+                      +{tooltip.content.trades.length - 5} more trades
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

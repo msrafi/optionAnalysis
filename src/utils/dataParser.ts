@@ -638,7 +638,7 @@ export function getHighestVolumeData(
   };
 }
 
-function parsePremium(premium: string): number {
+export function parsePremium(premium: string): number {
   const cleanPremium = premium.replace(/[$,K]/g, '');
   const num = parseFloat(cleanPremium);
   
@@ -685,7 +685,11 @@ export function mergeDataFromFiles(fileData: Array<{filename: string, data: stri
   const uniqueTrades = new Map<string, OptionData>();
   
   // Sort files by timestamp (most recent first)
-  const sortedFiles = fileData.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  const sortedFiles = fileData.sort((a, b) => {
+    const timestampA = a.timestamp instanceof Date ? a.timestamp : new Date(a.timestamp);
+    const timestampB = b.timestamp instanceof Date ? b.timestamp : new Date(b.timestamp);
+    return timestampB.getTime() - timestampA.getTime();
+  });
   
   sortedFiles.forEach(file => {
     const parsedData = parseCSVData(file.data, file.filename);
@@ -708,11 +712,12 @@ export function mergeDataFromFiles(fileData: Array<{filename: string, data: stri
     });
     
     // Update date range
-    if (!earliestDate || file.timestamp < earliestDate) {
-      earliestDate = file.timestamp;
+    const fileTimestamp = file.timestamp instanceof Date ? file.timestamp : new Date(file.timestamp);
+    if (!earliestDate || fileTimestamp < earliestDate) {
+      earliestDate = fileTimestamp;
     }
-    if (!latestDate || file.timestamp > latestDate) {
-      latestDate = file.timestamp;
+    if (!latestDate || fileTimestamp > latestDate) {
+      latestDate = fileTimestamp;
     }
   });
   

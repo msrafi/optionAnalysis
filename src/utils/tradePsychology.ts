@@ -18,6 +18,7 @@ export interface HourlyTradeData {
   callPutRatio: number;
   premiumCallPutRatio: number;
   psychology: TradePsychology;
+  trades: OptionData[]; // Individual trades for this hour
 }
 
 export interface TradePsychology {
@@ -193,6 +194,7 @@ export function aggregateTradesByHour(trades: OptionData[], targetDate: Date): H
     sweepCount: number;
     unusualSweepCount: number;
     highlyUnusualSweepCount: number;
+    trades: OptionData[];
   }>();
   
   // Initialize only trading hours (9:30 AM - 4:15 PM)
@@ -210,7 +212,8 @@ export function aggregateTradesByHour(trades: OptionData[], targetDate: Date): H
       putPremium: 0,
       sweepCount: 0,
       unusualSweepCount: 0,
-      highlyUnusualSweepCount: 0
+      highlyUnusualSweepCount: 0,
+      trades: []
     });
   });
   
@@ -235,6 +238,9 @@ export function aggregateTradesByHour(trades: OptionData[], targetDate: Date): H
       
       const hourData = hourlyMap.get(hour);
       if (!hourData) return; // Skip if hour not found in map
+      
+      // Add trade to the trades array
+      hourData.trades.push(trade);
       
       // Update volume and trade counts
       hourData.totalVolume += trade.volume;
@@ -275,13 +281,36 @@ export function aggregateTradesByHour(trades: OptionData[], targetDate: Date): H
     
     const hourlyData: HourlyTradeData = {
       hour,
-      ...data,
+      totalVolume: data.totalVolume,
+      callVolume: data.callVolume,
+      putVolume: data.putVolume,
+      totalTrades: data.totalTrades,
+      callTrades: data.callTrades,
+      putTrades: data.putTrades,
+      totalPremium: data.totalPremium,
+      callPremium: data.callPremium,
+      putPremium: data.putPremium,
+      sweepCount: data.sweepCount,
+      unusualSweepCount: data.unusualSweepCount,
+      highlyUnusualSweepCount: data.highlyUnusualSweepCount,
       avgTradeSize,
       callPutRatio,
       premiumCallPutRatio,
+      trades: data.trades,
       psychology: analyzeTradePsychology({
         hour,
-        ...data,
+        totalVolume: data.totalVolume,
+        callVolume: data.callVolume,
+        putVolume: data.putVolume,
+        totalTrades: data.totalTrades,
+        callTrades: data.callTrades,
+        putTrades: data.putTrades,
+        totalPremium: data.totalPremium,
+        callPremium: data.callPremium,
+        putPremium: data.putPremium,
+        sweepCount: data.sweepCount,
+        unusualSweepCount: data.unusualSweepCount,
+        highlyUnusualSweepCount: data.highlyUnusualSweepCount,
         avgTradeSize,
         callPutRatio,
         premiumCallPutRatio,

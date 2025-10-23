@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ArrowLeft, RefreshCw, ChevronDown, ArrowUpDown } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ArrowLeft, RefreshCw, AlertTriangle } from 'lucide-react';
 import { 
   mergeDataFromFiles,
   clearDataCache,
@@ -7,6 +7,7 @@ import {
   MergedDataInfo
 } from '../utils/dataParser';
 import { loadAllDataFiles } from '../utils/fileLoader';
+import { clearAllApplicationCaches } from '../utils/sessionStorageManager';
 import TickerWeeklyAnalysisComponent from './TickerWeeklyAnalysis';
 import { TickerWeeklyAnalysis, analyzeTickerWeeklySentiment } from '../utils/tradePsychology';
 
@@ -27,14 +28,20 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>('volume');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const sortDropdownRef = useRef<HTMLDivElement>(null);
+  const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     const loadAllData = async (bustCache: boolean = false) => {
       try {
         setLoading(true);
         setError(null);
+        
+        // Set a timeout to prevent infinite loading
+        const timeout = setTimeout(() => {
+          setError('Loading is taking longer than expected. This might be a cache issue. Try refreshing or clearing cache.');
+        }, 15000); // 15 second timeout
+        
+        setLoadingTimeout(timeout);
         
         // Load all CSV files from the data directory
         const loadedFiles = await loadAllDataFiles(bustCache);
@@ -49,6 +56,12 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
         setOptionData(mergedData);
         setDataInfo(info);
         
+        // Clear timeout on success
+        if (timeout) {
+          clearTimeout(timeout);
+          setLoadingTimeout(null);
+        }
+        
         if (import.meta.env.DEV) {
           console.log(`Loaded ${mergedData.length} option records from ${info.totalFiles} files`);
           console.log('Date range:', info.dateRange);
@@ -56,6 +69,12 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
       } catch (err) {
         console.error('Error loading data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load data');
+        
+        // Clear timeout on error
+        if (loadingTimeout) {
+          clearTimeout(loadingTimeout);
+          setLoadingTimeout(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -63,32 +82,33 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
 
     // Load data on mount
     loadAllData();
-  }, []);
-
-  // Handle click outside to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
-        setShowSortDropdown(false);
+    
+    // Cleanup timeout on unmount
+    return () => {
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
       }
     };
+  }, []);
 
-    if (showSortDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showSortDropdown]);
   
 
   const handleRefresh = async () => {
+    // Clear all caches
     clearDataCache();
+    clearAllApplicationCaches();
+    
     const loadAllData = async () => {
       try {
         setLoading(true);
         setError(null);
+        
+        // Set timeout for refresh
+        const timeout = setTimeout(() => {
+          setError('Refresh is taking longer than expected. Try clearing cache manually.');
+        }, 15000);
+        
+        setLoadingTimeout(timeout);
         
         const loadedFiles = await loadAllDataFiles(true);
         
@@ -101,18 +121,42 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
         setOptionData(mergedData);
         setDataInfo(info);
         
+        // Clear timeout on success
+        if (timeout) {
+          clearTimeout(timeout);
+          setLoadingTimeout(null);
+        }
+        
         if (import.meta.env.DEV) {
           console.log(`Refreshed: Loaded ${mergedData.length} option records from ${info.totalFiles} files`);
         }
       } catch (err) {
         console.error('Error refreshing data:', err);
         setError(err instanceof Error ? err.message : 'Failed to refresh data');
+        
+        // Clear timeout on error
+        if (loadingTimeout) {
+          clearTimeout(loadingTimeout);
+          setLoadingTimeout(null);
+        }
       } finally {
         setLoading(false);
       }
     };
     
     await loadAllData();
+  };
+
+  const handleClearCache = () => {
+    clearDataCache();
+    clearAllApplicationCaches();
+    setError(null);
+    setLoading(true);
+    
+    // Reload after clearing cache
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
   };
 
   // Sort ticker analyses based on current sort settings
@@ -180,7 +224,6 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
       setSortField(field);
       setSortDirection('desc'); // Default to descending for most fields
     }
-    setShowSortDropdown(false);
   };
 
   const getSortLabel = (field: SortField): string => {
@@ -200,23 +243,46 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
       <div className="trade-psychology-dashboard">
         <div className="dashboard-header">
           <div className="header-controls">
-            <button 
-              className="back-button"
-              onClick={() => setActiveDashboard('options')}
-              title="Back to Options Dashboard"
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <h2>Overall Analysis</h2>
-            <button 
-              className="refresh-button"
-              onClick={handleRefresh}
-              title="Refresh Data"
-            >
-              <RefreshCw size={20} />
-            </button>
+            <div className="header-title-group">
+              <button 
+                className="back-button"
+                onClick={() => setActiveDashboard('options')}
+                title="Back to Options Dashboard"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <h2>Overall Analysis</h2>
+            </div>
+            
+            {/* Sort Controls - Full Width */}
+            <div className="sort-controls">
+              {(['volume', 'premium', 'trades', 'recent', 'sentiment', 'ticker'] as SortField[]).map((field) => (
+                <button
+                  key={field}
+                  className={`sort-tab ${sortField === field ? 'active' : ''}`}
+                  onClick={() => handleSortChange(field)}
+                  title={`Sort by ${getSortLabel(field)}`}
+                >
+                  <span>{getSortLabel(field)}</span>
+                  {sortField === field && (
+                    <span className="sort-direction">
+                      {sortDirection === 'asc' ? '↑' : '↓'}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            
+            <div className="header-actions">
+              <button 
+                className="refresh-button"
+                onClick={handleRefresh}
+                title="Refresh Data"
+              >
+                <RefreshCw size={20} />
+              </button>
+            </div>
           </div>
-          {/* <p>5-Day Overall Market Analysis</p> */}
         </div>
         <div className="loading">
           <p>Loading overall analysis data...</p>
@@ -230,29 +296,63 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
       <div className="trade-psychology-dashboard">
         <div className="dashboard-header">
           <div className="header-controls">
-            <button 
-              className="back-button"
-              onClick={() => setActiveDashboard('options')}
-              title="Back to Options Dashboard"
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <h2>Overall Analysis</h2>
-            <button 
-              className="refresh-button"
-              onClick={handleRefresh}
-              title="Refresh Data"
-            >
-              <RefreshCw size={20} />
-            </button>
+            <div className="header-title-group">
+              <button 
+                className="back-button"
+                onClick={() => setActiveDashboard('options')}
+                title="Back to Options Dashboard"
+              >
+                <ArrowLeft size={20} />
+              </button>
+              <h2>Overall Analysis</h2>
+            </div>
+            
+            {/* Sort Controls - Full Width */}
+            <div className="sort-controls">
+              {(['volume', 'premium', 'trades', 'recent', 'sentiment', 'ticker'] as SortField[]).map((field) => (
+                <button
+                  key={field}
+                  className={`sort-tab ${sortField === field ? 'active' : ''}`}
+                  onClick={() => handleSortChange(field)}
+                  title={`Sort by ${getSortLabel(field)}`}
+                >
+                  <span>{getSortLabel(field)}</span>
+                  {sortField === field && (
+                    <span className="sort-direction">
+                      {sortDirection === 'asc' ? '↑' : '↓'}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            
+            <div className="header-actions">
+              <button 
+                className="refresh-button"
+                onClick={handleRefresh}
+                title="Refresh Data"
+              >
+                <RefreshCw size={20} />
+              </button>
+            </div>
           </div>
-          <p>5-Day Overall Market Analysis</p>
         </div>
         <div className="error">
-          <p>Error: {error}</p>
-          <button onClick={handleRefresh} className="retry-button">
-            Try Again
-          </button>
+          <div className="error-icon">
+            <AlertTriangle size={48} />
+          </div>
+          <h3>Error Loading Data</h3>
+          <p>{error}</p>
+          <div className="error-actions">
+            <button onClick={handleRefresh} className="retry-button">
+              <RefreshCw size={16} />
+              Try Again
+            </button>
+            <button onClick={handleClearCache} className="clear-cache-button">
+              <AlertTriangle size={16} />
+              Clear Cache & Reload
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -264,47 +364,37 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
     <div className="trade-psychology-dashboard">
       <div className="dashboard-header">
         <div className="header-controls">
-          <button 
-            className="back-button"
-            onClick={() => setActiveDashboard('options')}
-            title="Back to Options Dashboard"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <h2>Overall Analysis</h2>
-          <div className="header-actions">
-            {/* Sort Controls */}
-            <div className="sort-controls" ref={sortDropdownRef}>
-              <button 
-                className="sort-button"
-                onClick={() => setShowSortDropdown(!showSortDropdown)}
-                title="Sort Options"
+          <div className="header-title-group">
+            <button 
+              className="back-button"
+              onClick={() => setActiveDashboard('options')}
+              title="Back to Options Dashboard"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <h2>Overall Analysis</h2>
+          </div>
+          
+          {/* Sort Controls - Full Width */}
+          <div className="sort-controls">
+            {(['volume', 'premium', 'trades', 'recent', 'sentiment', 'ticker'] as SortField[]).map((field) => (
+              <button
+                key={field}
+                className={`sort-tab ${sortField === field ? 'active' : ''}`}
+                onClick={() => handleSortChange(field)}
+                title={`Sort by ${getSortLabel(field)}`}
               >
-                <ArrowUpDown size={16} />
-                <span>Sort: {getSortLabel(sortField)}</span>
-                <ChevronDown size={14} className={showSortDropdown ? 'rotated' : ''} />
+                <span>{getSortLabel(field)}</span>
+                {sortField === field && (
+                  <span className="sort-direction">
+                    {sortDirection === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
               </button>
-              
-              {showSortDropdown && (
-                <div className="sort-dropdown" style={{ display: 'block' }}>
-                  {(['volume', 'premium', 'trades', 'recent', 'sentiment', 'ticker'] as SortField[]).map((field) => (
-                    <button
-                      key={field}
-                      className={`sort-option ${sortField === field ? 'active' : ''}`}
-                      onClick={() => handleSortChange(field)}
-                    >
-                      <span>{getSortLabel(field)}</span>
-                      {sortField === field && (
-                        <span className="sort-direction">
-                          {sortDirection === 'asc' ? '↑' : '↓'}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            
+            ))}
+          </div>
+          
+          <div className="header-actions">
             <button 
               className="refresh-button"
               onClick={handleRefresh}
