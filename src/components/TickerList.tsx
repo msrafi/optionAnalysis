@@ -299,8 +299,8 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                   {/* 3-Day Volume Section */}
                   {(() => {
                     const tickerTrades = allData.filter(t => t.ticker === ticker.ticker);
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
+                    const now = new Date();
+                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                     
                     const dayVolumes = [0, 0, 0]; // [2 days ago, 1 day ago, today]
                     const dayCallVolumes = [0, 0, 0];
@@ -312,8 +312,6 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                       try {
                         // Try to parse using the formatDateTime logic
                         const timestampStr = trade.timestamp;
-                        const now = new Date();
-                        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                         
                         const monthMap: { [key: string]: number } = {
                           'january': 0, 'february': 1, 'march': 2, 'april': 3,
