@@ -64,15 +64,15 @@ const TickerAnalysisCard: React.FC<TickerAnalysisCardProps> = ({ analysis }) => 
       
       <div className="ticker-summary">
         <div className="summary-metric">
-          <span className="metric-label">Total Volume</span>
+          <span className="metric-label">Volume</span>
           <span className="metric-value">{formatVolume(totalVolume)}</span>
         </div>
         <div className="summary-metric">
-          <span className="metric-label">Total Trades</span>
+          <span className="metric-label">Trades</span>
           <span className="metric-value">{totalTrades.toLocaleString()}</span>
         </div>
         <div className="summary-metric">
-          <span className="metric-label">Total Premium</span>
+          <span className="metric-label">Premium</span>
           <span className="metric-value">{formatPremium(totalPremium)}</span>
         </div>
         <div className="summary-metric">
@@ -83,19 +83,18 @@ const TickerAnalysisCard: React.FC<TickerAnalysisCardProps> = ({ analysis }) => 
 
       <div className="trend-info">
         <div className={`trend-direction ${analysis.trendDirection}`}>
-          <span className="trend-label">Trend:</span>
+          <span className="trend-label">Trend</span>
           <span className="trend-value">{analysis.trendDirection}</span>
         </div>
         <div className={`confidence ${analysis.confidence}`}>
-          <span className="confidence-label">Confidence:</span>
+          <span className="confidence-label">Confidence</span>
           <span className="confidence-value">{analysis.confidence}</span>
         </div>
       </div>
 
       <div className="weekly-breakdown">
-        <h5>Weekly Breakdown</h5>
         <div className="weeks-list">
-          {analysis.weeks.slice(0, 4).map((week) => (
+          {analysis.weeks.slice(0, 2).map((week) => (
             <WeekRow key={`${week.weekStart}-${week.weekEnd}`} week={week} />
           ))}
         </div>
@@ -122,19 +121,19 @@ const WeekRow: React.FC<WeekRowProps> = ({ week }) => {
       
       <div className="week-metrics">
         <div className="week-metric">
-          <span className="metric-label">Volume</span>
+          <span className="metric-label">Vol</span>
           <span className="metric-value">{formatVolume(week.totalVolume)}</span>
         </div>
         <div className="week-metric">
-          <span className="metric-label">C/P Ratio</span>
+          <span className="metric-label">C/P</span>
           <span className="metric-value">{week.callPutRatio.toFixed(1)}</span>
         </div>
         <div className="week-metric">
-          <span className="metric-label">Trades</span>
+          <span className="metric-label">Trd</span>
           <span className="metric-value">{week.totalTrades}</span>
         </div>
         <div className="week-metric">
-          <span className="metric-label">Sweeps</span>
+          <span className="metric-label">Swp</span>
           <span className="metric-value">{week.sweepCount + week.unusualSweepCount + week.highlyUnusualSweepCount}</span>
         </div>
       </div>

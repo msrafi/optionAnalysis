@@ -6003,8 +6003,8 @@
 
 /* Ticker Weekly Analysis Styles */
 .ticker-weekly-analysis {
-  margin: 2rem 0;
-  padding: 1.5rem;
+  margin: 1rem 0;
+  padding: 1rem;
   background: var(--bg-secondary);
   border-radius: 12px;
   border: 1px solid var(--border-color);
@@ -6012,29 +6012,29 @@
 
 .ticker-weekly-analysis h3 {
   color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
 }
 
 .ticker-weekly-analysis > p {
   color: var(--text-secondary);
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
 }
 
 .ticker-analysis-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }
 
 .ticker-analysis-card {
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  padding: 1.25rem;
+  padding: 0.75rem;
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
@@ -6113,25 +6113,25 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--border-color);
 }
 
 .ticker-header h4 {
   color: var(--text-primary);
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 600;
   margin: 0;
 }
 
 .overall-sentiment {
-  padding: 0.25rem 0.75rem;
+  padding: 0.15rem 0.5rem;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .overall-sentiment.bullish {
@@ -6161,38 +6161,38 @@
 .ticker-summary {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
 }
 
 .summary-metric {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem;
+  padding: 0.35rem;
   background: var(--bg-secondary);
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .metric-label {
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 500;
 }
 
 .metric-value {
   color: var(--text-primary);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
 .trend-info {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 1rem;
-  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  padding: 0.4rem;
   background: var(--bg-secondary);
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .trend-direction, .confidence {
@@ -6203,12 +6203,12 @@
 
 .trend-label, .confidence-label {
   color: var(--text-secondary);
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 500;
 }
 
 .trend-value, .confidence-value {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 600;
   text-transform: capitalize;
 }
@@ -6239,22 +6239,22 @@
 
 .weekly-breakdown h5 {
   color: var(--text-primary);
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.4rem;
 }
 
 .weeks-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.4rem;
 }
 
 .week-row {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 0.75rem;
+  border-radius: 4px;
+  padding: 0.5rem;
   position: relative;
   overflow: hidden;
 }
@@ -6310,22 +6310,22 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
 }
 
 .week-date {
   color: var(--text-primary);
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   font-weight: 500;
 }
 
 .week-sentiment {
-  padding: 0.2rem 0.5rem;
+  padding: 0.1rem 0.4rem;
   border-radius: 12px;
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
 }
 
 .week-sentiment.bullish {
@@ -6351,39 +6351,39 @@
 .week-metrics {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
 }
 
 .week-metric {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0.4rem;
+  padding: 0.25rem;
   background: var(--bg-primary);
   border-radius: 4px;
 }
 
 .week-metric .metric-label {
-  font-size: 0.7rem;
-  margin-bottom: 0.2rem;
+  font-size: 0.6rem;
+  margin-bottom: 0.15rem;
 }
 
 .week-metric .metric-value {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 600;
 }
 
 .week-psychology {
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
   border-top: 1px solid var(--border-color);
 }
 
 .psychology-description {
   color: var(--text-secondary);
-  font-size: 0.75rem;
-  line-height: 1.4;
+  font-size: 0.65rem;
+  line-height: 1.3;
   font-style: italic;
 }
 
