@@ -223,21 +223,79 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                   {(() => {
                     const tickerTrades = allData.filter(t => t.ticker === ticker.ticker);
                     const today = new Date();
-                    const threeDaysAgo = new Date(today);
-                    threeDaysAgo.setDate(threeDaysAgo.getDate() - 2);
-                    threeDaysAgo.setHours(0, 0, 0, 0);
-                    
-                    const recentTrades = tickerTrades.filter(trade => {
-                      const tradeDate = new Date(trade.timestamp);
-                      return tradeDate >= threeDaysAgo;
-                    });
+                    today.setHours(0, 0, 0, 0);
                     
                     const dayVolumes = [0, 0, 0]; // [2 days ago, 1 day ago, today]
-                    recentTrades.forEach(trade => {
-                      const tradeDate = new Date(trade.timestamp);
+                    const dayCallVolumes = [0, 0, 0];
+                    const dayPutVolumes = [0, 0, 0];
+                    
+                    tickerTrades.forEach(trade => {
+                      // Parse the timestamp string to get the date
+                      let tradeDate: Date;
+                      try {
+                        // Try to parse using the formatDateTime logic
+                        const timestampStr = trade.timestamp;
+                        const now = new Date();
+                        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        
+                        const monthMap: { [key: string]: number } = {
+                          'january': 0, 'february': 1, 'march': 2, 'april': 3,
+                          'may': 4, 'june': 5, 'july': 6, 'august': 7,
+                          'september': 8, 'october': 9, 'november': 10, 'december': 11
+                        };
+                        
+                        const convertTo24Hour = (hour: string, ampm: string): number => {
+                          let hour24 = parseInt(hour);
+                          if (ampm.toUpperCase() === 'PM' && hour24 !== 12) {
+                            hour24 += 12;
+                          } else if (ampm.toUpperCase() === 'AM' && hour24 === 12) {
+                            hour24 = 0;
+                          }
+                          return hour24;
+                        };
+                        
+                        let match = timestampStr.match(/(\w+),\s+(\w+)\s+(\d+),\s+(\d+)\s+at\s+(\d+):(\d+)\s+(AM|PM)/i);
+                        if (match) {
+                          const [, , monthName, day, year, hour, minute, ampm] = match;
+                          const month = monthMap[monthName.toLowerCase()];
+                          if (month !== undefined) {
+                            const hour24 = convertTo24Hour(hour, ampm);
+                            tradeDate = new Date(parseInt(year), month, parseInt(day), hour24, parseInt(minute));
+                          } else {
+                            tradeDate = new Date(timestampStr);
+                          }
+                        }
+                        // Handle format: "Yesterday at 3:55 PM"
+                        else if ((match = timestampStr.match(/Yesterday at (\d+):(\d+)\s+(AM|PM)/i))) {
+                          const [, hour, minute, ampm] = match;
+                          const hour24 = convertTo24Hour(hour, ampm);
+                          const yesterday = new Date(today);
+                          yesterday.setDate(yesterday.getDate() - 1);
+                          tradeDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), hour24, parseInt(minute));
+                        }
+                        // Handle format: "9:45 AM" (today's time)
+                        else if ((match = timestampStr.match(/(\d+):(\d+)\s+(AM|PM)/i))) {
+                          const [, hour, minute, ampm] = match;
+                          const hour24 = convertTo24Hour(hour, ampm);
+                          tradeDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hour24, parseInt(minute));
+                        }
+                        else {
+                          tradeDate = new Date(timestampStr);
+                        }
+                      } catch (error) {
+                        return; // Skip this trade if we can't parse the date
+                      }
+                      
+                      tradeDate.setHours(0, 0, 0, 0);
                       const daysAgo = Math.floor((today.getTime() - tradeDate.getTime()) / (1000 * 60 * 60 * 24));
+                      
                       if (daysAgo >= 0 && daysAgo <= 2) {
                         dayVolumes[2 - daysAgo] += trade.volume;
+                        if (trade.optionType === 'Call') {
+                          dayCallVolumes[2 - daysAgo] += trade.volume;
+                        } else {
+                          dayPutVolumes[2 - daysAgo] += trade.volume;
+                        }
                       }
                     });
                     
