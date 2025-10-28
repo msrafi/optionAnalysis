@@ -401,67 +401,50 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                   const tickerTrades = allData.filter(t => t.ticker === ticker.ticker);
                   const today = new Date();
                   const currentWeekStart = new Date(today);
+                  const currentWeekEnd = new Date(today);
+                  
                   // Get Monday of current week
                   const dayOfWeek = today.getDay();
                   currentWeekStart.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
                   currentWeekStart.setHours(0, 0, 0, 0);
                   
-                  // Calculate volume and premium by strike for this week
+                  // Get Sunday of current week (end of week)
+                  currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+                  currentWeekEnd.setHours(23, 59, 59, 999);
+                  
+                  // Helper function to parse expiry date
+                  const parseExpiryDate = (expiryStr: string): Date | null => {
+                    try {
+                      // Expected format: MM/DD/YYYY or similar
+                      const parts = expiryStr.split('/');
+                      if (parts.length === 3) {
+                        const month = parseInt(parts[0]) - 1; // 0-indexed
+                        const day = parseInt(parts[1]);
+                        const year = parseInt(parts[2]);
+                        return new Date(year, month, day);
+                      }
+                      // Try ISO format YYYY-MM-DD
+                      const isoMatch = expiryStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+                      if (isoMatch) {
+                        return new Date(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3]));
+                      }
+                      return null;
+                    } catch (error) {
+                      return null;
+                    }
+                  };
+                  
+                  // Calculate volume and premium by strike for options expiring this week
                   const strikeVolumes = new Map<number, { volume: number; callVolume: number; putVolume: number; premium: number }>();
                   
                   tickerTrades.forEach(trade => {
-                    let tradeDate: Date;
                     try {
-                      const timestampStr = trade.timestamp;
-                      const now = new Date();
-                      const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                      // Parse expiry date
+                      const expiryDate = parseExpiryDate(trade.expiry);
+                      if (!expiryDate) return;
                       
-                      const monthMap: { [key: string]: number } = {
-                        'january': 0, 'february': 1, 'march': 2, 'april': 3,
-                        'may': 4, 'june': 5, 'july': 6, 'august': 7,
-                        'september': 8, 'october': 9, 'november': 10, 'december': 11
-                      };
-                      
-                      const convertTo24Hour = (hour: string, ampm: string): number => {
-                        let hour24 = parseInt(hour);
-                        if (ampm.toUpperCase() === 'PM' && hour24 !== 12) {
-                          hour24 += 12;
-                        } else if (ampm.toUpperCase() === 'AM' && hour24 === 12) {
-                          hour24 = 0;
-                        }
-                        return hour24;
-                      };
-                      
-                      let match = timestampStr.match(/(\w+),\s+(\w+)\s+(\d+),\s+(\d+)\s+at\s+(\d+):(\d+)\s+(AM|PM)/i);
-                      if (match) {
-                        const [, , monthName, day, year, hour, minute, ampm] = match;
-                        const month = monthMap[monthName.toLowerCase()];
-                        if (month !== undefined) {
-                          const hour24 = convertTo24Hour(hour, ampm);
-                          tradeDate = new Date(parseInt(year), month, parseInt(day), hour24, parseInt(minute));
-                        } else {
-                          return;
-                        }
-                      }
-                      else if ((match = timestampStr.match(/Yesterday at (\d+):(\d+)\s+(AM|PM)/i))) {
-                        const [, hour, minute, ampm] = match;
-                        const hour24 = convertTo24Hour(hour, ampm);
-                        const yesterday = new Date(todayDate);
-                        yesterday.setDate(yesterday.getDate() - 1);
-                        tradeDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), hour24, parseInt(minute));
-                      }
-                      else if ((match = timestampStr.match(/(\d+):(\d+)\s+(AM|PM)/i))) {
-                        const [, hour, minute, ampm] = match;
-                        const hour24 = convertTo24Hour(hour, ampm);
-                        tradeDate = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), hour24, parseInt(minute));
-                      }
-                      else {
-                        return;
-                      }
-                      
-                      tradeDate.setHours(0, 0, 0, 0);
-                      
-                      if (tradeDate >= currentWeekStart) {
+                      // Check if expiry is within this week
+                      if (expiryDate >= currentWeekStart && expiryDate <= currentWeekEnd) {
                         const strike = trade.strike;
                         if (!strikeVolumes.has(strike)) {
                           strikeVolumes.set(strike, { volume: 0, callVolume: 0, putVolume: 0, premium: 0 });
@@ -490,7 +473,7 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                       <div className="ticker-analytics">
                         <div className="analytics-badge key-levels-badge">
                           <Target size={12} />
-                          <span className="badge-label">Top Strikes (This Week):</span>
+                          <span className="badge-label">Top Strikes (Expiring This Week):</span>
                           <span className="badge-strikes">
                             {topStrikes.map(([strike, volumes], idx) => (
                               <span 
