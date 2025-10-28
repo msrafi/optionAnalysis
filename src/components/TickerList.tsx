@@ -406,8 +406,19 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                   currentWeekStart.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
                   currentWeekStart.setHours(0, 0, 0, 0);
                   
-                  // Calculate volume by strike for this week
-                  const strikeVolumes = new Map<number, { volume: number; callVolume: number; putVolume: number }>();
+                  // Calculate volume and premium by strike for this week
+                  const strikeVolumes = new Map<number, { volume: number; callVolume: number; putVolume: number; premium: number }>();
+                  
+                  // Helper function to parse premium string
+                  const parsePremium = (premiumStr: string): number => {
+                    try {
+                      // Remove $ and commas, then parse
+                      const cleaned = premiumStr.replace(/\$|,/g, '');
+                      return parseFloat(cleaned) || 0;
+                    } catch (error) {
+                      return 0;
+                    }
+                  };
                   
                   tickerTrades.forEach(trade => {
                     let tradeDate: Date;
@@ -464,10 +475,11 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                       if (tradeDate >= currentWeekStart) {
                         const strike = trade.strike;
                         if (!strikeVolumes.has(strike)) {
-                          strikeVolumes.set(strike, { volume: 0, callVolume: 0, putVolume: 0 });
+                          strikeVolumes.set(strike, { volume: 0, callVolume: 0, putVolume: 0, premium: 0 });
                         }
                         const volumes = strikeVolumes.get(strike)!;
                         volumes.volume += trade.volume;
+                        volumes.premium += parsePremium(trade.premium);
                         if (trade.optionType === 'Call') {
                           volumes.callVolume += trade.volume;
                         } else {
@@ -495,9 +507,9 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                               <span 
                                 key={strike} 
                                 className="level-strike level-high"
-                                title={`Strike: ${strike}, Vol: ${formatVolume(volumes.volume)}, Calls: ${formatVolume(volumes.callVolume)}, Puts: ${formatVolume(volumes.putVolume)}`}
+                                title={`Strike: ${strike}, Vol: ${formatVolume(volumes.volume)}, Premium: ${formatPremium(volumes.premium)}, Calls: ${formatVolume(volumes.callVolume)}, Puts: ${formatVolume(volumes.putVolume)}`}
                               >
-                                {idx > 0 && ', '}${strike} ({formatVolume(volumes.volume)})
+                                {idx > 0 && ', '}${strike} (Vol: {formatVolume(volumes.volume)}, Prem: {formatPremium(volumes.premium)})
                               </span>
                             ))}
                           </span>
