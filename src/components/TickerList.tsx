@@ -1,6 +1,6 @@
 import React, { memo, useMemo, useState } from 'react';
 import { TrendingUp, TrendingDown, Calendar, ArrowUpDown, Target } from 'lucide-react';
-import { TickerSummary, formatVolume, formatPremium, OptionData } from '../utils/dataParser';
+import { TickerSummary, formatVolume, formatPremium, parsePremium, OptionData } from '../utils/dataParser';
 
 interface TickerListProps {
   tickers: TickerSummary[];
@@ -409,17 +409,6 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                   // Calculate volume and premium by strike for this week
                   const strikeVolumes = new Map<number, { volume: number; callVolume: number; putVolume: number; premium: number }>();
                   
-                  // Helper function to parse premium string
-                  const parsePremium = (premiumStr: string): number => {
-                    try {
-                      // Remove $ and commas, then parse
-                      const cleaned = premiumStr.replace(/\$|,/g, '');
-                      return parseFloat(cleaned) || 0;
-                    } catch (error) {
-                      return 0;
-                    }
-                  };
-                  
                   tickerTrades.forEach(trade => {
                     let tradeDate: Date;
                     try {
@@ -509,7 +498,7 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                                 className="level-strike level-high"
                                 title={`Strike: ${strike}, Vol: ${formatVolume(volumes.volume)}, Premium: ${formatPremium(volumes.premium)}, Calls: ${formatVolume(volumes.callVolume)}, Puts: ${formatVolume(volumes.putVolume)}`}
                               >
-                                {idx > 0 && ', '}${strike} (Vol: {formatVolume(volumes.volume)}, Prem: {formatPremium(volumes.premium)})
+                                {idx > 0 && ''}${strike} (Vol: {formatVolume(volumes.volume)}, Prem: {formatPremium(volumes.premium)})
                               </span>
                             ))}
                           </span>
