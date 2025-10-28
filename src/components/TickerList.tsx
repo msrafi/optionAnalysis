@@ -8,7 +8,7 @@ interface TickerListProps {
   allData: OptionData[];
 }
 
-type SortOption = 'recent' | 'oldest' | 'volume-high' | 'volume-low' | 'calls-high' | 'puts-high' | 'premium-high' | 'premium-low';
+type SortOption = 'recent' | 'oldest' | 'volume-high' | 'volume-low' | 'calls-high' | 'puts-high' | 'premium-high' | 'premium-low' | 'today-volume-high' | 'today-volume-low';
 
 const formatDateTime = (timestamp: string, parsedDate?: Date | null): string => {
   try {
@@ -97,6 +97,78 @@ const formatDateTime = (timestamp: string, parsedDate?: Date | null): string => 
 const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, allData }) => {
   const [sortBy, setSortBy] = useState<SortOption>('recent');
 
+  // Helper function to get today's volume for a ticker
+  const getTodayVolume = (ticker: string): number => {
+    const tickerTrades = allData.filter(t => t.ticker === ticker);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let todayVolume = 0;
+    
+    tickerTrades.forEach(trade => {
+      let tradeDate: Date;
+      try {
+        const timestampStr = trade.timestamp;
+        const now = new Date();
+        const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        const monthMap: { [key: string]: number } = {
+          'january': 0, 'february': 1, 'march': 2, 'april': 3,
+          'may': 4, 'june': 5, 'july': 6, 'august': 7,
+          'september': 8, 'october': 9, 'november': 10, 'december': 11
+        };
+        
+        const convertTo24Hour = (hour: string, ampm: string): number => {
+          let hour24 = parseInt(hour);
+          if (ampm.toUpperCase() === 'PM' && hour24 !== 12) {
+            hour24 += 12;
+          } else if (ampm.toUpperCase() === 'AM' && hour24 === 12) {
+            hour24 = 0;
+          }
+          return hour24;
+        };
+        
+        let match = timestampStr.match(/(\w+),\s+(\w+)\s+(\d+),\s+(\d+)\s+at\s+(\d+):(\d+)\s+(AM|PM)/i);
+        if (match) {
+          const [, , monthName, day, year, hour, minute, ampm] = match;
+          const month = monthMap[monthName.toLowerCase()];
+          if (month !== undefined) {
+            const hour24 = convertTo24Hour(hour, ampm);
+            tradeDate = new Date(parseInt(year), month, parseInt(day), hour24, parseInt(minute));
+          } else {
+            return;
+          }
+        }
+        else if ((match = timestampStr.match(/Yesterday at (\d+):(\d+)\s+(AM|PM)/i))) {
+          const [, hour, minute, ampm] = match;
+          const hour24 = convertTo24Hour(hour, ampm);
+          const yesterday = new Date(todayDate);
+          yesterday.setDate(yesterday.getDate() - 1);
+          tradeDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), hour24, parseInt(minute));
+        }
+        else if ((match = timestampStr.match(/(\d+):(\d+)\s+(AM|PM)/i))) {
+          const [, hour, minute, ampm] = match;
+          const hour24 = convertTo24Hour(hour, ampm);
+          tradeDate = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), hour24, parseInt(minute));
+        }
+        else {
+          return;
+        }
+        
+        tradeDate.setHours(0, 0, 0, 0);
+        const daysAgo = Math.floor((today.getTime() - tradeDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysAgo === 0) {
+          todayVolume += trade.volume;
+        }
+      } catch (error) {
+        // Skip this trade if we can't parse the date
+      }
+    });
+    
+    return todayVolume;
+  };
+
   const sortedTickers = useMemo(() => {
     const sorted = [...tickers];
     
@@ -141,6 +213,12 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
       case 'premium-low':
         return sorted.sort((a, b) => a.totalPremium - b.totalPremium);
       
+      case 'today-volume-high':
+        return sorted.sort((a, b) => getTodayVolume(b.ticker) - getTodayVolume(a.ticker));
+      
+      case 'today-volume-low':
+        return sorted.sort((a, b) => getTodayVolume(a.ticker) - getTodayVolume(b.ticker));
+      
       default:
         return sorted;
     }
@@ -164,6 +242,8 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
             <option value="oldest">Oldest First</option>
             <option value="volume-high">Volume (High to Low)</option>
             <option value="volume-low">Volume (Low to High)</option>
+            <option value="today-volume-high">Today's Volume (High to Low)</option>
+            <option value="today-volume-low">Today's Volume (Low to High)</option>
             <option value="calls-high">Calls (High to Low)</option>
             <option value="puts-high">Puts (High to Low)</option>
             <option value="premium-high">Premium (High to Low)</option>
