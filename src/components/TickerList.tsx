@@ -219,6 +219,48 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                     <span className="detail-label">Expiries:</span>
                     <span className="detail-value">{ticker.uniqueExpiries.length}</span>
                   </div>
+                  {/* 3-Day Volume Section */}
+                  {(() => {
+                    const tickerTrades = allData.filter(t => t.ticker === ticker.ticker);
+                    const today = new Date();
+                    const threeDaysAgo = new Date(today);
+                    threeDaysAgo.setDate(threeDaysAgo.getDate() - 2);
+                    threeDaysAgo.setHours(0, 0, 0, 0);
+                    
+                    const recentTrades = tickerTrades.filter(trade => {
+                      const tradeDate = new Date(trade.timestamp);
+                      return tradeDate >= threeDaysAgo;
+                    });
+                    
+                    const dayVolumes = [0, 0, 0]; // [2 days ago, 1 day ago, today]
+                    recentTrades.forEach(trade => {
+                      const tradeDate = new Date(trade.timestamp);
+                      const daysAgo = Math.floor((today.getTime() - tradeDate.getTime()) / (1000 * 60 * 60 * 24));
+                      if (daysAgo >= 0 && daysAgo <= 2) {
+                        dayVolumes[2 - daysAgo] += trade.volume;
+                      }
+                    });
+                    
+                    return (
+                      <div className="detail-row volume-3day">
+                        <span className="detail-label">3-Day Volume:</span>
+                        <div className="volume-breakdown">
+                          <span className="day-volume">
+                            <span className="day-label">Today:</span>
+                            <span className="day-value">{formatVolume(dayVolumes[2])}</span>
+                          </span>
+                          <span className="day-volume">
+                            <span className="day-label">-1:</span>
+                            <span className="day-value">{formatVolume(dayVolumes[1])}</span>
+                          </span>
+                          <span className="day-volume">
+                            <span className="day-label">-2:</span>
+                            <span className="day-value">{formatVolume(dayVolumes[0])}</span>
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
                 
                 {/* Analytics Section */}

@@ -13,7 +13,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const DATA_DIR = path.join(__dirname, '../data');
-const API_FILE = path.join(__dirname, '../public/api/darkpool-data-files.json');
+const PUBLIC_API_FILE = path.join(__dirname, '../public/api/darkpool-data-files.json');
+const DIST_API_FILE = path.join(__dirname, '../dist/api/darkpool-data-files.json');
 
 /**
  * Parse timestamp from filename
@@ -94,16 +95,21 @@ function updateDarkPoolApiFile() {
   try {
     const fileList = scanDarkPoolDataDirectory();
     
-    // Ensure public directory exists
-    const publicDir = path.dirname(API_FILE);
+    // Update public directory (for dev mode)
+    const publicDir = path.dirname(PUBLIC_API_FILE);
     if (!fs.existsSync(publicDir)) {
       fs.mkdirSync(publicDir, { recursive: true });
     }
+    fs.writeFileSync(PUBLIC_API_FILE, JSON.stringify(fileList, null, 2));
     
-    // Write the updated file list
-    fs.writeFileSync(API_FILE, JSON.stringify(fileList, null, 2));
+    // Also update dist directory (for production builds)
+    const distDir = path.dirname(DIST_API_FILE);
+    if (!fs.existsSync(distDir)) {
+      fs.mkdirSync(distDir, { recursive: true });
+    }
+    fs.writeFileSync(DIST_API_FILE, JSON.stringify(fileList, null, 2));
     
-    console.log(`✅ Updated dark pool data files list with ${fileList.length} files:`);
+    console.log(`✅ Updated dark pool data files list with ${fileList.length} files in both public/ and dist/ directories:`);
     fileList.forEach(file => {
       console.log(`   - ${file.name} (${(file.size / 1024).toFixed(1)}KB, ${file.timestamp})`);
     });
@@ -126,12 +132,34 @@ function watchForDarkPoolChanges() {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   
+  // Watch for changes in data directory
   fs.watch(DATA_DIR, (eventType, filename) => {
     if (filename && filename.endsWith('.csv') && filename.startsWith('darkpool_data_')) {
       console.log(`📁 Detected ${eventType} of dark pool file: ${filename}`);
       setTimeout(() => {
         updateDarkPoolApiFile();
       }, 1000); // Wait 1 second for file to be fully written
+    }
+  });
+  
+  // Also watch for changes in public and dist API files
+  fs.watch(path.dirname(PUBLIC_API_FILE), (eventType, filename) => {
+    if (filename && filename === 'darkpool-data-files.json') {
+      console.log(`📄 Dark pool API file updated, syncing to dist/...`);
+      setTimeout(() => {
+        try {
+          if (fs.existsSync(PUBLIC_API_FILE)) {
+            const content = fs.readFileSync(PUBLIC_API_FILE, 'utf8');
+            const distDir = path.dirname(DIST_API_FILE);
+            if (!fs.existsSync(distDir)) {
+              fs.mkdirSync(distDir, { recursive: true });
+            }
+            fs.writeFileSync(DIST_API_FILE, content);
+          }
+        } catch (error) {
+          console.warn('Failed to sync to dist:', error);
+        }
+      }, 100);
     }
   });
 }

@@ -94,9 +94,9 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
   
 
   const handleRefresh = async () => {
-    // Clear all caches
+    // Clear all caches (now async)
     clearDataCache();
-    clearAllApplicationCaches();
+    await clearAllApplicationCaches();
     
     const loadAllData = async () => {
       try {

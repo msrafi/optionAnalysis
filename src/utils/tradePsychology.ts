@@ -297,25 +297,7 @@ export function aggregateTradesByHour(trades: OptionData[], targetDate: Date): H
       callPutRatio,
       premiumCallPutRatio,
       trades: data.trades,
-      psychology: analyzeTradePsychology({
-        hour,
-        totalVolume: data.totalVolume,
-        callVolume: data.callVolume,
-        putVolume: data.putVolume,
-        totalTrades: data.totalTrades,
-        callTrades: data.callTrades,
-        putTrades: data.putTrades,
-        totalPremium: data.totalPremium,
-        callPremium: data.callPremium,
-        putPremium: data.putPremium,
-        sweepCount: data.sweepCount,
-        unusualSweepCount: data.unusualSweepCount,
-        highlyUnusualSweepCount: data.highlyUnusualSweepCount,
-        avgTradeSize,
-        callPutRatio,
-        premiumCallPutRatio,
-        psychology: { sentiment: 'neutral' as const, confidence: 'low' as const, activity: 'low' as const, sweepIntensity: 'low' as const, description: '' }
-      })
+      psychology: { sentiment: 'neutral' as const, confidence: 'low' as const, activity: 'low' as const, sweepIntensity: 'low' as const, description: '' }
     };
     
     // Re-analyze psychology with complete data
@@ -409,8 +391,8 @@ export function analyzeDailyTradePsychology(trades: OptionData[], targetDate: Da
   });
   dailySummary.uniqueExpiries = Array.from(expirySet).sort((a, b) => new Date(a).getTime() - new Date(b).getTime()) as string[];
   
-  // Analyze overall daily psychology
-  dailySummary.psychology = analyzeTradePsychology({
+  // Analyze overall daily psychology - create a complete HourlyTradeData object
+  const dailyHourlyData: HourlyTradeData = {
     hour: 0,
     totalVolume: dailySummary.totalVolume,
     callVolume: totalCallVolume,
@@ -427,8 +409,14 @@ export function analyzeDailyTradePsychology(trades: OptionData[], targetDate: Da
     avgTradeSize: dailySummary.totalTrades > 0 ? dailySummary.totalVolume / dailySummary.totalTrades : 0,
     callPutRatio: dailySummary.callPutRatio,
     premiumCallPutRatio: 0,
+    trades: trades.filter(t => {
+      const tradeDate = parseTimestampFromData(t.timestamp);
+      return tradeDate && tradeDate.toISOString().split('T')[0] === targetDate.toISOString().split('T')[0];
+    }),
     psychology: { sentiment: 'neutral' as const, confidence: 'low' as const, activity: 'low' as const, sweepIntensity: 'low' as const, description: '' }
-  });
+  };
+  
+  dailySummary.psychology = analyzeTradePsychology(dailyHourlyData);
   
   const dateStr = targetDate.toISOString().split('T')[0];
   const dayOfWeek = targetDate.toLocaleDateString('en-US', { weekday: 'long' });

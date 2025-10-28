@@ -1,8 +1,23 @@
 [
   {
     "name": "options_data_2025-10-15_TSLA.csv",
-    "size": 47800,
-    "timestamp": "2025-10-23T18:18:06.549Z"
+    "size": 33921,
+    "timestamp": "2025-10-28T02:55:18.108Z"
+  },
+  {
+    "name": "options_data_2025-10-27_16-00.csv",
+    "size": 72048,
+    "timestamp": "2025-10-27T20:00:00.000Z"
+  },
+  {
+    "name": "options_data_2025-10-24_16-00.csv",
+    "size": 52860,
+    "timestamp": "2025-10-24T20:00:00.000Z"
+  },
+  {
+    "name": "options_data_2025-10-23_16-00.csv",
+    "size": 25329,
+    "timestamp": "2025-10-23T20:00:00.000Z"
   },
   {
     "name": "options_data_2025-10-23_14-00.csv",
@@ -121,7 +136,7 @@
   },
   {
     "name": "options_data_2025-10-13_10-50.csv",
-    "size": 35221,
+    "size": 27701,
     "timestamp": "2025-10-13T14:50:00.000Z"
   },
   {
@@ -141,12 +156,12 @@
   },
   {
     "name": "options_data_2024-01-15_11-30.csv",
-    "size": 190439,
+    "size": 148896,
     "timestamp": "2024-01-15T16:30:00.000Z"
   },
   {
     "name": "options_data_2024-01-15_11-00.csv",
-    "size": 23819,
+    "size": 16899,
     "timestamp": "2024-01-15T16:00:00.000Z"
   },
   {

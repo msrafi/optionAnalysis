@@ -9,8 +9,9 @@ import { clearPriceCache } from './stockPrice';
 
 /**
  * Clear all session storage caches used by the application
+ * Also clears service worker caches if available
  */
-export function clearAllApplicationCaches(): void {
+export async function clearAllApplicationCaches(): Promise<void> {
   try {
     // Clear file loader caches
     clearAllSessionCaches();
@@ -40,8 +41,28 @@ export function clearAllApplicationCaches(): void {
       }
     });
     
+    // Clear service worker caches if available
+    if ('caches' in window) {
+      try {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => {
+          if (import.meta.env.DEV) {
+            console.log(`🗑️ Deleting cache: ${name}`);
+          }
+          return caches.delete(name);
+        }));
+        if (import.meta.env.DEV) {
+          console.log('✅ Service worker caches cleared');
+        }
+      } catch (cacheError) {
+        if (import.meta.env.DEV) {
+          console.warn('Failed to clear service worker caches:', cacheError);
+        }
+      }
+    }
+    
     if (import.meta.env.DEV) {
-      console.log('🧹 All application session storage cleared');
+      console.log('🧹 All application session storage and caches cleared');
     }
   } catch (error) {
     if (import.meta.env.DEV) {

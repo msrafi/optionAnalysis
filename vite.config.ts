@@ -16,11 +16,12 @@ export default defineConfig({
         const __dirname = fileURLToPath(new URL('.', import.meta.url))
         const dataDir = join(__dirname, 'data')
         const distDataDir = join(__dirname, 'dist', 'data')
+        const publicApiDir = join(__dirname, 'public', 'api')
+        const distApiDir = join(__dirname, 'dist', 'api')
         
         try {
-          mkdirSync(distDataDir, { recursive: true })
-          
           // Copy all CSV files from data directory to dist/data
+          mkdirSync(distDataDir, { recursive: true })
           const files = readdirSync(dataDir)
           
           files.forEach((file: string) => {
@@ -33,8 +34,21 @@ export default defineConfig({
           })
           
           console.log('✅ Data files copied to dist/data/')
+          
+          // Copy API files to dist/api
+          mkdirSync(distApiDir, { recursive: true })
+          copyFileSync(
+            join(publicApiDir, 'data-files.json'),
+            join(distApiDir, 'data-files.json')
+          )
+          copyFileSync(
+            join(publicApiDir, 'darkpool-data-files.json'),
+            join(distApiDir, 'darkpool-data-files.json')
+          )
+          
+          console.log('✅ API files copied to dist/api/')
         } catch (error) {
-          console.error('❌ Error copying data files:', error)
+          console.error('❌ Error copying files:', error)
         }
       }
     }
