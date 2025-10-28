@@ -1,6 +1,6 @@
 import React, { memo, useMemo, useState } from 'react';
-import { TrendingUp, TrendingDown, Calendar, ArrowUpDown, Target, Zap } from 'lucide-react';
-import { TickerSummary, formatVolume, formatPremium, OptionData, getTickerAnalytics } from '../utils/dataParser';
+import { TrendingUp, TrendingDown, Calendar, ArrowUpDown, Target } from 'lucide-react';
+import { TickerSummary, formatVolume, formatPremium, OptionData } from '../utils/dataParser';
 
 interface TickerListProps {
   tickers: TickerSummary[];
@@ -258,9 +258,6 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
           const putDominant = ticker.putVolume > ticker.callVolume;
           const dominanceClass = callDominant ? 'call-dominant' : putDominant ? 'put-dominant' : 'balanced';
           
-          // Calculate analytics for this ticker
-          const analytics = getTickerAnalytics(ticker.ticker, allData);
-          
           return (
             <div 
               key={ticker.ticker} 
@@ -401,36 +398,117 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                   })()}
                 </div>
                 
-                {/* Analytics Section */}
-                {(analytics.keyPriceLevels.length > 0 || analytics.maxPainStrike) && (
-                  <div className="ticker-analytics">
-                    {analytics.keyPriceLevels.length > 0 && (
-                      <div className="analytics-badge key-levels-badge">
-                        <Target size={12} />
-                        <span className="badge-label">Key Levels:</span>
-                        <span className="badge-strikes">
-                          {analytics.keyPriceLevels.slice(0, 3).map((level, idx) => (
-                            <span 
-                              key={level.strike} 
-                              className={`level-strike level-${level.significance}`}
-                              title={`${level.type === 'call' ? 'Call' : level.type === 'put' ? 'Put' : 'Call/Put'} - Vol: ${formatVolume(level.volume)}, OI: ${formatVolume(level.openInterest)}`}
-                            >
-                              {idx > 0 && ', '}${level.strike}
-                            </span>
-                          ))}
-                        </span>
+                {/* Current Week Volume by Strike */}
+                {(() => {
+                  const tickerTrades = allData.filter(t => t.ticker === ticker.ticker);
+                  const today = new Date();
+                  const currentWeekStart = new Date(today);
+                  // Get Monday of current week
+                  const dayOfWeek = today.getDay();
+                  currentWeekStart.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                  currentWeekStart.setHours(0, 0, 0, 0);
+                  
+                  // Calculate volume by strike for this week
+                  const strikeVolumes = new Map<number, { volume: number; callVolume: number; putVolume: number }>();
+                  
+                  tickerTrades.forEach(trade => {
+                    let tradeDate: Date;
+                    try {
+                      const timestampStr = trade.timestamp;
+                      const now = new Date();
+                      const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                      
+                      const monthMap: { [key: string]: number } = {
+                        'january': 0, 'february': 1, 'march': 2, 'april': 3,
+                        'may': 4, 'june': 5, 'july': 6, 'august': 7,
+                        'september': 8, 'october': 9, 'november': 10, 'december': 11
+                      };
+                      
+                      const convertTo24Hour = (hour: string, ampm: string): number => {
+                        let hour24 = parseInt(hour);
+                        if (ampm.toUpperCase() === 'PM' && hour24 !== 12) {
+                          hour24 += 12;
+                        } else if (ampm.toUpperCase() === 'AM' && hour24 === 12) {
+                          hour24 = 0;
+                        }
+                        return hour24;
+                      };
+                      
+                      let match = timestampStr.match(/(\w+),\s+(\w+)\s+(\d+),\s+(\d+)\s+at\s+(\d+):(\d+)\s+(AM|PM)/i);
+                      if (match) {
+                        const [, , monthName, day, year, hour, minute, ampm] = match;
+                        const month = monthMap[monthName.toLowerCase()];
+                        if (month !== undefined) {
+                          const hour24 = convertTo24Hour(hour, ampm);
+                          tradeDate = new Date(parseInt(year), month, parseInt(day), hour24, parseInt(minute));
+                        } else {
+                          return;
+                        }
+                      }
+                      else if ((match = timestampStr.match(/Yesterday at (\d+):(\d+)\s+(AM|PM)/i))) {
+                        const [, hour, minute, ampm] = match;
+                        const hour24 = convertTo24Hour(hour, ampm);
+                        const yesterday = new Date(todayDate);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        tradeDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), hour24, parseInt(minute));
+                      }
+                      else if ((match = timestampStr.match(/(\d+):(\d+)\s+(AM|PM)/i))) {
+                        const [, hour, minute, ampm] = match;
+                        const hour24 = convertTo24Hour(hour, ampm);
+                        tradeDate = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate(), hour24, parseInt(minute));
+                      }
+                      else {
+                        return;
+                      }
+                      
+                      tradeDate.setHours(0, 0, 0, 0);
+                      
+                      if (tradeDate >= currentWeekStart) {
+                        const strike = trade.strike;
+                        if (!strikeVolumes.has(strike)) {
+                          strikeVolumes.set(strike, { volume: 0, callVolume: 0, putVolume: 0 });
+                        }
+                        const volumes = strikeVolumes.get(strike)!;
+                        volumes.volume += trade.volume;
+                        if (trade.optionType === 'Call') {
+                          volumes.callVolume += trade.volume;
+                        } else {
+                          volumes.putVolume += trade.volume;
+                        }
+                      }
+                    } catch (error) {
+                      // Skip this trade
+                    }
+                  });
+                  
+                  // Sort by volume and get top 3
+                  const topStrikes = Array.from(strikeVolumes.entries())
+                    .sort((a, b) => b[1].volume - a[1].volume)
+                    .slice(0, 3);
+                  
+                  if (topStrikes.length > 0) {
+                    return (
+                      <div className="ticker-analytics">
+                        <div className="analytics-badge key-levels-badge">
+                          <Target size={12} />
+                          <span className="badge-label">Top Strikes (This Week):</span>
+                          <span className="badge-strikes">
+                            {topStrikes.map(([strike, volumes], idx) => (
+                              <span 
+                                key={strike} 
+                                className="level-strike level-high"
+                                title={`Strike: ${strike}, Vol: ${formatVolume(volumes.volume)}, Calls: ${formatVolume(volumes.callVolume)}, Puts: ${formatVolume(volumes.putVolume)}`}
+                              >
+                                {idx > 0 && ', '}${strike} (${formatVolume(volumes.volume)})
+                              </span>
+                            ))}
+                          </span>
+                        </div>
                       </div>
-                    )}
-                    
-                    {analytics.maxPainStrike && (
-                      <div className="analytics-badge max-pain-badge">
-                        <Zap size={12} />
-                        <span className="badge-label">Max Pain:</span>
-                        <span className="badge-value">${analytics.maxPainStrike}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                    );
+                  }
+                  return null;
+                })()}
                 
                 {/* Last Trade Section - Moved to bottom */}
                 {ticker.lastTrade && (
