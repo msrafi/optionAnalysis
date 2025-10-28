@@ -497,7 +497,7 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                                 className="level-strike level-high"
                                 title={`Strike: ${strike}, Vol: ${formatVolume(volumes.volume)}, Calls: ${formatVolume(volumes.callVolume)}, Puts: ${formatVolume(volumes.putVolume)}`}
                               >
-                                {idx > 0 && ', '}${strike} (${formatVolume(volumes.volume)})
+                                {idx > 0 && ', '}${strike} ({formatVolume(volumes.volume)})
                               </span>
                             ))}
                           </span>
