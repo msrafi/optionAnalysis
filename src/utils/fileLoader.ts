@@ -220,6 +220,26 @@ export function clearAllSessionCaches(): void {
 }
 
 /**
+ * Clear the file loading cache for options data
+ */
+export function clearFileCache(): void {
+  clearSessionCache(FILE_CACHE_KEY);
+  if (import.meta.env.DEV) {
+    console.log('🧹 Options file cache cleared');
+  }
+}
+
+/**
+ * Clear the file loading cache for dark pool data
+ */
+export function clearDarkPoolFileCache(): void {
+  clearSessionCache(DARKPOOL_FILE_CACHE_KEY);
+  if (import.meta.env.DEV) {
+    console.log('🧹 Dark pool file cache cleared');
+  }
+}
+
+/**
  * Load all CSV files from the data directory with caching
  */
 export async function loadAllDataFiles(bustCache: boolean = false): Promise<LoadedFileData[]> {

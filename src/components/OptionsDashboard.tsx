@@ -15,7 +15,7 @@ import {
   OptionData,
   MergedDataInfo
 } from '../utils/dataParser';
-import { loadAllDataFiles } from '../utils/fileLoader';
+import { loadAllDataFiles, clearFileCache } from '../utils/fileLoader';
 import { getCurrentPrice, clearPriceCache } from '../utils/stockPrice';
 
 // We'll load the CSV data via fetch instead of import
@@ -143,11 +143,12 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
     try {
       console.log('🔄 Performing hard refresh for options data...');
       
-      // Clear only options related caches
+      // Clear all options related caches
       clearDataCache();      // Clear options parsed data cache
+      clearFileCache();      // Clear options file loading cache
       clearPriceCache();     // Clear stock price cache (shared)
       
-      console.log('✓ Options caches cleared');
+      console.log('✓ Options caches cleared (parsed data, file cache, and price cache)');
       console.log('🔄 Reloading options data with cache bypass...');
       
       setLoading(true);
@@ -259,7 +260,27 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
               <span className="stat-separator">•</span>
               <span className="header-stat">{dataInfo.totalRecords.toLocaleString()} records</span>
               <span className="stat-separator">•</span>
-              <span className="header-stat">{dataInfo.dateRange.latest?.toLocaleString() || ''}</span>
+              <span className="header-stat">
+                {dataInfo.files && dataInfo.files.length > 0
+                  ? dataInfo.files[0].timestamp.toLocaleString('en-GB', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    })
+                  : dataInfo.dateRange.latest?.toLocaleString('en-GB', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    }) || ''}
+              </span>
             </div>
           )}
         </div>

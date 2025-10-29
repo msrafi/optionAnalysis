@@ -11,7 +11,7 @@ import {
   DarkPoolData,
   MergedDataInfo
 } from '../utils/dataParser';
-import { loadAllDarkPoolDataFiles } from '../utils/fileLoader';
+import { loadAllDarkPoolDataFiles, clearDarkPoolFileCache } from '../utils/fileLoader';
 import { getCurrentPrice, clearPriceCache } from '../utils/stockPrice';
 
 export interface DarkPoolDashboardProps {
@@ -137,11 +137,12 @@ const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, 
     try {
       console.log('🔄 Performing hard refresh for dark pool data...');
       
-      // Clear only dark pool related caches
+      // Clear all dark pool related caches
       clearDarkPoolDataCache();      // Clear dark pool parsed data cache
+      clearDarkPoolFileCache();      // Clear dark pool file loading cache
       clearPriceCache();             // Clear stock price cache (shared)
       
-      console.log('✓ Dark pool caches cleared');
+      console.log('✓ Dark pool caches cleared (parsed data, file cache, and price cache)');
       console.log('🔄 Reloading dark pool data with cache bypass...');
       
       setLoading(true);
@@ -253,7 +254,27 @@ const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, 
               <span className="stat-separator">•</span>
               <span className="header-stat">{dataInfo.totalRecords.toLocaleString()} records</span>
               <span className="stat-separator">•</span>
-              <span className="header-stat">{dataInfo.dateRange.latest?.toLocaleString() || ''}</span>
+              <span className="header-stat">
+                {dataInfo.files && dataInfo.files.length > 0
+                  ? dataInfo.files[0].timestamp.toLocaleString('en-GB', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    })
+                  : dataInfo.dateRange.latest?.toLocaleString('en-GB', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: false
+                    }) || ''}
+              </span>
             </div>
           )}
         </div>
