@@ -1,6 +1,6 @@
 import React, { memo, useMemo, useCallback, useState } from 'react';
 import { ArrowUpDown } from 'lucide-react';
-import { OptionData, formatVolume, parseTimestampFromData } from '../utils/dataParser';
+import { OptionData, formatVolume, parseTimestampFromData, isExpiryInCurrentWeek } from '../utils/dataParser';
 
 interface TradeListProps {
   trades: OptionData[];
@@ -97,7 +97,7 @@ const TradeRow: React.FC<TradeRowProps> = memo(({ trade }) => {
 
 TradeRow.displayName = 'TradeRow';
 
-type SortOption = 'trade-date' | 'expiry-date' | 'size';
+type SortOption = 'trade-date' | 'expiry-date' | 'current-week-expiry' | 'size';
 
 const TradeList: React.FC<TradeListProps> = memo(({ trades, ticker, expiry }) => {
   const [sortBy, setSortBy] = useState<SortOption>('trade-date');
@@ -114,6 +114,20 @@ const TradeList: React.FC<TradeListProps> = memo(({ trades, ticker, expiry }) =>
         }
         case 'expiry-date': {
           // Sort by expiry date (earliest first)
+          const expiryA = new Date(a.expiry);
+          const expiryB = new Date(b.expiry);
+          return expiryA.getTime() - expiryB.getTime();
+        }
+        case 'current-week-expiry': {
+          // Sort: current week expiries first, then by expiry date (earliest first)
+          const inCurrentWeekA = isExpiryInCurrentWeek(a.expiry);
+          const inCurrentWeekB = isExpiryInCurrentWeek(b.expiry);
+          
+          // Current week expiries come first
+          if (inCurrentWeekA && !inCurrentWeekB) return -1;
+          if (!inCurrentWeekA && inCurrentWeekB) return 1;
+          
+          // Within same category, sort by expiry date
           const expiryA = new Date(a.expiry);
           const expiryB = new Date(b.expiry);
           return expiryA.getTime() - expiryB.getTime();
@@ -169,6 +183,7 @@ const TradeList: React.FC<TradeListProps> = memo(({ trades, ticker, expiry }) =>
             >
               <option value="trade-date">Sort by Trade Date (Recent First)</option>
               <option value="expiry-date">Sort by Expiry Date (Earliest First)</option>
+              <option value="current-week-expiry">Sort by Current Week Expiry First</option>
               <option value="size">Sort by Size (Largest First)</option>
             </select>
           </div>

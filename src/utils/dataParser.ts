@@ -609,6 +609,81 @@ export function getVolumeProfileForTicker(
     .sort((a, b) => a.strike - b.strike);
 }
 
+/**
+ * Check if an expiry date is within the current week (Monday to Sunday)
+ */
+export function isExpiryInCurrentWeek(expiryStr: string): boolean {
+  try {
+    if (!expiryStr) return false;
+    
+    const today = new Date();
+    const currentWeekStart = new Date(today);
+    const currentWeekEnd = new Date(today);
+    
+    // Get Monday of current week
+    const dayOfWeek = today.getDay();
+    currentWeekStart.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+    currentWeekStart.setHours(0, 0, 0, 0);
+    
+    // Get Sunday of current week (end of week)
+    currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+    currentWeekEnd.setHours(23, 59, 59, 999);
+    
+    // Parse expiry date
+    const expiryDate = parseExpiryDate(expiryStr);
+    if (!expiryDate) return false;
+    
+    // Check if expiry is within this week
+    return expiryDate >= currentWeekStart && expiryDate <= currentWeekEnd;
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn(`Failed to check if expiry is in current week: ${expiryStr}`, error);
+    }
+    return false;
+  }
+}
+
+/**
+ * Parse expiry date from string (handles MM/DD/YYYY and ISO formats)
+ */
+function parseExpiryDate(expiryStr: string): Date | null {
+  try {
+    if (!expiryStr) return null;
+    
+    // Try MM/DD/YYYY format
+    const parts = expiryStr.split('/');
+    if (parts.length === 3) {
+      const month = parseInt(parts[0]) - 1; // 0-indexed
+      const day = parseInt(parts[1]);
+      const year = parseInt(parts[2]);
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+        return new Date(year, month, day);
+      }
+    }
+    
+    // Try ISO format YYYY-MM-DD
+    const isoMatch = expiryStr.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      const year = parseInt(isoMatch[1]);
+      const month = parseInt(isoMatch[2]) - 1; // 0-indexed
+      const day = parseInt(isoMatch[3]);
+      if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+        return new Date(year, month, day);
+      }
+    }
+    
+    // Try parsing as-is (fallback)
+    const parsed = new Date(expiryStr);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+    
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
 export function getExpiryDatesForTicker(data: OptionData[], ticker: string): string[] {
   const expiries = new Set<string>();
   
@@ -618,7 +693,21 @@ export function getExpiryDatesForTicker(data: OptionData[], ticker: string): str
     }
   });
   
-  return Array.from(expiries).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  // Sort: current week expiries first, then by date
+  return Array.from(expiries).sort((a, b) => {
+    const inCurrentWeekA = isExpiryInCurrentWeek(a);
+    const inCurrentWeekB = isExpiryInCurrentWeek(b);
+    
+    // Current week expiries come first
+    if (inCurrentWeekA && !inCurrentWeekB) return -1;
+    if (!inCurrentWeekA && inCurrentWeekB) return 1;
+    
+    // Within same category, sort by date
+    const dateA = parseExpiryDate(a);
+    const dateB = parseExpiryDate(b);
+    if (!dateA || !dateB) return 0;
+    return dateA.getTime() - dateB.getTime();
+  });
 }
 
 export function getHighestVolumeData(
