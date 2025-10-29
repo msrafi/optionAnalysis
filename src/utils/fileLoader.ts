@@ -41,11 +41,19 @@ export function parseTimestampFromFilename(filename: string): Date | null {
 /**
  * Get all CSV files from the data directory
  */
-export async function getDataFiles(): Promise<FileInfo[]> {
+export async function getDataFiles(bustCache: boolean = false): Promise<FileInfo[]> {
   try {
     // Try to load from the API file first (dynamically generated)
     const baseUrl = import.meta.env.BASE_URL;
-    const response = await fetch(`${baseUrl}api/data-files.json`);
+    const cacheBuster = bustCache ? `?t=${Date.now()}&r=${Math.random()}` : '';
+    const response = await fetch(`${baseUrl}api/data-files.json${cacheBuster}`, {
+      cache: bustCache ? 'no-store' : 'default',
+      headers: bustCache ? {
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      } : {}
+    });
     
     if (response.ok) {
       const apiData = await response.json();
@@ -129,15 +137,17 @@ export async function getDarkPoolDataFiles(): Promise<FileInfo[]> {
  */
 export async function loadCSVFile(filename: string, bustCache: boolean = false): Promise<LoadedFileData> {
   try {
-    // Add cache-busting query parameter to force fresh load
-    const cacheBuster = bustCache ? `?t=${Date.now()}` : '';
+    // Add aggressive cache-busting query parameter to force fresh load
+    // Use both timestamp and random number to ensure unique cache key
+    const cacheBuster = bustCache ? `?t=${Date.now()}&r=${Math.random()}` : '';
     const baseUrl = import.meta.env.BASE_URL;
     const response = await fetch(`${baseUrl}data/${filename}${cacheBuster}`, {
       cache: bustCache ? 'no-store' : 'default',
-      headers: {
-        'Cache-Control': bustCache ? 'no-cache, no-store, must-revalidate' : 'default',
-        'Pragma': bustCache ? 'no-cache' : 'default'
-      }
+      headers: bustCache ? {
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      } : {}
     });
     
     if (!response.ok) {
@@ -244,7 +254,7 @@ export function clearDarkPoolFileCache(): void {
  */
 export async function loadAllDataFiles(bustCache: boolean = false): Promise<LoadedFileData[]> {
   try {
-    const files = await getDataFiles();
+    const files = await getDataFiles(bustCache);
     const now = Date.now();
     
     // Get cache from session storage
@@ -252,9 +262,8 @@ export async function loadAllDataFiles(bustCache: boolean = false): Promise<Load
     
     // If busting cache, skip cache check and load all files fresh
     if (bustCache) {
-      if (import.meta.env.DEV) {
-        console.log('🔄 Cache busting enabled - loading all files fresh...');
-      }
+      console.log('🔄 Cache busting enabled - loading all files fresh...');
+      console.log(`📂 Found ${files.length} data files to load:`, files.map(f => f.filename).sort().reverse());
       const loadPromises = files.map(file => loadCSVFile(file.filename, true));
       const results = await Promise.all(loadPromises);
       
@@ -269,9 +278,12 @@ export async function loadAllDataFiles(bustCache: boolean = false): Promise<Load
       setSessionCache(FILE_CACHE_KEY, fileCache);
       
       const successful = results.filter(result => !result.error);
-      if (import.meta.env.DEV) {
-        console.log(`✓ Loaded ${successful.length} files fresh (cache bypassed)`);
+      const failed = results.filter(result => result.error);
+      console.log(`✓ Loaded ${successful.length} files fresh (cache bypassed)`);
+      if (failed.length > 0) {
+        console.warn(`⚠️ Failed to load ${failed.length} files:`, failed.map(f => ({ filename: f.filename, error: f.error })));
       }
+      console.log(`📄 Successfully loaded files:`, successful.map(f => f.filename).sort().reverse());
       return successful;
     }
     

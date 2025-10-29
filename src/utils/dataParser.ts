@@ -367,20 +367,22 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
     // Parse CSV line (handle quoted fields)
     const fields = parseCSVLine(line);
     
-    if (fields.length < 19) continue;
+    // CSV has 16 columns: [0]=separator, [1]=timestamp, [2]=sweepType, [3]=ticker, 
+    // [4]=strike, [5]=expiry, [6]=optionType, [7]=bidAskType, [8]=volume, 
+    // [9]=premium, [10]=openInterest, [11]=openInterest2, [12]=shortTime, [13]=fullTimestamp, [14-15]=empty
+    if (fields.length < 16) continue;
     
     try {
-      // Extract relevant fields based on the CSV structure
-      // Col 1: Avatar URL, Col 2: Username, Col 3: APP, Col 4: Short time, Col 5: Separator
-      const timestamp = fields[5] || ''; // Column 6 (index 5) - Full Timestamp
-      const sweepType = fields[6] || ''; // Column 7 (index 6) - Sweep Type (e.g., "Call Sweep")
-      const ticker = fields[7] || '';     // Column 8 (index 7) - Ticker
-      const strike = parseFloat(fields[8]) || 0;  // Column 9 (index 8) - Strike
-      const expiry = fields[9] || '';     // Column 10 (index 9) - Expiry
-      const optionType = fields[10] as 'Call' | 'Put'; // Column 11 (index 10) - Option Type
-      const volume = parseInt(fields[12]?.replace(/,/g, '') || '0'); // Column 13 (index 12) - Volume
-      const premium = fields[13] || '$0';  // Column 14 (index 13) - Premium
-      const openInterest = parseInt(fields[14]?.replace(/,/g, '') || '0'); // Column 15 (index 14) - OI
+      // Extract relevant fields based on the actual CSV structure
+      const timestamp = fields[1] || fields[13] || ''; // Column 2 (index 1) - Full Timestamp, fallback to [13]
+      const sweepType = fields[2] || ''; // Column 3 (index 2) - Sweep Type (e.g., "Call Sweep")
+      const ticker = fields[3] || '';     // Column 4 (index 3) - Ticker
+      const strike = parseFloat(fields[4]) || 0;  // Column 5 (index 4) - Strike
+      const expiry = fields[5] || '';     // Column 6 (index 5) - Expiry
+      const optionType = fields[6] as 'Call' | 'Put'; // Column 7 (index 6) - Option Type
+      const volume = parseInt(fields[8]?.replace(/,/g, '') || '0'); // Column 9 (index 8) - Volume
+      const premium = fields[9] || '$0';  // Column 10 (index 9) - Premium
+      const openInterest = parseInt(fields[10]?.replace(/,/g, '') || '0'); // Column 11 (index 10) - OI
       const bidAskSpread = 0; // Not available in current format
       
       // Filter out non-ticker entries (trade types, sweep types, etc.)
@@ -422,6 +424,17 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
   // Trim array to actual size
   data.length = dataIndex;
   
+  // Log parsing results for debugging
+  console.log(`📊 Parsed ${dataIndex} valid records from ${sourceFile || 'unknown file'} (from ${lines.length - 1} CSV rows)`);
+  if (dataIndex > 0 && dataIndex < 10) {
+    console.log(`   Sample records:`, data.slice(0, 3).map(d => ({
+      ticker: d.ticker,
+      strike: d.strike,
+      expiry: d.expiry,
+      timestamp: d.timestamp.substring(0, 30)
+    })));
+  }
+  
   // Cache the result
   parseCache.set(cacheKey, data);
   setSessionParseCache(PARSE_CACHE_KEY, parseCache);
@@ -431,12 +444,32 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
 
 
 export function getTickerSummaries(data: OptionData[]): TickerSummary[] {
-  // Create cache key based on data length and first few items
-  const cacheKey = `${data.length}_${data.slice(0, 3).map(d => `${d.ticker}_${d.timestamp}`).join('_')}`;
+  // Create cache key based on data length, first few items, and latest timestamp
+  // Include latest timestamp to ensure cache invalidation when new files are added
+  let latestTimestamp = 'empty';
+  if (data.length > 0) {
+    let latestDate: Date | null = null;
+    data.forEach(trade => {
+      const tradeDate = parseTimestampFromData(trade.timestamp);
+      if (tradeDate && (!latestDate || tradeDate > latestDate)) {
+        latestDate = tradeDate;
+        latestTimestamp = trade.timestamp;
+      }
+    });
+  }
+  
+  const cacheKey = `${data.length}_${data.slice(0, 3).map(d => `${d.ticker}_${d.timestamp}`).join('_')}_${latestTimestamp}`;
   const tickerSummaryCache = getSessionTickerSummaryCache(TICKER_SUMMARY_CACHE_KEY);
   const cached = tickerSummaryCache.get(cacheKey);
   if (cached) {
+    if (import.meta.env.DEV) {
+      console.log('Using cached ticker summaries');
+    }
     return cached;
+  }
+  
+  if (import.meta.env.DEV) {
+    console.log('Recalculating ticker summaries for', data.length, 'trades');
   }
 
   const tickerMap = new Map<string, TickerSummary & { expirySet: Set<string> }>();
@@ -695,11 +728,14 @@ export function mergeDataFromFiles(fileData: Array<{filename: string, data: stri
     const parsedData = parseCSVData(file.data, file.filename);
     
     // Deduplicate trades based on key fields
+    // Since files are sorted newest first, trades from newer files are processed first
     parsedData.forEach(trade => {
-      // Create unique key from trade characteristics
+      // Create unique key from trade characteristics and timestamp
+      // Use timestamp to distinguish same trade at different times
       const key = `${trade.ticker}_${trade.strike}_${trade.expiry}_${trade.optionType}_${trade.volume}_${trade.premium}_${trade.timestamp}`;
       
       // Only add if we haven't seen this exact trade before
+      // Since files are sorted newest first, newer trades will be added first
       if (!uniqueTrades.has(key)) {
         uniqueTrades.set(key, trade);
       }
@@ -721,8 +757,21 @@ export function mergeDataFromFiles(fileData: Array<{filename: string, data: stri
     }
   });
   
-  // Convert Map values to array
+  // Convert Map values to array and sort by timestamp (newest first)
   mergedData.push(...uniqueTrades.values());
+  mergedData.sort((a, b) => {
+    const dateA = parseTimestampFromData(a.timestamp);
+    const dateB = parseTimestampFromData(b.timestamp);
+    if (!dateA || !dateB) return 0;
+    return dateB.getTime() - dateA.getTime(); // Newest first
+  });
+  
+  // Sort fileInfo by timestamp (newest first) to ensure the first file is the most recent
+  fileInfo.sort((a, b) => {
+    const timestampA = a.timestamp instanceof Date ? a.timestamp : new Date(a.timestamp);
+    const timestampB = b.timestamp instanceof Date ? b.timestamp : new Date(b.timestamp);
+    return timestampB.getTime() - timestampA.getTime();
+  });
   
   const info: MergedDataInfo = {
     totalFiles: fileData.length,
@@ -1342,6 +1391,13 @@ export function mergeDarkPoolDataFromFiles(
   
   // Sort by timestamp (newest first)
   allData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  
+  // Sort fileInfo by timestamp (newest first) to ensure the first file is the most recent
+  fileInfo.sort((a, b) => {
+    const timestampA = a.timestamp instanceof Date ? a.timestamp : new Date(a.timestamp);
+    const timestampB = b.timestamp instanceof Date ? b.timestamp : new Date(b.timestamp);
+    return timestampB.getTime() - timestampA.getTime();
+  });
   
   return {
     mergedData: allData,

@@ -17,6 +17,7 @@ import {
 } from '../utils/dataParser';
 import { loadAllDataFiles, clearFileCache } from '../utils/fileLoader';
 import { getCurrentPrice, clearPriceCache } from '../utils/stockPrice';
+import { clearAllApplicationCaches } from '../utils/sessionStorageManager';
 
 // We'll load the CSV data via fetch instead of import
 
@@ -65,6 +66,9 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
         
         if (import.meta.env.DEV) {
           console.log(`Loaded ${info.totalFiles} files with ${info.totalRecords} total records`);
+          if (info.files && info.files.length > 0) {
+            console.log(`📅 Most recent file: ${info.files[0].filename} - timestamp: ${info.files[0].timestamp.toISOString()}`);
+          }
         }
       } catch (error) {
         console.error('Error loading data files:', error);
@@ -143,13 +147,32 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
     try {
       console.log('🔄 Performing hard refresh for options data...');
       
-      // Clear all options related caches
+      // Clear ALL application caches including service worker caches
+      await clearAllApplicationCaches();
+      
+      // Also clear individual caches for good measure
       clearDataCache();      // Clear options parsed data cache
       clearFileCache();      // Clear options file loading cache
       clearPriceCache();     // Clear stock price cache (shared)
       
-      console.log('✓ Options caches cleared (parsed data, file cache, and price cache)');
+      // Unregister service workers to ensure fresh data
+      if ('serviceWorker' in navigator) {
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          for (const registration of registrations) {
+            await registration.unregister();
+            console.log('✓ Service worker unregistered');
+          }
+        } catch (swError) {
+          console.warn('Could not unregister service worker:', swError);
+        }
+      }
+      
+      console.log('✓ All caches cleared (session storage, service worker, and application caches)');
       console.log('🔄 Reloading options data with cache bypass...');
+      
+      // Small delay to ensure caches are fully cleared
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       setLoading(true);
       setError(null);
@@ -172,6 +195,25 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
       
       setOptionData(mergedData);
       setDataInfo(info);
+      
+      // Log some sample trades to verify new data is loaded (always log for debugging)
+      const latestTrades = mergedData.slice(0, 10);
+      console.log('📊 Sample of latest trades after refresh:', latestTrades.map(t => ({
+        ticker: t.ticker,
+        timestamp: t.timestamp,
+        sourceFile: t.sourceFile
+      })));
+      console.log('📁 Files loaded:', loadedFiles.map(f => f.filename).sort().reverse());
+      console.log('📈 Data range:', {
+        earliest: info.dateRange.earliest?.toISOString(),
+        latest: info.dateRange.latest?.toISOString(),
+        totalFiles: info.totalFiles,
+        totalRecords: info.totalRecords
+      });
+      console.log('📋 File timestamps:', loadedFiles.map(f => ({
+        filename: f.filename,
+        timestamp: f.timestamp.toISOString()
+      })).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
       
       // Reset current price and reload it
       setCurrentPrice(null);
@@ -261,25 +303,32 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
               <span className="header-stat">{dataInfo.totalRecords.toLocaleString()} records</span>
               <span className="stat-separator">•</span>
               <span className="header-stat">
-                {dataInfo.files && dataInfo.files.length > 0
-                  ? dataInfo.files[0].timestamp.toLocaleString('en-GB', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: false
-                    })
-                  : dataInfo.dateRange.latest?.toLocaleString('en-GB', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: false
-                    }) || ''}
+                {dataInfo.files && dataInfo.files.length > 0 && dataInfo.files[0].timestamp
+                  ? (() => {
+                      const fileTimestamp = dataInfo.files[0].timestamp instanceof Date 
+                        ? dataInfo.files[0].timestamp 
+                        : new Date(dataInfo.files[0].timestamp);
+                      return fileTimestamp.toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      });
+                    })()
+                  : dataInfo.dateRange.latest instanceof Date
+                    ? dataInfo.dateRange.latest.toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      })
+                    : ''}
               </span>
             </div>
           )}

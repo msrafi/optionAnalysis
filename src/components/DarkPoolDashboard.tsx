@@ -255,25 +255,32 @@ const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, 
               <span className="header-stat">{dataInfo.totalRecords.toLocaleString()} records</span>
               <span className="stat-separator">•</span>
               <span className="header-stat">
-                {dataInfo.files && dataInfo.files.length > 0
-                  ? dataInfo.files[0].timestamp.toLocaleString('en-GB', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: false
-                    })
-                  : dataInfo.dateRange.latest?.toLocaleString('en-GB', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: false
-                    }) || ''}
+                {dataInfo.files && dataInfo.files.length > 0 && dataInfo.files[0].timestamp
+                  ? (() => {
+                      const fileTimestamp = dataInfo.files[0].timestamp instanceof Date 
+                        ? dataInfo.files[0].timestamp 
+                        : new Date(dataInfo.files[0].timestamp);
+                      return fileTimestamp.toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      });
+                    })()
+                  : dataInfo.dateRange.latest instanceof Date
+                    ? dataInfo.dateRange.latest.toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      })
+                    : ''}
               </span>
             </div>
           )}
