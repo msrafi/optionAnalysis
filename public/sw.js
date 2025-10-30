@@ -1,5 +1,5 @@
 // Service Worker for caching static assets
-const CACHE_NAME = 'option-analysis-v6';
+const CACHE_NAME = 'option-analysis-v7';
 const BASE_PATH = '/optionAnalysis';
 
 // Install event - cache static assets (non-blocking)
@@ -7,25 +7,16 @@ self.addEventListener('install', (event) => {
   // Skip waiting to activate new service worker immediately
   self.skipWaiting();
   
+  // Don't cache index.html during install - always fetch fresh
+  // This prevents serving stale HTML files
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Caching static assets');
-        // Only cache essential assets, don't block if some fail
-        return Promise.allSettled([
-          cache.add(`${BASE_PATH}/`),
-          cache.add(`${BASE_PATH}/index.html`)
-        ]).then(results => {
-          results.forEach((result, index) => {
-            if (result.status === 'rejected') {
-              console.warn(`Failed to cache asset ${index}:`, result.reason);
-            }
-          });
-        });
-      })
-      .catch((error) => {
-        console.error('Failed to cache static assets:', error);
-      })
+    caches.open(CACHE_NAME).then(() => {
+      console.log('Service worker cache initialized');
+      // Don't pre-cache index.html - always fetch it fresh from network
+      // This ensures users always get the latest version
+    }).catch((error) => {
+      console.error('Failed to initialize cache:', error);
+    })
   );
 });
 
@@ -46,14 +37,38 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For navigation requests, always try network first
+  // For navigation requests, always try network first (never cache HTML)
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
+        .then(response => {
+          // Don't cache HTML files - always fetch fresh
+          return response;
+        })
         .catch(() => {
-          // If network fails, try cache
+          // If network fails, try cache as last resort
           return caches.match(`${BASE_PATH}/index.html`);
         })
+    );
+    return;
+  }
+
+  // Don't cache HTML files - always fetch fresh
+  if (event.request.url.endsWith('.html') || event.request.url.endsWith('/')) {
+    event.respondWith(
+      fetch(event.request, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      })
     );
     return;
   }
