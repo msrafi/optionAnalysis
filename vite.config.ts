@@ -47,6 +47,17 @@ export default defineConfig({
           )
           
           console.log('✅ API files copied to dist/api/')
+          
+          // Copy .nojekyll file to dist root for GitHub Pages
+          const nojekyllSource = join(__dirname, 'public', '.nojekyll')
+          const nojekyllDest = join(__dirname, 'dist', '.nojekyll')
+          try {
+            copyFileSync(nojekyllSource, nojekyllDest)
+            console.log('✅ .nojekyll file copied to dist/')
+          } catch (nojekyllError) {
+            // .nojekyll might not exist, which is okay - Vite should copy it from public
+            console.warn('⚠️  .nojekyll file not found in public/, but Vite may copy it automatically')
+          }
         } catch (error) {
           console.error('❌ Error copying files:', error)
         }
@@ -68,10 +79,10 @@ export default defineConfig({
           vendor: ['react', 'react-dom'],
           utils: ['lucide-react']
         },
-        // Add timestamp to force cache busting
-        entryFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
-        chunkFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
-        assetFileNames: `assets/[name]-[hash]-${Date.now()}.[ext]`
+        // Use hash for cache busting (Vite's hash changes when content changes)
+        entryFileNames: `assets/[name]-[hash].js`,
+        chunkFileNames: `assets/[name]-[hash].js`,
+        assetFileNames: `assets/[name]-[hash].[ext]`
       }
     },
     // Enable source maps for debugging
