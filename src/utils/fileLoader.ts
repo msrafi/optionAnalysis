@@ -254,7 +254,9 @@ export function clearDarkPoolFileCache(): void {
  */
 export async function loadAllDataFiles(bustCache: boolean = false): Promise<LoadedFileData[]> {
   try {
-    const files = await getDataFiles(bustCache);
+    // Always fetch data-files.json fresh to detect new files
+    // This ensures we know about newly added files even without manual refresh
+    const files = await getDataFiles(true); // Always fetch fresh file list
     const now = Date.now();
     
     // Get cache from session storage
@@ -287,7 +289,58 @@ export async function loadAllDataFiles(bustCache: boolean = false): Promise<Load
       return successful;
     }
     
-    // Normal caching behavior
+    // Check if there are new files that aren't in cache
+    const cachedFilenames = new Set(Array.from(fileCache.keys()));
+    const currentFilenames = new Set(files.map(f => f.filename));
+    
+    // Check for new files (files in current list but not in cache)
+    const newFiles = files.filter(file => !cachedFilenames.has(file.filename));
+    
+    // Check for missing files (files in cache but not in current list - cleanup)
+    const missingFiles = Array.from(cachedFilenames).filter(filename => !currentFilenames.has(filename));
+    
+    // If there are new files, automatically clear cache and reload everything
+    if (newFiles.length > 0) {
+      console.log(`🆕 Detected ${newFiles.length} new file(s):`, newFiles.map(f => f.filename));
+      console.log('🔄 Automatically clearing cache and reloading all files...');
+      
+      // Clear the cache
+      fileCache.clear();
+      setSessionCache(FILE_CACHE_KEY, fileCache);
+      
+      // Load all files fresh with cache busting
+      const loadPromises = files.map(file => loadCSVFile(file.filename, true));
+      const results = await Promise.all(loadPromises);
+      
+      // Update cache with fresh data
+      results.forEach(result => {
+        if (!result.error) {
+          fileCache.set(result.filename, { data: result, timestamp: now });
+        }
+      });
+      
+      // Save updated cache to session storage
+      setSessionCache(FILE_CACHE_KEY, fileCache);
+      
+      const successful = results.filter(result => !result.error);
+      const failed = results.filter(result => result.error);
+      console.log(`✓ Loaded ${successful.length} files fresh (${newFiles.length} new file(s) detected)`);
+      if (failed.length > 0) {
+        console.warn(`⚠️ Failed to load ${failed.length} files:`, failed.map(f => ({ filename: f.filename, error: f.error })));
+      }
+      return successful;
+    }
+    
+    // If files were removed, clean up cache
+    if (missingFiles.length > 0) {
+      if (import.meta.env.DEV) {
+        console.log(`🗑️ Removing ${missingFiles.length} file(s) from cache (no longer in file list)`);
+      }
+      missingFiles.forEach(filename => fileCache.delete(filename));
+      setSessionCache(FILE_CACHE_KEY, fileCache);
+    }
+    
+    // Normal caching behavior - use cached files if available and not expired
     const cachedResults: LoadedFileData[] = [];
     const filesToLoad: string[] = [];
     
@@ -300,10 +353,10 @@ export async function loadAllDataFiles(bustCache: boolean = false): Promise<Load
       }
     });
     
-    // Load only uncached files
+    // Load only uncached or expired files with cache busting
     let newResults: LoadedFileData[] = [];
     if (filesToLoad.length > 0) {
-      const loadPromises = filesToLoad.map(filename => loadCSVFile(filename, false));
+      const loadPromises = filesToLoad.map(filename => loadCSVFile(filename, true)); // Use cache busting for stale files
       newResults = await Promise.all(loadPromises);
       
       // Update cache
@@ -328,7 +381,7 @@ export async function loadAllDataFiles(bustCache: boolean = false): Promise<Load
     }
     
     if (import.meta.env.DEV) {
-      console.log(`Successfully loaded ${successful.length} data files (${cachedResults.length} cached, ${newResults.filter(r => !r.error).length} new)`);
+      console.log(`Successfully loaded ${successful.length} data files (${cachedResults.length} cached, ${newResults.filter(r => !r.error).length} new/updated)`);
     }
     return successful;
   } catch (error) {
