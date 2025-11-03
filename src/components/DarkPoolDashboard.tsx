@@ -66,7 +66,8 @@ const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, 
       }
     };
 
-    loadAllData(false); // Normal load on mount
+    // Always use cache busting on initial load to ensure we get latest data
+    loadAllData(true); // Cache busting enabled on mount to detect new files
   }, []);
 
   const tickerSummaries = useMemo(() => {

@@ -77,7 +77,8 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
       }
     };
 
-    loadAllData(false); // Normal load on mount
+    // Always use cache busting on initial load to ensure we get latest data
+    loadAllData(true); // Cache busting enabled on mount to detect new files
   }, []);
 
   const tickerSummaries = useMemo(() => {

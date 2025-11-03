@@ -41,18 +41,19 @@ export function parseTimestampFromFilename(filename: string): Date | null {
 /**
  * Get all CSV files from the data directory
  */
-export async function getDataFiles(bustCache: boolean = false): Promise<FileInfo[]> {
+export async function getDataFiles(_bustCache: boolean = false): Promise<FileInfo[]> {
   try {
     // Try to load from the API file first (dynamically generated)
+    // Always use cache busting to ensure we get the latest file list
     const baseUrl = import.meta.env.BASE_URL;
-    const cacheBuster = bustCache ? `?t=${Date.now()}&r=${Math.random()}` : '';
+    const cacheBuster = `?t=${Date.now()}&r=${Math.random()}`;
     const response = await fetch(`${baseUrl}api/data-files.json${cacheBuster}`, {
-      cache: bustCache ? 'no-store' : 'default',
-      headers: bustCache ? {
+      cache: 'no-store',
+      headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
         'Pragma': 'no-cache',
         'Expires': '0'
-      } : {}
+      }
     });
     
     if (response.ok) {
@@ -76,11 +77,24 @@ export async function getDataFiles(bustCache: boolean = false): Promise<FileInfo
 
   // Fallback to hardcoded list if API fails
   const knownFiles = [
+    'options_data_2025-10-15_TSLA.csv',
+    'options_data_2025-10-31_16-00.csv',
+    'options_data_2025-10-30_14-30.csv',
+    'options_data_2025-10-29_16-00.csv',
+    'options_data_2025-10-28_16-00.csv',
+    'options_data_2025-10-28_15-00.csv',
+    'options_data_2025-10-27_16-00.csv',
+    'options_data_2025-10-24_16-00.csv',
+    'options_data_2025-10-23_16-00.csv',
+    'options_data_2025-10-23_14-00.csv',
+    'options_data_2025-10-22_16-00.csv',
+    'options_data_2025-10-22_14-00.csv',
+    'options_data_2025-10-22_10-00.csv',
     'options_data_2025-10-21_16-51.csv',
+    'options_data_2025-10-21_16-00.csv',
     'options_data_2025-10-21_15-00.csv',
     'options_data_2025-10-20_16-00.csv',
     'options_data_2025-10-17_15-45.csv',
-    'options_data_2025-10-15_TSLA.csv',
     'options_data_2025-10-16_16-00.csv',
     'options_data_2025-10-16_15-00.csv',
     'options_data_2025-10-16_12-00.csv',

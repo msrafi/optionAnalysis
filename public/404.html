@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Option Analysis Dashboard</title>
+    <script>
+      // GitHub Pages SPA routing fix
+      // Redirect 404s to index.html for client-side routing
+      var path = window.location.pathname;
+      var basePath = '/optionAnalysis';
+      
+      // If we're at the root, just redirect to index.html
+      if (path === basePath + '/' || path === basePath) {
+        window.location.replace(basePath + '/index.html');
+      } else {
+        // For any other path, redirect to index.html with the path as a hash
+        // This allows React Router to handle the routing
+        window.location.replace(basePath + '/index.html' + window.location.search + window.location.hash);
+      }
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <h1>Option Analysis Dashboard</h1>
+      <p>JavaScript is required to run this application.</p>
+      <p>If you're seeing this message, please enable JavaScript and reload the page.</p>
+    </noscript>
+    <div id="root"></div>
+  </body>
+</html>
+
