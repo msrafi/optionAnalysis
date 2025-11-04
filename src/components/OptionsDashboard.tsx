@@ -15,7 +15,7 @@ import {
   OptionData,
   MergedDataInfo
 } from '../utils/dataParser';
-import { loadAllDataFiles, clearFileCache } from '../utils/fileLoader';
+import { loadAllDataFiles, clearFileCache, loadCombinedFileMetadata } from '../utils/fileLoader';
 import { getCurrentPrice, clearPriceCache } from '../utils/stockPrice';
 import { clearAllApplicationCaches } from '../utils/sessionStorageManager';
 
@@ -37,8 +37,28 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
   const [priceSource, setPriceSource] = useState<'api' | 'none'>('none');
   const [isPriceCached, setIsPriceCached] = useState(false);
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [metadata, setMetadata] = useState<{
+    generatedAt: string;
+    sourceFiles: {
+      count: number;
+      latest: string;
+      latestModified: string;
+    };
+    combinedFile: {
+      records: {
+        uniqueAfterDedup: number;
+      };
+    };
+  } | null>(null);
 
+  // Use ref to prevent double loading in React StrictMode
+  const loadingRef = React.useRef(false);
+  
   useEffect(() => {
+    // Prevent double execution in React StrictMode
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    
     const loadAllData = async (bustCache: boolean = false) => {
       try {
         setLoading(true);
@@ -48,10 +68,10 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
         const loadedFiles = await loadAllDataFiles(bustCache);
         
         if (loadedFiles.length === 0) {
-          throw new Error('No data files found in the data directory');
+          throw new Error('Combined data file not found');
         }
         
-        // Merge data from all files
+        // Parse data from the combined file (mergeDataFromFiles still works for single file)
         const { mergedData, info } = mergeDataFromFiles(
           loadedFiles.map(file => ({
             filename: file.filename,
@@ -62,23 +82,40 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
         
         setOptionData(mergedData);
         setDataInfo(info);
+        
+        // Load metadata to show when data was last updated
+        const fileMetadata = await loadCombinedFileMetadata();
+        if (fileMetadata) {
+          setMetadata(fileMetadata);
+          if (import.meta.env.DEV) {
+            console.log(`📅 Data generated: ${new Date(fileMetadata.generatedAt).toLocaleString()}`);
+            console.log(`📁 Latest source file: ${fileMetadata.sourceFiles.latest}`);
+          }
+        }
+        
         setLoading(false);
         
         if (import.meta.env.DEV) {
-          console.log(`Loaded ${info.totalFiles} files with ${info.totalRecords} total records`);
+          console.log(`Loaded combined data file with ${info.totalRecords} total records`);
           if (info.files && info.files.length > 0) {
-            console.log(`📅 Most recent file: ${info.files[0].filename} - timestamp: ${info.files[0].timestamp.toISOString()}`);
+            console.log(`📅 Data file: ${info.files[0].filename}`);
           }
         }
       } catch (error) {
         console.error('Error loading data files:', error);
         setError(error instanceof Error ? error.message : 'Failed to load data');
         setLoading(false);
+        loadingRef.current = false; // Reset on error so retry works
       }
     };
 
     // Always use cache busting on initial load to ensure we get latest data
     loadAllData(true); // Cache busting enabled on mount to detect new files
+    
+    // Cleanup function
+    return () => {
+      // Don't reset ref here - we want to prevent double loads
+    };
   }, []);
 
   const tickerSummaries = useMemo(() => {
@@ -178,14 +215,14 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
       setLoading(true);
       setError(null);
       
-      // Load all CSV files with cache busting enabled
+      // Load combined data file with cache busting enabled
       const loadedFiles = await loadAllDataFiles(true);
       
       if (loadedFiles.length === 0) {
-        throw new Error('No data files found in the data directory');
+        throw new Error('Combined data file not found');
       }
       
-      // Merge data from all files
+      // Parse data from the combined file
       const { mergedData, info } = mergeDataFromFiles(
         loadedFiles.map(file => ({
           filename: file.filename,
@@ -204,17 +241,12 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
         timestamp: t.timestamp,
         sourceFile: t.sourceFile
       })));
-      console.log('📁 Files loaded:', loadedFiles.map(f => f.filename).sort().reverse());
-      console.log('📈 Data range:', {
+      console.log('📁 Combined file loaded:', loadedFiles[0].filename);
+      console.log('📈 Data summary:', {
         earliest: info.dateRange.earliest?.toISOString(),
         latest: info.dateRange.latest?.toISOString(),
-        totalFiles: info.totalFiles,
         totalRecords: info.totalRecords
       });
-      console.log('📋 File timestamps:', loadedFiles.map(f => ({
-        filename: f.filename,
-        timestamp: f.timestamp.toISOString()
-      })).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
       
       // Reset current price and reload it
       setCurrentPrice(null);
@@ -232,7 +264,6 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
       setLoading(false);
       
       console.log('✓ Data reloaded successfully:', {
-        files: info.totalFiles,
         records: info.totalRecords,
         latestData: info.dateRange.latest
       });
@@ -270,7 +301,7 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
     return (
       <div className="dashboard-loading">
         <div className="loading-spinner"></div>
-        <p>Loading options data from multiple files...</p>
+        <p>Loading options data...</p>
       </div>
     );
   }
@@ -299,38 +330,22 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
           <h1>Market Analysis Dashboard</h1>
           {dataInfo && (
             <div className="header-stats">
-              <span className="header-stat">{dataInfo.totalFiles} files</span>
-              <span className="stat-separator">•</span>
               <span className="header-stat">{dataInfo.totalRecords.toLocaleString()} records</span>
-              <span className="stat-separator">•</span>
-              <span className="header-stat">
-                {dataInfo.files && dataInfo.files.length > 0 && dataInfo.files[0].timestamp
-                  ? (() => {
-                      const fileTimestamp = dataInfo.files[0].timestamp instanceof Date 
-                        ? dataInfo.files[0].timestamp 
-                        : new Date(dataInfo.files[0].timestamp);
-                      return fileTimestamp.toLocaleString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false
-                      });
-                    })()
-                  : dataInfo.dateRange.latest instanceof Date
-                    ? dataInfo.dateRange.latest.toLocaleString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false
-                      })
-                    : ''}
-              </span>
+              {metadata && (
+                <>
+                  <span className="stat-separator">•</span>
+                  <span className="header-stat" title={`Latest source: ${metadata.sourceFiles.latest}`}>
+                    Updated: {new Date(metadata.generatedAt).toLocaleString('en-GB', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false
+                    })}
+                  </span>
+                </>
+              )}
             </div>
           )}
         </div>

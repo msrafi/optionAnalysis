@@ -151,9 +151,9 @@ export async function getDarkPoolDataFiles(): Promise<FileInfo[]> {
  */
 export async function loadCSVFile(filename: string, bustCache: boolean = false): Promise<LoadedFileData> {
   try {
-    // Add aggressive cache-busting query parameter to force fresh load
-    // Use both timestamp and random number to ensure unique cache key
-    const cacheBuster = bustCache ? `?t=${Date.now()}&r=${Math.random()}` : '';
+    // Add cache-busting query parameter when needed
+    // Use timestamp only (not random) to allow browser to deduplicate simultaneous requests
+    const cacheBuster = bustCache ? `?t=${Date.now()}` : '';
     const baseUrl = import.meta.env.BASE_URL;
     const response = await fetch(`${baseUrl}data/${filename}${cacheBuster}`, {
       cache: bustCache ? 'no-store' : 'default',
@@ -264,142 +264,95 @@ export function clearDarkPoolFileCache(): void {
 }
 
 /**
- * Load all CSV files from the data directory with caching
+ * Load metadata for the combined file
+ */
+export async function loadCombinedFileMetadata(): Promise<{
+  generatedAt: string;
+  sourceFiles: {
+    count: number;
+    latest: string;
+    latestModified: string;
+  };
+  combinedFile: {
+    records: {
+      uniqueAfterDedup: number;
+    };
+  };
+} | null> {
+  try {
+    const baseUrl = import.meta.env.BASE_URL;
+    // Use a single timestamp per load session to allow browser deduplication
+    const cacheBuster = `?t=${Math.floor(Date.now() / 1000)}`; // Round to second for better deduplication
+    const response = await fetch(`${baseUrl}data/options_data_combined.metadata.json${cacheBuster}`, {
+      cache: 'no-store'
+    });
+    
+    if (!response.ok) {
+      return null;
+    }
+    
+    return await response.json();
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('Failed to load metadata:', error);
+    }
+    return null;
+  }
+}
+
+/**
+ * Load the combined CSV file with caching
+ * Now loads a single pre-combined file instead of multiple files
  */
 export async function loadAllDataFiles(bustCache: boolean = false): Promise<LoadedFileData[]> {
   try {
-    // Always fetch data-files.json fresh to detect new files
-    // This ensures we know about newly added files even without manual refresh
-    const files = await getDataFiles(true); // Always fetch fresh file list
+    const COMBINED_FILENAME = 'options_data_combined.csv';
     const now = Date.now();
     
     // Get cache from session storage
     const fileCache = getSessionCache(FILE_CACHE_KEY);
     
-    // If busting cache, skip cache check and load all files fresh
-    if (bustCache) {
-      console.log('🔄 Cache busting enabled - loading all files fresh...');
-      console.log(`📂 Found ${files.length} data files to load:`, files.map(f => f.filename).sort().reverse());
-      const loadPromises = files.map(file => loadCSVFile(file.filename, true));
-      const results = await Promise.all(loadPromises);
-      
-      // Update cache with fresh data
-      results.forEach(result => {
-        if (!result.error) {
-          fileCache.set(result.filename, { data: result, timestamp: now });
-        }
-      });
-      
-      // Save updated cache to session storage
-      setSessionCache(FILE_CACHE_KEY, fileCache);
-      
-      const successful = results.filter(result => !result.error);
-      const failed = results.filter(result => result.error);
-      console.log(`✓ Loaded ${successful.length} files fresh (cache bypassed)`);
-      if (failed.length > 0) {
-        console.warn(`⚠️ Failed to load ${failed.length} files:`, failed.map(f => ({ filename: f.filename, error: f.error })));
-      }
-      console.log(`📄 Successfully loaded files:`, successful.map(f => f.filename).sort().reverse());
-      return successful;
-    }
-    
-    // Check if there are new files that aren't in cache
-    const cachedFilenames = new Set(Array.from(fileCache.keys()));
-    const currentFilenames = new Set(files.map(f => f.filename));
-    
-    // Check for new files (files in current list but not in cache)
-    const newFiles = files.filter(file => !cachedFilenames.has(file.filename));
-    
-    // Check for missing files (files in cache but not in current list - cleanup)
-    const missingFiles = Array.from(cachedFilenames).filter(filename => !currentFilenames.has(filename));
-    
-    // If there are new files, automatically clear cache and reload everything
-    if (newFiles.length > 0) {
-      console.log(`🆕 Detected ${newFiles.length} new file(s):`, newFiles.map(f => f.filename));
-      console.log('🔄 Automatically clearing cache and reloading all files...');
-      
-      // Clear the cache
-      fileCache.clear();
-      setSessionCache(FILE_CACHE_KEY, fileCache);
-      
-      // Load all files fresh with cache busting
-      const loadPromises = files.map(file => loadCSVFile(file.filename, true));
-      const results = await Promise.all(loadPromises);
-      
-      // Update cache with fresh data
-      results.forEach(result => {
-        if (!result.error) {
-          fileCache.set(result.filename, { data: result, timestamp: now });
-        }
-      });
-      
-      // Save updated cache to session storage
-      setSessionCache(FILE_CACHE_KEY, fileCache);
-      
-      const successful = results.filter(result => !result.error);
-      const failed = results.filter(result => result.error);
-      console.log(`✓ Loaded ${successful.length} files fresh (${newFiles.length} new file(s) detected)`);
-      if (failed.length > 0) {
-        console.warn(`⚠️ Failed to load ${failed.length} files:`, failed.map(f => ({ filename: f.filename, error: f.error })));
-      }
-      return successful;
-    }
-    
-    // If files were removed, clean up cache
-    if (missingFiles.length > 0) {
-      if (import.meta.env.DEV) {
-        console.log(`🗑️ Removing ${missingFiles.length} file(s) from cache (no longer in file list)`);
-      }
-      missingFiles.forEach(filename => fileCache.delete(filename));
-      setSessionCache(FILE_CACHE_KEY, fileCache);
-    }
-    
-    // Normal caching behavior - use cached files if available and not expired
-    const cachedResults: LoadedFileData[] = [];
-    const filesToLoad: string[] = [];
-    
-    files.forEach(file => {
-      const cached = fileCache.get(file.filename);
+    // Check cache first (unless busting)
+    if (!bustCache) {
+      const cached = fileCache.get(COMBINED_FILENAME);
       if (cached && (now - cached.timestamp) < CACHE_DURATION) {
-        cachedResults.push(cached.data);
-      } else {
-        filesToLoad.push(file.filename);
-      }
-    });
-    
-    // Load only uncached or expired files with cache busting
-    let newResults: LoadedFileData[] = [];
-    if (filesToLoad.length > 0) {
-      const loadPromises = filesToLoad.map(filename => loadCSVFile(filename, true)); // Use cache busting for stale files
-      newResults = await Promise.all(loadPromises);
-      
-      // Update cache
-      newResults.forEach(result => {
-        if (!result.error) {
-          fileCache.set(result.filename, { data: result, timestamp: now });
+        if (import.meta.env.DEV) {
+          console.log('✓ Using cached combined data file');
         }
-      });
-      
-      // Save updated cache to session storage
-      setSessionCache(FILE_CACHE_KEY, fileCache);
+        return [cached.data];
+      }
     }
     
-    const allResults = [...cachedResults, ...newResults];
-    
-    // Filter out files with errors and log them
-    const successful = allResults.filter(result => !result.error);
-    const failed = allResults.filter(result => result.error);
-    
-    if (import.meta.env.DEV && failed.length > 0) {
-      console.warn('Failed to load some data files:', failed);
+    // Load the combined file
+    if (import.meta.env.DEV) {
+      console.log('📂 Loading combined data file...');
     }
+    
+    const result = await loadCSVFile(COMBINED_FILENAME, bustCache);
+    
+    if (result.error) {
+      console.error(`Failed to load combined file: ${result.error}`);
+      return [];
+    }
+    
+    // For combined file, use current date as timestamp (since filename doesn't have timestamp)
+    // The actual data timestamps are preserved in the CSV data
+    const combinedResult: LoadedFileData = {
+      ...result,
+      timestamp: new Date() // Use current date for combined file
+    };
+    
+    // Update cache
+    fileCache.set(COMBINED_FILENAME, { data: combinedResult, timestamp: now });
+    setSessionCache(FILE_CACHE_KEY, fileCache);
     
     if (import.meta.env.DEV) {
-      console.log(`Successfully loaded ${successful.length} data files (${cachedResults.length} cached, ${newResults.filter(r => !r.error).length} new/updated)`);
+      console.log(`✓ Loaded combined data file (${(result.data.length / 1024).toFixed(2)} KB)`);
     }
-    return successful;
+    
+    return [combinedResult];
   } catch (error) {
-    console.error('Failed to load data files:', error);
+    console.error('Failed to load combined data file:', error);
     return [];
   }
 }

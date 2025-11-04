@@ -1,0 +1,557 @@
+{
+  "generatedAt": "2025-11-04T02:22:21.209Z",
+  "generatedBy": "combineDataFiles.js",
+  "sourceFiles": {
+    "count": 41,
+    "latest": "options_data_2025-11-03_16-00.csv",
+    "latestModified": "2025-11-04T01:36:30.402Z",
+    "files": [
+      {
+        "filename": "options_data_2025-11-03_16-00.csv",
+        "modifiedTime": "2025-11-04T01:36:30.402Z",
+        "parsedTimestamp": "2025-11-03T21:00:00.000Z",
+        "size": 63142
+      },
+      {
+        "filename": "options_data_2025-10-31_16-00.csv",
+        "modifiedTime": "2025-10-31T20:45:30.656Z",
+        "parsedTimestamp": "2025-10-31T20:00:00.000Z",
+        "size": 69224
+      },
+      {
+        "filename": "options_data_2025-10-30_14-30.csv",
+        "modifiedTime": "2025-10-30T18:31:03.517Z",
+        "parsedTimestamp": "2025-10-30T18:30:00.000Z",
+        "size": 40302
+      },
+      {
+        "filename": "options_data_2025-10-29_16-00.csv",
+        "modifiedTime": "2025-10-29T21:22:48.049Z",
+        "parsedTimestamp": "2025-10-29T20:00:00.000Z",
+        "size": 84567
+      },
+      {
+        "filename": "options_data_2025-10-28_16-00.csv",
+        "modifiedTime": "2025-10-29T13:19:41.688Z",
+        "parsedTimestamp": "2025-10-28T20:00:00.000Z",
+        "size": 23977
+      },
+      {
+        "filename": "options_data_2025-10-28_15-00.csv",
+        "modifiedTime": "2025-10-28T19:13:07.360Z",
+        "parsedTimestamp": "2025-10-28T19:00:00.000Z",
+        "size": 81351
+      },
+      {
+        "filename": "options_data_2025-10-27_16-00.csv",
+        "modifiedTime": "2025-10-27T21:26:04.327Z",
+        "parsedTimestamp": "2025-10-27T20:00:00.000Z",
+        "size": 72048
+      },
+      {
+        "filename": "options_data_2025-10-24_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.612Z",
+        "parsedTimestamp": "2025-10-24T20:00:00.000Z",
+        "size": 52860
+      },
+      {
+        "filename": "options_data_2025-10-23_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.610Z",
+        "parsedTimestamp": "2025-10-23T20:00:00.000Z",
+        "size": 25329
+      },
+      {
+        "filename": "options_data_2025-10-23_14-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.608Z",
+        "parsedTimestamp": "2025-10-23T18:00:00.000Z",
+        "size": 50251
+      },
+      {
+        "filename": "options_data_2025-10-22_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.606Z",
+        "parsedTimestamp": "2025-10-22T20:00:00.000Z",
+        "size": 25825
+      },
+      {
+        "filename": "options_data_2025-10-22_14-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.604Z",
+        "parsedTimestamp": "2025-10-22T18:00:00.000Z",
+        "size": 29416
+      },
+      {
+        "filename": "options_data_2025-10-22_10-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.602Z",
+        "parsedTimestamp": "2025-10-22T14:00:00.000Z",
+        "size": 25455
+      },
+      {
+        "filename": "options_data_2025-10-21_16-51.csv",
+        "modifiedTime": "2025-10-24T21:34:31.600Z",
+        "parsedTimestamp": "2025-10-21T20:51:00.000Z",
+        "size": 36293
+      },
+      {
+        "filename": "options_data_2025-10-21_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.598Z",
+        "parsedTimestamp": "2025-10-21T20:00:00.000Z",
+        "size": 36293
+      },
+      {
+        "filename": "options_data_2025-10-21_15-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.596Z",
+        "parsedTimestamp": "2025-10-21T19:00:00.000Z",
+        "size": 35937
+      },
+      {
+        "filename": "options_data_2025-10-20_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.594Z",
+        "parsedTimestamp": "2025-10-20T20:00:00.000Z",
+        "size": 48330
+      },
+      {
+        "filename": "options_data_2025-10-17_15-45.csv",
+        "modifiedTime": "2025-10-24T21:34:31.591Z",
+        "parsedTimestamp": "2025-10-17T19:45:00.000Z",
+        "size": 36919
+      },
+      {
+        "filename": "options_data_2025-10-16_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.588Z",
+        "parsedTimestamp": "2025-10-16T20:00:00.000Z",
+        "size": 29341
+      },
+      {
+        "filename": "options_data_2025-10-16_15-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.585Z",
+        "parsedTimestamp": "2025-10-16T19:00:00.000Z",
+        "size": 24386
+      },
+      {
+        "filename": "options_data_2025-10-16_12-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.580Z",
+        "parsedTimestamp": "2025-10-16T16:00:00.000Z",
+        "size": 45107
+      },
+      {
+        "filename": "options_data_2025-10-16_10-30.csv",
+        "modifiedTime": "2025-10-24T21:34:31.578Z",
+        "parsedTimestamp": "2025-10-16T14:30:00.000Z",
+        "size": 30393
+      },
+      {
+        "filename": "options_data_2025-10-15_TSLA.csv",
+        "modifiedTime": "2025-10-24T21:34:31.576Z",
+        "parsedTimestamp": null,
+        "size": 33921
+      },
+      {
+        "filename": "options_data_2025-10-15_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.567Z",
+        "parsedTimestamp": "2025-10-15T20:00:00.000Z",
+        "size": 37161
+      },
+      {
+        "filename": "options_data_2025-10-15_14-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.563Z",
+        "parsedTimestamp": "2025-10-15T18:00:00.000Z",
+        "size": 29767
+      },
+      {
+        "filename": "options_data_2025-10-15_11-30.csv",
+        "modifiedTime": "2025-10-24T21:34:31.560Z",
+        "parsedTimestamp": "2025-10-15T15:30:00.000Z",
+        "size": 56322
+      },
+      {
+        "filename": "options_data_2025-10-15_10-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.557Z",
+        "parsedTimestamp": "2025-10-15T14:00:00.000Z",
+        "size": 41041
+      },
+      {
+        "filename": "options_data_2025-10-14_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.543Z",
+        "parsedTimestamp": "2025-10-14T20:00:00.000Z",
+        "size": 28607
+      },
+      {
+        "filename": "options_data_2025-10-14_15-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.538Z",
+        "parsedTimestamp": "2025-10-14T19:00:00.000Z",
+        "size": 28730
+      },
+      {
+        "filename": "options_data_2025-10-14_11-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.533Z",
+        "parsedTimestamp": "2025-10-14T15:00:00.000Z",
+        "size": 35740
+      },
+      {
+        "filename": "options_data_2025-10-14_01-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.524Z",
+        "parsedTimestamp": "2025-10-14T05:00:00.000Z",
+        "size": 41080
+      },
+      {
+        "filename": "options_data_2025-10-13_13-20.csv",
+        "modifiedTime": "2025-10-24T21:34:31.497Z",
+        "parsedTimestamp": "2025-10-13T17:20:00.000Z",
+        "size": 29360
+      },
+      {
+        "filename": "options_data_2025-10-13_13-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.494Z",
+        "parsedTimestamp": "2025-10-13T17:00:00.000Z",
+        "size": 28025
+      },
+      {
+        "filename": "options_data_2025-10-13_10-50.csv",
+        "modifiedTime": "2025-10-24T21:34:31.492Z",
+        "parsedTimestamp": "2025-10-13T14:50:00.000Z",
+        "size": 27701
+      },
+      {
+        "filename": "options_data_2025-10-13_10-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.481Z",
+        "parsedTimestamp": "2025-10-13T14:00:00.000Z",
+        "size": 27321
+      },
+      {
+        "filename": "options_data_2025-10-13_05-30.csv",
+        "modifiedTime": "2025-10-24T21:34:31.479Z",
+        "parsedTimestamp": "2025-10-13T09:30:00.000Z",
+        "size": 35920
+      },
+      {
+        "filename": "options_data_2024-01-15_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.478Z",
+        "parsedTimestamp": "2024-01-15T21:00:00.000Z",
+        "size": 29261
+      },
+      {
+        "filename": "options_data_2024-01-15_11-30.csv",
+        "modifiedTime": "2025-10-24T21:34:31.475Z",
+        "parsedTimestamp": "2024-01-15T16:30:00.000Z",
+        "size": 148896
+      },
+      {
+        "filename": "options_data_2024-01-15_11-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.445Z",
+        "parsedTimestamp": "2024-01-15T16:00:00.000Z",
+        "size": 16899
+      },
+      {
+        "filename": "options_data_2024-01-15_10-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.430Z",
+        "parsedTimestamp": "2024-01-15T15:00:00.000Z",
+        "size": 60346
+      },
+      {
+        "filename": "options_data_2024-01-15_02-30.csv",
+        "modifiedTime": "2025-10-24T21:34:31.416Z",
+        "parsedTimestamp": "2024-01-15T07:30:00.000Z",
+        "size": 50407
+      }
+    ]
+  },
+  "combinedFile": {
+    "filename": "options_data_combined.csv",
+    "size": 286040,
+    "records": {
+      "totalBeforeFiltering": 4075,
+      "expiredRemoved": 0,
+      "uniqueAfterDedup": 2240,
+      "duplicatesRemoved": 1835
+    },
+    "fileStats": [
+      {
+        "filename": "options_data_2024-01-15_02-30.csv",
+        "records": 143,
+        "duplicates": 8,
+        "expired": 0,
+        "unique": 135
+      },
+      {
+        "filename": "options_data_2024-01-15_10-00.csv",
+        "records": 185,
+        "duplicates": 13,
+        "expired": 0,
+        "unique": 172
+      },
+      {
+        "filename": "options_data_2024-01-15_11-00.csv",
+        "records": 0,
+        "duplicates": 0,
+        "expired": 0,
+        "unique": 0
+      },
+      {
+        "filename": "options_data_2024-01-15_11-30.csv",
+        "records": 0,
+        "duplicates": 0,
+        "expired": 0,
+        "unique": 0
+      },
+      {
+        "filename": "options_data_2024-01-15_16-00.csv",
+        "records": 81,
+        "duplicates": 44,
+        "expired": 0,
+        "unique": 37
+      },
+      {
+        "filename": "options_data_2025-10-13_05-30.csv",
+        "records": 100,
+        "duplicates": 0,
+        "expired": 0,
+        "unique": 100
+      },
+      {
+        "filename": "options_data_2025-10-13_10-00.csv",
+        "records": 0,
+        "duplicates": 0,
+        "expired": 0,
+        "unique": 0
+      },
+      {
+        "filename": "options_data_2025-10-13_10-50.csv",
+        "records": 0,
+        "duplicates": 0,
+        "expired": 0,
+        "unique": 0
+      },
+      {
+        "filename": "options_data_2025-10-13_13-00.csv",
+        "records": 65,
+        "duplicates": 65,
+        "expired": 0,
+        "unique": 0
+      },
+      {
+        "filename": "options_data_2025-10-13_13-20.csv",
+        "records": 69,
+        "duplicates": 69,
+        "expired": 0,
+        "unique": 0
+      },
+      {
+        "filename": "options_data_2025-10-14_01-00.csv",
+        "records": 113,
+        "duplicates": 13,
+        "expired": 0,
+        "unique": 100
+      },
+      {
+        "filename": "options_data_2025-10-14_11-00.csv",
+        "records": 112,
+        "duplicates": 112,
+        "expired": 0,
+        "unique": 0
+      },
+      {
+        "filename": "options_data_2025-10-14_15-00.csv",
+        "records": 80,
+        "duplicates": 36,
+        "expired": 0,
+        "unique": 44
+      },
+      {
+        "filename": "options_data_2025-10-14_16-00.csv",
+        "records": 81,
+        "duplicates": 62,
+        "expired": 0,
+        "unique": 19
+      },
+      {
+        "filename": "options_data_2025-10-15_10-00.csv",
+        "records": 136,
+        "duplicates": 105,
+        "expired": 0,
+        "unique": 31
+      },
+      {
+        "filename": "options_data_2025-10-15_11-30.csv",
+        "records": 158,
+        "duplicates": 122,
+        "expired": 0,
+        "unique": 36
+      },
+      {
+        "filename": "options_data_2025-10-15_14-00.csv",
+        "records": 76,
+        "duplicates": 50,
+        "expired": 0,
+        "unique": 26
+      },
+      {
+        "filename": "options_data_2025-10-15_16-00.csv",
+        "records": 115,
+        "duplicates": 99,
+        "expired": 0,
+        "unique": 16
+      },
+      {
+        "filename": "options_data_2025-10-15_TSLA.csv",
+        "records": 0,
+        "duplicates": 0,
+        "expired": 0,
+        "unique": 0
+      },
+      {
+        "filename": "options_data_2025-10-16_10-30.csv",
+        "records": 70,
+        "duplicates": 43,
+        "expired": 0,
+        "unique": 27
+      },
+      {
+        "filename": "options_data_2025-10-16_12-00.csv",
+        "records": 138,
+        "duplicates": 97,
+        "expired": 0,
+        "unique": 41
+      },
+      {
+        "filename": "options_data_2025-10-16_15-00.csv",
+        "records": 75,
+        "duplicates": 26,
+        "expired": 0,
+        "unique": 49
+      },
+      {
+        "filename": "options_data_2025-10-16_16-00.csv",
+        "records": 72,
+        "duplicates": 51,
+        "expired": 0,
+        "unique": 21
+      },
+      {
+        "filename": "options_data_2025-10-17_15-45.csv",
+        "records": 112,
+        "duplicates": 55,
+        "expired": 0,
+        "unique": 57
+      },
+      {
+        "filename": "options_data_2025-10-20_16-00.csv",
+        "records": 152,
+        "duplicates": 44,
+        "expired": 0,
+        "unique": 108
+      },
+      {
+        "filename": "options_data_2025-10-21_15-00.csv",
+        "records": 118,
+        "duplicates": 1,
+        "expired": 0,
+        "unique": 117
+      },
+      {
+        "filename": "options_data_2025-10-21_16-00.csv",
+        "records": 121,
+        "duplicates": 107,
+        "expired": 0,
+        "unique": 14
+      },
+      {
+        "filename": "options_data_2025-10-21_16-51.csv",
+        "records": 121,
+        "duplicates": 121,
+        "expired": 0,
+        "unique": 0
+      },
+      {
+        "filename": "options_data_2025-10-22_10-00.csv",
+        "records": 76,
+        "duplicates": 64,
+        "expired": 0,
+        "unique": 12
+      },
+      {
+        "filename": "options_data_2025-10-22_14-00.csv",
+        "records": 70,
+        "duplicates": 17,
+        "expired": 0,
+        "unique": 53
+      },
+      {
+        "filename": "options_data_2025-10-22_16-00.csv",
+        "records": 75,
+        "duplicates": 53,
+        "expired": 0,
+        "unique": 22
+      },
+      {
+        "filename": "options_data_2025-10-23_14-00.csv",
+        "records": 149,
+        "duplicates": 57,
+        "expired": 0,
+        "unique": 92
+      },
+      {
+        "filename": "options_data_2025-10-23_16-00.csv",
+        "records": 78,
+        "duplicates": 46,
+        "expired": 0,
+        "unique": 32
+      },
+      {
+        "filename": "options_data_2025-10-24_16-00.csv",
+        "records": 162,
+        "duplicates": 43,
+        "expired": 0,
+        "unique": 119
+      },
+      {
+        "filename": "options_data_2025-10-27_16-00.csv",
+        "records": 221,
+        "duplicates": 44,
+        "expired": 0,
+        "unique": 177
+      },
+      {
+        "filename": "options_data_2025-10-28_15-00.csv",
+        "records": 239,
+        "duplicates": 84,
+        "expired": 0,
+        "unique": 155
+      },
+      {
+        "filename": "options_data_2025-10-28_16-00.csv",
+        "records": 0,
+        "duplicates": 0,
+        "expired": 0,
+        "unique": 0
+      },
+      {
+        "filename": "options_data_2025-10-29_16-00.csv",
+        "records": 0,
+        "duplicates": 0,
+        "expired": 0,
+        "unique": 0
+      },
+      {
+        "filename": "options_data_2025-10-30_14-30.csv",
+        "records": 0,
+        "duplicates": 0,
+        "expired": 0,
+        "unique": 0
+      },
+      {
+        "filename": "options_data_2025-10-31_16-00.csv",
+        "records": 254,
+        "duplicates": 1,
+        "expired": 0,
+        "unique": 253
+      },
+      {
+        "filename": "options_data_2025-11-03_16-00.csv",
+        "records": 258,
+        "duplicates": 83,
+        "expired": 0,
+        "unique": 175
+      }
+    ]
+  },
+  "version": "1.0"
+}

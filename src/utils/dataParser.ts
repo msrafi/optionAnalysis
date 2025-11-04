@@ -355,9 +355,26 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
   const data: OptionData[] = [];
   
   // Pre-allocate array with estimated size for better performance
-  const estimatedSize = Math.max(1000, lines.length * 0.8);
-  data.length = estimatedSize;
+  // Cap at 10 million to avoid "Invalid array length" errors with very large files
+  const maxArraySize = 10_000_000;
+  const estimatedSize = Math.min(maxArraySize, Math.max(1000, Math.floor(lines.length * 0.8)));
+  
+  // Only pre-allocate if the size is valid and reasonable
+  if (estimatedSize > 0 && estimatedSize < maxArraySize && isFinite(estimatedSize)) {
+    try {
+      data.length = estimatedSize;
+    } catch (error) {
+      // If pre-allocation fails, let array grow naturally
+      if (import.meta.env.DEV) {
+        console.warn('Failed to pre-allocate array, using dynamic growth:', error);
+      }
+    }
+  }
   let dataIndex = 0;
+  
+  // Check if this is the clean format (check header)
+  const header = lines[0] || '';
+  const isCleanFormat = header.includes('ticker,strike,expiry') && header.split(',').length <= 15;
   
   // Skip header row
   for (let i = 1; i < lines.length; i++) {
@@ -367,23 +384,56 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
     // Parse CSV line (handle quoted fields)
     const fields = parseCSVLine(line);
     
-    // CSV has 16 columns: [0]=separator, [1]=timestamp, [2]=sweepType, [3]=ticker, 
-    // [4]=strike, [5]=expiry, [6]=optionType, [7]=bidAskType, [8]=volume, 
-    // [9]=premium, [10]=openInterest, [11]=openInterest2, [12]=shortTime, [13]=fullTimestamp, [14-15]=empty
-    if (fields.length < 16) continue;
-    
     try {
-      // Extract relevant fields based on the actual CSV structure
-      const timestamp = fields[1] || fields[13] || ''; // Column 2 (index 1) - Full Timestamp, fallback to [13]
-      const sweepType = fields[2] || ''; // Column 3 (index 2) - Sweep Type (e.g., "Call Sweep")
-      const ticker = fields[3] || '';     // Column 4 (index 3) - Ticker
-      const strike = parseFloat(fields[4]) || 0;  // Column 5 (index 4) - Strike
-      const expiry = fields[5] || '';     // Column 6 (index 5) - Expiry
-      const optionType = fields[6] as 'Call' | 'Put'; // Column 7 (index 6) - Option Type
-      const volume = parseInt(fields[8]?.replace(/,/g, '') || '0'); // Column 9 (index 8) - Volume
-      const premium = fields[9] || '$0';  // Column 10 (index 9) - Premium
-      const openInterest = parseInt(fields[10]?.replace(/,/g, '') || '0'); // Column 11 (index 10) - OI
-      const bidAskSpread = 0; // Not available in current format
+      let timestamp, sweepType, ticker, strike, expiry, optionType, volume, premium, openInterest, bidAskSpread;
+      
+      if (isCleanFormat) {
+        // Clean format: ticker,strike,expiry,optionType,volume,premium,openInterest,bidAskSpread,timestamp,sweepType,sourceFile
+        if (fields.length < 10) continue;
+        ticker = fields[0] || '';
+        strike = parseFloat(fields[1]) || 0;
+        expiry = fields[2] || '';
+        optionType = fields[3] as 'Call' | 'Put';
+        volume = parseInt(fields[4]?.replace(/,/g, '') || '0');
+        premium = fields[5] || '$0';
+        openInterest = parseInt(fields[6]?.replace(/,/g, '') || '0');
+        bidAskSpread = parseFloat(fields[7]) || 0;
+        timestamp = fields[8] || '';
+        sweepType = fields[9] || '';
+        // sourceFile is fields[10] but we use the parameter
+      } else {
+        // Legacy format: original CSV with 16+ columns
+        if (fields.length < 16) continue;
+        
+        // Check if this is a line with alternative format (empty first fields, "[" in field 4)
+        const isAlternativeFormat = fields[4] === '[' || (fields[0] === '' && fields[1] === '' && fields[2] === '' && fields[3] === '');
+        
+        if (isAlternativeFormat) {
+          // Alternative format when first fields are empty and field[4] is "["
+          // Fields: [4]="[", [5]=timestamp, [6]=sweepType, [7]=ticker, [8]=strike, [9]=expiry, [10]=optionType, [11]=bidAskType, [12]=volume, [13]=premium, [14]=openInterest
+          timestamp = fields[5] || '';
+          sweepType = fields[6] || '';
+          ticker = fields[7] || '';
+          strike = parseFloat(fields[8]) || 0;
+          expiry = fields[9] || '';
+          optionType = fields[10] as 'Call' | 'Put';
+          volume = parseInt(fields[12]?.replace(/,/g, '') || '0');
+          premium = fields[13] || '$0';
+          openInterest = parseInt(fields[14]?.replace(/,/g, '') || '0');
+        } else {
+          // Standard format: [0]=avatar, [1]=username, [2]=botText, [3]=timestamp, [4]=separator, [5]=fullTimestamp, [6]=sweepType, [7]=ticker, [8]=strike, [9]=expiry, [10]=optionType, [11]=bidAskType, [12]=volume, [13]=premium, [14]=openInterest
+          timestamp = fields[5] || fields[3] || '';
+          sweepType = fields[6] || '';
+          ticker = fields[7] || '';
+          strike = parseFloat(fields[8]) || 0;
+          expiry = fields[9] || '';
+          optionType = fields[10] as 'Call' | 'Put';
+          volume = parseInt(fields[12]?.replace(/,/g, '') || '0');
+          premium = fields[13] || '$0';
+          openInterest = parseInt(fields[14]?.replace(/,/g, '') || '0');
+        }
+        bidAskSpread = 0; // Not available in legacy format
+      }
       
       // Filter out non-ticker entries (trade types, sweep types, etc.)
       const invalidTickers = ['Ask', 'Above', 'Bid', 'Below', 'Sweep', 'Block', 'Trade', 'Volume', 'Premium'];
@@ -421,8 +471,30 @@ export function parseCSVData(csvText: string, sourceFile?: string): OptionData[]
     }
   }
   
-  // Trim array to actual size
-  data.length = dataIndex;
+  // Trim array to actual size (safely handle edge cases)
+  try {
+    if (dataIndex >= 0 && dataIndex <= data.length && isFinite(dataIndex)) {
+      data.length = dataIndex;
+    } else if (dataIndex > 0) {
+      // If we exceeded pre-allocated size or have invalid index, create new array
+      const trimmedData = data.slice(0, dataIndex);
+      data.length = 0;
+      data.push(...trimmedData);
+    }
+  } catch (error) {
+    // Fallback: create new array with correct size
+    const trimmedData: OptionData[] = [];
+    for (let i = 0; i < dataIndex && i < data.length; i++) {
+      if (data[i]) {
+        trimmedData.push(data[i]);
+      }
+    }
+    data.length = 0;
+    data.push(...trimmedData);
+    if (import.meta.env.DEV) {
+      console.warn('Array length trim failed, used fallback:', error);
+    }
+  }
   
   // Log parsing results for debugging
   console.log(`📊 Parsed ${dataIndex} valid records from ${sourceFile || 'unknown file'} (from ${lines.length - 1} CSV rows)`);

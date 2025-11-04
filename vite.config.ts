@@ -20,20 +20,39 @@ export default defineConfig({
         const distApiDir = join(__dirname, 'dist', 'api')
         
         try {
-          // Copy all CSV files from data directory to dist/data
+          // Copy only combined data files (not individual CSV files)
           mkdirSync(distDataDir, { recursive: true })
           const files = readdirSync(dataDir)
           
-          files.forEach((file: string) => {
-            if (file.endsWith('.csv')) {
-              copyFileSync(
-                join(dataDir, file),
-                join(distDataDir, file)
-              )
+          // Only copy combined files and metadata (exclude individual source CSV files)
+          const filesToCopy = files.filter((file: string) => {
+            // Copy combined options files
+            if (file === 'options_data_combined.csv' || file === 'options_data_combined.metadata.json') {
+              return true
             }
+            // Copy combined darkpool files (if they exist)
+            if (file === 'darkpool_data_combined.csv' || file === 'darkpool_data_combined.metadata.json') {
+              return true
+            }
+            // Keep individual darkpool files for now (until darkpool is also combined)
+            if (file.startsWith('darkpool_data_') && file.endsWith('.csv') && !file.includes('combined')) {
+              return true
+            }
+            // Exclude all individual options_data_*.csv files
+            return false
           })
           
-          console.log('✅ Data files copied to dist/data/')
+          filesToCopy.forEach((file: string) => {
+            copyFileSync(
+              join(dataDir, file),
+              join(distDataDir, file)
+            )
+          })
+          
+          console.log(`✅ Combined data files copied to dist/data/ (${filesToCopy.length} files)`)
+          filesToCopy.forEach((file: string) => {
+            console.log(`   - ${file}`)
+          })
           
           // Copy API files to dist/api
           mkdirSync(distApiDir, { recursive: true })

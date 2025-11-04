@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "npm run update-all-data",
+    "prebuild": "npm run combine-data && npm run update-all-data",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
@@ -15,7 +15,9 @@
     "watch-data": "node scripts/update-data-files.js --watch",
     "update-darkpool-data": "node scripts/update-darkpool-data-files.js",
     "watch-darkpool-data": "node scripts/update-darkpool-data-files.js --watch",
-    "update-all-data": "node scripts/update-all-data-files.js"
+    "update-all-data": "node scripts/update-all-data-files.js",
+    "combine-data": "node scripts/combineDataFiles.js",
+    "check-data-status": "node scripts/checkDataStatus.js"
   },
   "dependencies": {
     "lucide-react": "^0.263.1",
