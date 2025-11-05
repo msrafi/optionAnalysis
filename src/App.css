@@ -1866,6 +1866,12 @@
   cursor: default;
 }
 
+/* Heatmap-specific tooltip with fixed height */
+.modern-tooltip.heatmap-tooltip {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
 .modern-tooltip:hover {
   border-color: rgba(255, 255, 255, 0.2);
 }

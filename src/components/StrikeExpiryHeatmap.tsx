@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { OptionData } from '../utils/dataParser';
 
 // Import the parsePremium function from dataParser
@@ -32,6 +32,50 @@ interface HeatmapCell {
 }
 
 const StrikeExpiryHeatmap: React.FC<StrikeExpiryHeatmapProps> = ({ trades, currentPrice }) => {
+  const [tooltip, setTooltip] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    content: {
+      strike: number;
+      expiry: string;
+      netPremium: string;
+      volume: number;
+      callVolume: number;
+      putVolume: number;
+      trades: number;
+    } | null;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    content: null
+  });
+
+  const handleCellMouseEnter = (e: React.MouseEvent, cell: HeatmapCell, strike: number, expiry: string) => {
+    if (cell && cell.volume > 0) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setTooltip({
+        visible: true,
+        x: rect.left,
+        y: rect.top + rect.height / 2,
+        content: {
+          strike,
+          expiry,
+          netPremium: formatValue(cell.value),
+          volume: cell.volume,
+          callVolume: cell.callVolume,
+          putVolume: cell.putVolume,
+          trades: cell.trades
+        }
+      });
+    }
+  };
+
+  const handleCellMouseLeave = () => {
+    setTooltip(prev => ({ ...prev, visible: false }));
+  };
+
   const { heatmapData, strikes, expiries, maxAbsValue } = useMemo(() => {
     // Group trades by strike and expiry
     const dataMap = new Map<string, HeatmapCell>();
@@ -195,10 +239,8 @@ const StrikeExpiryHeatmap: React.FC<StrikeExpiryHeatmapProps> = ({ trades, curre
                           style={{
                             background: hasData ? getColor(cell!.value, cell!.volume) : undefined
                           }}
-                          title={hasData ? 
-                            `Strike: $${strike}\nExpiry: ${expiry}\nNet Premium: ${formatValue(cell!.value)}\nVolume: ${cell!.volume}\nCalls: ${cell!.callVolume}\nPuts: ${cell!.putVolume}\nTrades: ${cell!.trades}` 
-                            : undefined
-                          }
+                          onMouseEnter={hasData ? (e) => handleCellMouseEnter(e, cell!, strike, expiry) : undefined}
+                          onMouseLeave={hasData ? handleCellMouseLeave : undefined}
                         >
                           {hasData && (
                             <div className="cell-content">
@@ -220,6 +262,66 @@ const StrikeExpiryHeatmap: React.FC<StrikeExpiryHeatmapProps> = ({ trades, curre
           </div>
         )}
       </div>
+
+      {/* Custom Tooltip */}
+      {tooltip.visible && tooltip.content && (
+        <div 
+          className="modern-tooltip heatmap-tooltip"
+          style={{
+            position: 'fixed',
+            left: `${tooltip.x + 15}px`,
+            top: `${tooltip.y}px`,
+            transform: 'translateY(-50%)',
+            pointerEvents: 'auto',
+            zIndex: 9999
+          }}
+          onMouseEnter={() => setTooltip(prev => ({ ...prev, visible: true }))}
+          onMouseLeave={handleCellMouseLeave}
+        >
+          <div className="tooltip-header">
+            <span className="tooltip-strike">${tooltip.content.strike}</span>
+            <span className={`tooltip-type ${tooltip.content.netPremium.startsWith('-') ? 'put' : 'call'}`}>
+              {tooltip.content.netPremium.startsWith('-') ? 'Put' : 'Call'}
+            </span>
+          </div>
+          <div className="tooltip-body">
+            <div className="tooltip-row">
+              <span className="tooltip-label">Expiry</span>
+              <span className="tooltip-value">
+                {new Date(tooltip.content.expiry).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Net Premium</span>
+              <span className="tooltip-value">{tooltip.content.netPremium}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Total Volume</span>
+              <span className="tooltip-value">{tooltip.content.volume.toLocaleString()}</span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Call Volume</span>
+              <span className="tooltip-value" style={{ color: '#66bb6a' }}>
+                {tooltip.content.callVolume.toLocaleString()}
+              </span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Put Volume</span>
+              <span className="tooltip-value" style={{ color: '#ef5350' }}>
+                {tooltip.content.putVolume.toLocaleString()}
+              </span>
+            </div>
+            <div className="tooltip-row">
+              <span className="tooltip-label">Trades</span>
+              <span className="tooltip-value">{tooltip.content.trades}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
