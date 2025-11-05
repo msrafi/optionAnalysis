@@ -1,6 +1,7 @@
 /**
  * Script to combine all options data CSV files into a single file
  * Removes duplicates using the same logic as the app
+ * Appends new data to existing combined file instead of regenerating everything
  * 
  * Usage: node scripts/combineDataFiles.js
  */
@@ -167,43 +168,126 @@ function parseCSVFile(filePath, filename) {
 }
 
 /**
+ * Load existing combined file and parse it into trade objects
+ */
+function loadExistingCombinedFile() {
+  if (!fs.existsSync(OUTPUT_FILE)) {
+    return { trades: new Map(), processedFiles: new Set() };
+  }
+  
+  console.log('📂 Loading existing combined file...');
+  const content = fs.readFileSync(OUTPUT_FILE, 'utf-8');
+  const lines = content.split('\n');
+  
+  const trades = new Map();
+  let lineCount = 0;
+  
+  // Skip header row
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    try {
+      const fields = parseCSVLine(line);
+      if (fields.length < 11) continue;
+      
+      const trade = {
+        ticker: fields[0],
+        strike: parseFloat(fields[1]) || 0,
+        expiry: fields[2],
+        optionType: fields[3],
+        volume: parseInt(fields[4]?.replace(/,/g, '') || '0'),
+        premium: fields[5],
+        openInterest: parseInt(fields[6]?.replace(/,/g, '') || '0'),
+        bidAskSpread: parseInt(fields[7] || '0'),
+        timestamp: fields[8],
+        sweepType: fields[9],
+        sourceFile: fields[10] || ''
+      };
+      
+      // Create deduplication key
+      const key = `${trade.ticker}_${trade.strike}_${trade.expiry}_${trade.optionType}_${trade.volume}_${trade.premium}_${trade.timestamp}`;
+      
+      // Only keep if not expired
+      if (!isOptionExpired(trade.expiry)) {
+        trades.set(key, trade);
+        lineCount++;
+      }
+    } catch (error) {
+      // Skip invalid lines
+      continue;
+    }
+  }
+  
+  console.log(`   Loaded ${trades.size} existing records from combined file`);
+  
+  // Load metadata to get list of already processed files
+  let processedFiles = new Set();
+  if (fs.existsSync(METADATA_FILE)) {
+    try {
+      const metadataContent = fs.readFileSync(METADATA_FILE, 'utf-8');
+      const metadata = JSON.parse(metadataContent);
+      
+      if (metadata.sourceFiles && metadata.sourceFiles.files) {
+        metadata.sourceFiles.files.forEach(file => {
+          processedFiles.add(file.filename);
+        });
+        console.log(`   Found ${processedFiles.size} already processed files in metadata`);
+      }
+    } catch (error) {
+      console.warn('   Warning: Could not load metadata, will process all files');
+    }
+  }
+  
+  return { trades, processedFiles };
+}
+
+/**
  * Combine all CSV files and remove duplicates
+ * Appends new data to existing combined file
  */
 function combineAllFiles() {
   console.log('📂 Scanning data directory...');
   
-  const files = fs.readdirSync(DATA_DIR)
+  // Load existing combined file
+  const { trades: existingTrades, processedFiles } = loadExistingCombinedFile();
+  
+  // Find all data files
+  const allFiles = fs.readdirSync(DATA_DIR)
     .filter(f => f.startsWith('options_data_') && f.endsWith('.csv') && f !== 'options_data_combined.csv')
     .sort();
   
-  console.log(`📄 Found ${files.length} data files to combine`);
+  // Filter to only new files (not already processed)
+  const newFiles = allFiles.filter(f => !processedFiles.has(f));
   
-  if (files.length === 0) {
-    console.error('❌ No data files found!');
-    process.exit(1);
+  console.log(`📄 Found ${allFiles.length} total data files`);
+  console.log(`   ${processedFiles.size} already processed`);
+  console.log(`   ${newFiles.length} new files to process`);
+  
+  if (newFiles.length === 0) {
+    console.log('\n✅ No new files to process. Combined file is up to date.');
+    return;
   }
   
-  // Track unique trades using the same key as the app
-  const uniqueTrades = new Map();
+  // Track unique trades - start with existing trades
+  const uniqueTrades = new Map(existingTrades);
   const fileStats = [];
-  let totalRecords = 0;
+  let totalNewRecords = 0;
   let totalExpired = 0;
+  let totalDuplicates = 0;
   
-  // Get today's date for expiry filtering
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  // Process each file
-  for (const filename of files) {
+  // Process only new files
+  for (const filename of newFiles) {
     const filePath = path.join(DATA_DIR, filename);
     console.log(`  Processing: ${filename}...`);
     
     const fileData = parseCSVFile(filePath, filename);
-    totalRecords += fileData.length;
+    totalNewRecords += fileData.length;
     
     // Filter out expired options and deduplicate
     let duplicates = 0;
     let expired = 0;
+    let newUnique = 0;
     
     for (const trade of fileData) {
       // Double-check expiry (in case date changed since file was created)
@@ -219,27 +303,42 @@ function combineAllFiles() {
       
       if (!uniqueTrades.has(key)) {
         uniqueTrades.set(key, trade);
+        newUnique++;
       } else {
         duplicates++;
       }
     }
     
     totalExpired += expired;
+    totalDuplicates += duplicates;
     
     fileStats.push({
       filename,
       records: fileData.length,
       duplicates,
       expired,
-      unique: fileData.length - duplicates - expired
+      unique: newUnique
     });
     
     const expiredMsg = expired > 0 ? `, ${expired} expired` : '';
-    console.log(`    ✓ ${fileData.length} records (${fileData.length - duplicates - expired} unique, ${duplicates} duplicates${expiredMsg})`);
+    console.log(`    ✓ ${fileData.length} records (${newUnique} new unique, ${duplicates} duplicates${expiredMsg})`);
   }
   
-  // Get file timestamps for metadata
-  const fileTimestamps = files.map(filename => {
+  // Remove expired options from existing data
+  console.log('\n🧹 Removing expired options from existing data...');
+  let expiredRemovedFromExisting = 0;
+  for (const [key, trade] of uniqueTrades.entries()) {
+    if (isOptionExpired(trade.expiry)) {
+      uniqueTrades.delete(key);
+      expiredRemovedFromExisting++;
+    }
+  }
+  if (expiredRemovedFromExisting > 0) {
+    console.log(`   Removed ${expiredRemovedFromExisting} expired options from existing data`);
+  }
+  
+  // Get file timestamps for new files only (for metadata)
+  const newFileTimestamps = newFiles.map(filename => {
     const filePath = path.join(DATA_DIR, filename);
     const stats = fs.statSync(filePath);
     const parsedTimestamp = parseTimestampFromFilename(filename);
@@ -252,8 +351,20 @@ function combineAllFiles() {
   });
   
   // Find latest source file timestamp
-  const latestSourceFile = fileTimestamps
-    .sort((a, b) => new Date(b.modifiedTime) - new Date(a.modifiedTime))[0];
+  const latestSourceFile = newFileTimestamps.length > 0
+    ? newFileTimestamps.sort((a, b) => new Date(b.modifiedTime) - new Date(a.modifiedTime))[0]
+    : null;
+  
+  // Load existing metadata to preserve old file info if needed, but we'll only track new files going forward
+  let existingMetadata = null;
+  if (fs.existsSync(METADATA_FILE)) {
+    try {
+      const metadataContent = fs.readFileSync(METADATA_FILE, 'utf-8');
+      existingMetadata = JSON.parse(metadataContent);
+    } catch (error) {
+      // Ignore errors
+    }
+  }
   
   // Write combined file with clean header (only fields we need)
   console.log('\n📝 Writing combined file with clean format...');
@@ -283,7 +394,7 @@ function combineAllFiles() {
       trade.volume,
       escapeField(trade.premium),
       trade.openInterest,
-      0, // bidAskSpread (not available in source data)
+      trade.bidAskSpread || 0,
       escapeField(trade.timestamp),
       escapeField(trade.sweepType),
       escapeField(trade.sourceFile || '')
@@ -294,33 +405,43 @@ function combineAllFiles() {
   
   fs.writeFileSync(OUTPUT_FILE, outputLines.join('\n'), 'utf-8');
   
-  // Generate metadata
+  // Generate metadata - accumulate processed files (but old files can still be deleted)
+  // Get existing processed files from metadata
+  const existingProcessedFiles = existingMetadata?.sourceFiles?.files || [];
+  
+  // Combine existing processed files with new ones
+  const allProcessedFiles = [...existingProcessedFiles, ...newFileTimestamps];
+  
+  // Keep only the latest entry for each filename (in case of duplicates)
+  const processedFilesMap = new Map();
+  allProcessedFiles.forEach(file => {
+    processedFilesMap.set(file.filename, file);
+  });
+  
   const metadata = {
     generatedAt: new Date().toISOString(),
     generatedBy: 'combineDataFiles.js',
     sourceFiles: {
-      count: files.length,
-      latest: latestSourceFile.filename,
-      latestModified: latestSourceFile.modifiedTime,
-      files: fileTimestamps.map(f => ({
-        filename: f.filename,
-        modifiedTime: f.modifiedTime,
-        parsedTimestamp: f.parsedTimestamp,
-        size: f.size
-      }))
+      count: Array.from(processedFilesMap.values()).length,
+      latest: latestSourceFile ? latestSourceFile.filename : (existingMetadata?.sourceFiles?.latest || ''),
+      latestModified: latestSourceFile ? latestSourceFile.modifiedTime : (existingMetadata?.sourceFiles?.latestModified || ''),
+      // Track all processed files (for deduplication), but old files can still be deleted
+      files: Array.from(processedFilesMap.values())
     },
     combinedFile: {
       filename: 'options_data_combined.csv',
       size: fs.statSync(OUTPUT_FILE).size,
       records: {
-        totalBeforeFiltering: totalRecords,
-        expiredRemoved: totalExpired,
-        uniqueAfterDedup: uniqueTrades.size,
-        duplicatesRemoved: totalRecords - totalExpired - uniqueTrades.size
+        totalUnique: uniqueTrades.size,
+        newRecordsAdded: totalNewRecords,
+        expiredRemoved: totalExpired + expiredRemovedFromExisting,
+        duplicatesRemoved: totalDuplicates,
+        existingRecordsKept: existingTrades.size - expiredRemovedFromExisting
       },
       fileStats: fileStats
     },
-    version: '1.0'
+    version: '2.0', // Version 2.0 for append mode
+    note: 'Metadata tracks processed files for deduplication. Old individual files can be safely deleted after processing.'
   };
   
   // Write metadata file
@@ -329,24 +450,29 @@ function combineAllFiles() {
   // Print summary
   console.log('\n✅ Combine complete!');
   console.log(`📊 Summary:`);
-  console.log(`   Total files processed: ${files.length}`);
-  console.log(`   Total records before filtering: ${totalRecords.toLocaleString()}`);
-  console.log(`   Expired options removed: ${totalExpired.toLocaleString()}`);
-  console.log(`   Unique records after dedup: ${uniqueTrades.size.toLocaleString()}`);
-  console.log(`   Duplicates removed: ${(totalRecords - totalExpired - uniqueTrades.size).toLocaleString()}`);
+  console.log(`   New files processed: ${newFiles.length}`);
+  console.log(`   New records added: ${totalNewRecords.toLocaleString()}`);
+  console.log(`   Expired options removed: ${(totalExpired + expiredRemovedFromExisting).toLocaleString()}`);
+  console.log(`   Duplicates removed: ${totalDuplicates.toLocaleString()}`);
+  console.log(`   Total unique records: ${uniqueTrades.size.toLocaleString()}`);
   console.log(`   Output file: ${OUTPUT_FILE}`);
   console.log(`   File size: ${(fs.statSync(OUTPUT_FILE).size / 1024).toFixed(2)} KB`);
-  console.log(`   Latest source file: ${latestSourceFile.filename} (${new Date(latestSourceFile.modifiedTime).toLocaleString()})`);
+  if (latestSourceFile) {
+    console.log(`   Latest source file: ${latestSourceFile.filename} (${new Date(latestSourceFile.modifiedTime).toLocaleString()})`);
+  }
   console.log(`   Metadata saved: ${METADATA_FILE}`);
+  console.log(`\n💡 Note: Old individual data files can now be safely deleted. Only new files are tracked.`);
   
   // Show per-file stats
-  console.log('\n📋 Per-file statistics:');
-  fileStats.forEach(stat => {
-    const parts = [`${stat.records} records`, `${stat.unique} unique`];
-    if (stat.duplicates > 0) parts.push(`${stat.duplicates} dup`);
-    if (stat.expired > 0) parts.push(`${stat.expired} expired`);
-    console.log(`   ${stat.filename}: ${parts.join(', ')}`);
-  });
+  if (fileStats.length > 0) {
+    console.log('\n📋 Per-file statistics (new files only):');
+    fileStats.forEach(stat => {
+      const parts = [`${stat.records} records`, `${stat.unique} new unique`];
+      if (stat.duplicates > 0) parts.push(`${stat.duplicates} dup`);
+      if (stat.expired > 0) parts.push(`${stat.expired} expired`);
+      console.log(`   ${stat.filename}: ${parts.join(', ')}`);
+    });
+  }
 }
 
 // Run the combine process

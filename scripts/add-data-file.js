@@ -9,8 +9,13 @@
  * node scripts/add-data-file.js new-data.csv "2024-01-15T14:30:00"
  */
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function generateDataFilename(date = new Date()) {
   const year = date.getFullYear();
@@ -120,11 +125,37 @@ function main() {
   console.log(`📅 Timestamp: ${timestamp.toISOString()}`);
   console.log(`📊 Location: ${destinationPath}`);
   console.log('');
+  
+  // Automatically trigger combine script to append new data
+  console.log('🔄 Running combine script to append new data...');
+  try {
+    const combineScript = path.join(__dirname, 'combineDataFiles.js');
+    
+    // Run the combine script
+    execSync(`node ${combineScript}`, { 
+      stdio: 'inherit',
+      cwd: path.join(__dirname, '..')
+    });
+    
+    console.log('');
+    console.log('✅ Data has been appended to combined file!');
+  } catch (error) {
+    console.error('');
+    console.error('⚠️  Warning: Failed to run combine script automatically.');
+    console.error('   You can manually run: node scripts/combineDataFiles.js');
+    console.error(`   Error: ${error.message}`);
+  }
+  
+  console.log('');
   console.log('🔄 Refresh your dashboard to see the new data');
 }
 
-if (require.main === module) {
+// Run main when script is executed directly
+try {
   main();
+} catch (error) {
+  console.error('Fatal error:', error);
+  process.exit(1);
 }
 
-module.exports = { generateDataFilename, updateDataFilesAPI };
+export { generateDataFilename, updateDataFilesAPI };

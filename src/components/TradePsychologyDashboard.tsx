@@ -76,7 +76,17 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
   
   const analysis = useMemo(() => {
     if (!optionData || optionData.length === 0) return null;
-    return analyzeFourDayTradePsychology(optionData);
+    const result = analyzeFourDayTradePsychology(optionData);
+    if (import.meta.env.DEV && result && result.days.length > 0) {
+      console.log('📊 Trade Psychology Analysis:', result.days.map(day => ({
+        date: day.date,
+        callVolume: day.dailySummary.callVolume,
+        putVolume: day.dailySummary.putVolume,
+        callPremium: day.dailySummary.callPremium,
+        putPremium: day.dailySummary.putPremium
+      })));
+    }
+    return result;
   }, [optionData]);
 
   const handleBarMouseEnter = (event: React.MouseEvent, hourData: HourlyTradeData) => {
@@ -274,6 +284,14 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
                 <span className="metric-label">Total Volume</span>
                 <span className="metric-value">{formatVolume(selectedDayData.dailySummary.totalVolume)}</span>
               </div>
+              <div className="metric call-metric">
+                <span className="metric-label">Call Volume</span>
+                <span className="metric-value">{formatVolume(selectedDayData.dailySummary.callVolume)}</span>
+              </div>
+              <div className="metric put-metric">
+                <span className="metric-label">Put Volume</span>
+                <span className="metric-value">{formatVolume(selectedDayData.dailySummary.putVolume)}</span>
+              </div>
               <div className="metric">
                 <span className="metric-label">Total Trades</span>
                 <span className="metric-value">{selectedDayData.dailySummary.totalTrades.toLocaleString()}</span>
@@ -281,6 +299,14 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
               <div className="metric">
                 <span className="metric-label">Total Premium</span>
                 <span className="metric-value">{formatPremium(selectedDayData.dailySummary.totalPremium)}</span>
+              </div>
+              <div className="metric call-metric">
+                <span className="metric-label">Call Premium</span>
+                <span className="metric-value">{formatPremium(selectedDayData.dailySummary.callPremium)}</span>
+              </div>
+              <div className="metric put-metric">
+                <span className="metric-label">Put Premium</span>
+                <span className="metric-value">{formatPremium(selectedDayData.dailySummary.putPremium)}</span>
               </div>
               <div className="metric">
                 <span className="metric-label">Call/Put Ratio</span>
@@ -447,9 +473,29 @@ const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick }) => {
           <span className="metric-label">Volume</span>
           <span className="metric-value">{formatVolume(day.dailySummary.totalVolume)}</span>
         </div>
+        <div className="metric-row call-row">
+          <span className="metric-label">Call Volume</span>
+          <span className="metric-value">{formatVolume(day.dailySummary?.callVolume ?? 0)}</span>
+        </div>
+        <div className="metric-row put-row">
+          <span className="metric-label">Put Volume</span>
+          <span className="metric-value">{formatVolume(day.dailySummary?.putVolume ?? 0)}</span>
+        </div>
         <div className="metric-row">
           <span className="metric-label">Trades</span>
           <span className="metric-value">{day.dailySummary.totalTrades}</span>
+        </div>
+        <div className="metric-row">
+          <span className="metric-label">Premium</span>
+          <span className="metric-value">{formatPremium(day.dailySummary.totalPremium)}</span>
+        </div>
+        <div className="metric-row call-row">
+          <span className="metric-label">Call Premium</span>
+          <span className="metric-value">{formatPremium(day.dailySummary?.callPremium ?? 0)}</span>
+        </div>
+        <div className="metric-row put-row">
+          <span className="metric-label">Put Premium</span>
+          <span className="metric-value">{formatPremium(day.dailySummary?.putPremium ?? 0)}</span>
         </div>
         <div className="metric-row">
           <span className="metric-label">C/P Ratio</span>
@@ -458,10 +504,6 @@ const DayColumn: React.FC<DayColumnProps> = ({ day, isSelected, onClick }) => {
         <div className="metric-row">
           <span className="metric-label">Sweeps</span>
           <span className="metric-value">{day.dailySummary.sweepCount}</span>
-        </div>
-        <div className="metric-row">
-          <span className="metric-label">Premium</span>
-          <span className="metric-value">{formatPremium(day.dailySummary.totalPremium)}</span>
         </div>
         <div className="metric-row">
           <span className="metric-label">Expiries</span>

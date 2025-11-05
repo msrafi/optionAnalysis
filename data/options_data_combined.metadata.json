@@ -1,11 +1,17 @@
 {
-  "generatedAt": "2025-11-04T02:22:21.209Z",
+  "generatedAt": "2025-11-05T00:58:46.651Z",
   "generatedBy": "combineDataFiles.js",
   "sourceFiles": {
-    "count": 41,
-    "latest": "options_data_2025-11-03_16-00.csv",
-    "latestModified": "2025-11-04T01:36:30.402Z",
+    "count": 42,
+    "latest": "options_data_2025-11-04_16-00.csv",
+    "latestModified": "2025-11-05T00:58:15.322Z",
     "files": [
+      {
+        "filename": "options_data_2025-11-04_16-00.csv",
+        "modifiedTime": "2025-11-05T00:58:15.322Z",
+        "parsedTimestamp": "2025-11-04T21:00:00.000Z",
+        "size": 49373
+      },
       {
         "filename": "options_data_2025-11-03_16-00.csv",
         "modifiedTime": "2025-11-04T01:36:30.402Z",
@@ -256,12 +262,12 @@
   },
   "combinedFile": {
     "filename": "options_data_combined.csv",
-    "size": 286040,
+    "size": 303123,
     "records": {
-      "totalBeforeFiltering": 4075,
+      "totalBeforeFiltering": 4273,
       "expiredRemoved": 0,
-      "uniqueAfterDedup": 2240,
-      "duplicatesRemoved": 1835
+      "uniqueAfterDedup": 2374,
+      "duplicatesRemoved": 1899
     },
     "fileStats": [
       {
@@ -483,15 +489,15 @@
       },
       {
         "filename": "options_data_2025-10-23_14-00.csv",
-        "records": 149,
+        "records": 148,
         "duplicates": 57,
         "expired": 0,
-        "unique": 92
+        "unique": 91
       },
       {
         "filename": "options_data_2025-10-23_16-00.csv",
-        "records": 78,
-        "duplicates": 46,
+        "records": 77,
+        "duplicates": 45,
         "expired": 0,
         "unique": 32
       },
@@ -550,6 +556,13 @@
         "duplicates": 83,
         "expired": 0,
         "unique": 175
+      },
+      {
+        "filename": "options_data_2025-11-04_16-00.csv",
+        "records": 200,
+        "duplicates": 65,
+        "expired": 0,
+        "unique": 135
       }
     ]
   },

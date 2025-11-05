@@ -35,8 +35,12 @@ export interface DailyTradePsychology {
   hourlyData: HourlyTradeData[];
   dailySummary: {
     totalVolume: number;
+    callVolume: number;
+    putVolume: number;
     totalTrades: number;
     totalPremium: number;
+    callPremium: number;
+    putPremium: number;
     callPutRatio: number;
     sweepCount: number;
     uniqueExpiries: string[];
@@ -327,8 +331,12 @@ export function analyzeDailyTradePsychology(trades: OptionData[], targetDate: Da
       hourlyData: [],
       dailySummary: {
         totalVolume: 0,
+        callVolume: 0,
+        putVolume: 0,
         totalTrades: 0,
         totalPremium: 0,
+        callPremium: 0,
+        putPremium: 0,
         callPutRatio: 0,
         peakVolume: 0,
         peakHour: 0,
@@ -365,8 +373,12 @@ export function analyzeDailyTradePsychology(trades: OptionData[], targetDate: Da
     return summary;
   }, {
     totalVolume: 0,
+    callVolume: 0,
+    putVolume: 0,
     totalTrades: 0,
     totalPremium: 0,
+    callPremium: 0,
+    putPremium: 0,
     callPutRatio: 0,
     sweepCount: 0,
     uniqueExpiries: [] as string[],
@@ -376,10 +388,27 @@ export function analyzeDailyTradePsychology(trades: OptionData[], targetDate: Da
     peakTrades: 0
   });
   
-  // Calculate overall call/put ratio
+  // Calculate overall call/put volume and premium
   const totalCallVolume = hourlyData.reduce((sum, h) => sum + h.callVolume, 0);
   const totalPutVolume = hourlyData.reduce((sum, h) => sum + h.putVolume, 0);
+  const totalCallPremium = hourlyData.reduce((sum, h) => sum + h.callPremium, 0);
+  const totalPutPremium = hourlyData.reduce((sum, h) => sum + h.putPremium, 0);
+  
+  // Add call/put breakdown to daily summary
+  dailySummary.callVolume = totalCallVolume;
+  dailySummary.putVolume = totalPutVolume;
+  dailySummary.callPremium = totalCallPremium;
+  dailySummary.putPremium = totalPutPremium;
   dailySummary.callPutRatio = totalPutVolume > 0 ? totalCallVolume / totalPutVolume : totalCallVolume;
+  
+  if (import.meta.env.DEV) {
+    console.log(`📊 Daily Summary for ${targetDate.toISOString().split('T')[0]}:`, {
+      callVolume: totalCallVolume,
+      putVolume: totalPutVolume,
+      callPremium: totalCallPremium,
+      putPremium: totalPutPremium
+    });
+  }
   
   // Calculate unique expiries for the day
   const expirySet = new Set<string>();
@@ -401,14 +430,14 @@ export function analyzeDailyTradePsychology(trades: OptionData[], targetDate: Da
     callTrades: hourlyData.reduce((sum, h) => sum + h.callTrades, 0),
     putTrades: hourlyData.reduce((sum, h) => sum + h.putTrades, 0),
     totalPremium: dailySummary.totalPremium,
-    callPremium: hourlyData.reduce((sum, h) => sum + h.callPremium, 0),
-    putPremium: hourlyData.reduce((sum, h) => sum + h.putPremium, 0),
+    callPremium: totalCallPremium,
+    putPremium: totalPutPremium,
     sweepCount: hourlyData.reduce((sum, h) => sum + h.sweepCount, 0),
     unusualSweepCount: hourlyData.reduce((sum, h) => sum + h.unusualSweepCount, 0),
     highlyUnusualSweepCount: hourlyData.reduce((sum, h) => sum + h.highlyUnusualSweepCount, 0),
     avgTradeSize: dailySummary.totalTrades > 0 ? dailySummary.totalVolume / dailySummary.totalTrades : 0,
     callPutRatio: dailySummary.callPutRatio,
-    premiumCallPutRatio: 0,
+    premiumCallPutRatio: totalPutPremium > 0 ? totalCallPremium / totalPutPremium : totalCallPremium,
     trades: trades.filter(t => {
       const tradeDate = parseTimestampFromData(t.timestamp);
       return tradeDate && tradeDate.toISOString().split('T')[0] === targetDate.toISOString().split('T')[0];
