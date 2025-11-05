@@ -296,21 +296,21 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                     <span className="detail-label">Expiries:</span>
                     <span className="detail-value">{ticker.uniqueExpiries.length}</span>
                   </div>
-                  {/* 3-Day Volume Section */}
+                  {/* Today's Activity Section */}
                   {(() => {
                     const tickerTrades = allData.filter(t => t.ticker === ticker.ticker);
                     const now = new Date();
                     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                     
-                    const dayVolumes = [0, 0, 0]; // [2 days ago, 1 day ago, today]
-                    const dayCallVolumes = [0, 0, 0];
-                    const dayPutVolumes = [0, 0, 0];
+                    let todayCallVolume = 0;
+                    let todayPutVolume = 0;
+                    let todayCallPremium = 0;
+                    let todayPutPremium = 0;
                     
                     tickerTrades.forEach(trade => {
                       // Parse the timestamp string to get the date
                       let tradeDate: Date;
                       try {
-                        // Try to parse using the formatDateTime logic
                         const timestampStr = trade.timestamp;
                         
                         const monthMap: { [key: string]: number } = {
@@ -340,7 +340,6 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                             tradeDate = new Date(timestampStr);
                           }
                         }
-                        // Handle format: "Yesterday at 3:55 PM"
                         else if ((match = timestampStr.match(/Yesterday at (\d+):(\d+)\s+(AM|PM)/i))) {
                           const [, hour, minute, ampm] = match;
                           const hour24 = convertTo24Hour(hour, ampm);
@@ -348,7 +347,6 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                           yesterday.setDate(yesterday.getDate() - 1);
                           tradeDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), hour24, parseInt(minute));
                         }
-                        // Handle format: "9:45 AM" (today's time)
                         else if ((match = timestampStr.match(/(\d+):(\d+)\s+(AM|PM)/i))) {
                           const [, hour, minute, ampm] = match;
                           const hour24 = convertTo24Hour(hour, ampm);
@@ -364,35 +362,177 @@ const TickerList: React.FC<TickerListProps> = memo(({ tickers, onTickerSelect, a
                       tradeDate.setHours(0, 0, 0, 0);
                       const daysAgo = Math.floor((today.getTime() - tradeDate.getTime()) / (1000 * 60 * 60 * 24));
                       
-                      if (daysAgo >= 0 && daysAgo <= 2) {
-                        dayVolumes[2 - daysAgo] += trade.volume;
+                      // Only process today's trades
+                      if (daysAgo === 0) {
+                        const premium = parsePremium(trade.premium);
                         if (trade.optionType === 'Call') {
-                          dayCallVolumes[2 - daysAgo] += trade.volume;
+                          todayCallVolume += trade.volume;
+                          todayCallPremium += premium;
                         } else {
-                          dayPutVolumes[2 - daysAgo] += trade.volume;
+                          todayPutVolume += trade.volume;
+                          todayPutPremium += premium;
                         }
                       }
                     });
                     
-                    return (
-                      <div className="detail-row volume-3day">
-                        <span className="detail-label">3-Day Volume:</span>
-                        <div className="volume-breakdown">
-                          <span className="day-volume">
-                            <span className="day-label">Today:</span>
-                            <span className="day-value">{formatVolume(dayVolumes[2])}</span>
-                          </span>
-                          <span className="day-volume">
-                            <span className="day-label">-1:</span>
-                            <span className="day-value">{formatVolume(dayVolumes[1])}</span>
-                          </span>
-                          <span className="day-volume">
-                            <span className="day-label">-2:</span>
-                            <span className="day-value">{formatVolume(dayVolumes[0])}</span>
-                          </span>
+                    // Only show if there's activity today
+                    if (todayCallVolume > 0 || todayPutVolume > 0) {
+                      return (
+                        <div className="today-activity-wrapper">
+                          <span className="today-section-label">Today's Activity</span>
+                          <div className="today-metrics-grid">
+                            <div className="today-metric-badge call-badge">
+                              <span className="today-badge-icon">↗</span>
+                              <div className="today-badge-content">
+                                <span className="today-badge-label">Call Vol</span>
+                                <span className="today-badge-value call-value">{formatVolume(todayCallVolume)}</span>
+                              </div>
+                            </div>
+                            <div className="today-metric-badge put-badge">
+                              <span className="today-badge-icon">↘</span>
+                              <div className="today-badge-content">
+                                <span className="today-badge-label">Put Vol</span>
+                                <span className="today-badge-value put-value">{formatVolume(todayPutVolume)}</span>
+                              </div>
+                            </div>
+                            <div className="today-metric-badge call-badge">
+                              <span className="today-badge-icon">↗</span>
+                              <div className="today-badge-content">
+                                <span className="today-badge-label">Call Prem</span>
+                                <span className="today-badge-value call-value">{formatPremium(todayCallPremium)}</span>
+                              </div>
+                            </div>
+                            <div className="today-metric-badge put-badge">
+                              <span className="today-badge-icon">↘</span>
+                              <div className="today-badge-content">
+                                <span className="today-badge-label">Put Prem</span>
+                                <span className="today-badge-value put-value">{formatPremium(todayPutPremium)}</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    );
+                      );
+                    }
+                    return null;
+                  })()}
+                  {/* Past 3 Days Activity Section */}
+                  {(() => {
+                    const tickerTrades = allData.filter(t => t.ticker === ticker.ticker);
+                    const now = new Date();
+                    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    
+                    let past3DaysCallVolume = 0;
+                    let past3DaysPutVolume = 0;
+                    let past3DaysCallPremium = 0;
+                    let past3DaysPutPremium = 0;
+                    
+                    tickerTrades.forEach(trade => {
+                      // Parse the timestamp string to get the date
+                      let tradeDate: Date;
+                      try {
+                        const timestampStr = trade.timestamp;
+                        
+                        const monthMap: { [key: string]: number } = {
+                          'january': 0, 'february': 1, 'march': 2, 'april': 3,
+                          'may': 4, 'june': 5, 'july': 6, 'august': 7,
+                          'september': 8, 'october': 9, 'november': 10, 'december': 11
+                        };
+                        
+                        const convertTo24Hour = (hour: string, ampm: string): number => {
+                          let hour24 = parseInt(hour);
+                          if (ampm.toUpperCase() === 'PM' && hour24 !== 12) {
+                            hour24 += 12;
+                          } else if (ampm.toUpperCase() === 'AM' && hour24 === 12) {
+                            hour24 = 0;
+                          }
+                          return hour24;
+                        };
+                        
+                        let match = timestampStr.match(/(\w+),\s+(\w+)\s+(\d+),\s+(\d+)\s+at\s+(\d+):(\d+)\s+(AM|PM)/i);
+                        if (match) {
+                          const [, , monthName, day, year, hour, minute, ampm] = match;
+                          const month = monthMap[monthName.toLowerCase()];
+                          if (month !== undefined) {
+                            const hour24 = convertTo24Hour(hour, ampm);
+                            tradeDate = new Date(parseInt(year), month, parseInt(day), hour24, parseInt(minute));
+                          } else {
+                            tradeDate = new Date(timestampStr);
+                          }
+                        }
+                        else if ((match = timestampStr.match(/Yesterday at (\d+):(\d+)\s+(AM|PM)/i))) {
+                          const [, hour, minute, ampm] = match;
+                          const hour24 = convertTo24Hour(hour, ampm);
+                          const yesterday = new Date(today);
+                          yesterday.setDate(yesterday.getDate() - 1);
+                          tradeDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), hour24, parseInt(minute));
+                        }
+                        else if ((match = timestampStr.match(/(\d+):(\d+)\s+(AM|PM)/i))) {
+                          const [, hour, minute, ampm] = match;
+                          const hour24 = convertTo24Hour(hour, ampm);
+                          tradeDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hour24, parseInt(minute));
+                        }
+                        else {
+                          tradeDate = new Date(timestampStr);
+                        }
+                      } catch (error) {
+                        return; // Skip this trade if we can't parse the date
+                      }
+                      
+                      tradeDate.setHours(0, 0, 0, 0);
+                      const daysAgo = Math.floor((today.getTime() - tradeDate.getTime()) / (1000 * 60 * 60 * 24));
+                      
+                      // Accumulate over past 3 days (0, 1, 2 days ago)
+                      if (daysAgo >= 0 && daysAgo <= 2) {
+                        const premium = parsePremium(trade.premium);
+                        if (trade.optionType === 'Call') {
+                          past3DaysCallVolume += trade.volume;
+                          past3DaysCallPremium += premium;
+                        } else {
+                          past3DaysPutVolume += trade.volume;
+                          past3DaysPutPremium += premium;
+                        }
+                      }
+                    });
+                    
+                    // Only show if there's activity in past 3 days
+                    if (past3DaysCallVolume > 0 || past3DaysPutVolume > 0) {
+                      return (
+                        <div className="today-activity-wrapper past-3days">
+                          <span className="today-section-label">Past 3 Days</span>
+                          <div className="today-metrics-grid">
+                            <div className="today-metric-badge call-badge">
+                              <span className="today-badge-icon">↗</span>
+                              <div className="today-badge-content">
+                                <span className="today-badge-label">Call Vol</span>
+                                <span className="today-badge-value call-value">{formatVolume(past3DaysCallVolume)}</span>
+                              </div>
+                            </div>
+                            <div className="today-metric-badge put-badge">
+                              <span className="today-badge-icon">↘</span>
+                              <div className="today-badge-content">
+                                <span className="today-badge-label">Put Vol</span>
+                                <span className="today-badge-value put-value">{formatVolume(past3DaysPutVolume)}</span>
+                              </div>
+                            </div>
+                            <div className="today-metric-badge call-badge">
+                              <span className="today-badge-icon">↗</span>
+                              <div className="today-badge-content">
+                                <span className="today-badge-label">Call Prem</span>
+                                <span className="today-badge-value call-value">{formatPremium(past3DaysCallPremium)}</span>
+                              </div>
+                            </div>
+                            <div className="today-metric-badge put-badge">
+                              <span className="today-badge-icon">↘</span>
+                              <div className="today-badge-content">
+                                <span className="today-badge-label">Put Prem</span>
+                                <span className="today-badge-value put-value">{formatPremium(past3DaysPutPremium)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
                   })()}
                 </div>
                 
