@@ -508,12 +508,6 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
             </div>
           </div>
 
-          {/* Overall Analysis */}
-          <TickerPsychologyAnalysis 
-            ticker={selectedTicker}
-            trades={tickerTrades}
-          />
-
           {/* Heatmap & Trade History - Two Column Layout */}
           <div className="heatmap-trades-section">
             {/* Left Column - Strike × Expiry Heatmap */}
@@ -537,6 +531,12 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
               </div>
             </div>
           </div>
+
+          {/* Overall Analysis */}
+          <TickerPsychologyAnalysis 
+            ticker={selectedTicker}
+            trades={tickerTrades}
+          />
         </div>
       )}
     </div>
