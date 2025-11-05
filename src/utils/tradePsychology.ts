@@ -67,6 +67,26 @@ export interface FourDayPsychologyAnalysis {
       consistency: number; // 0-1, how consistent the pattern is across days
     };
   };
+  stockDirection?: StockDirectionPrediction;
+}
+
+export interface StockDirectionPrediction {
+  direction: 'bullish' | 'bearish' | 'neutral' | 'mixed';
+  confidence: 'high' | 'medium' | 'low';
+  strength: number; // 0-100
+  targetStrikes: {
+    bullish: number[];
+    bearish: number[];
+  };
+  keyMetrics: {
+    callPutRatio: number;
+    premiumFlow: number; // Positive = call premium > put premium
+    volumeTrend: number; // Positive = increasing
+    strikeConcentration: number; // Where most volume is
+    maxPain: number | null;
+  };
+  reasoning: string[];
+  timeframe: string;
 }
 
 /**
@@ -538,10 +558,14 @@ export function analyzeFourDayTradePsychology(trades: OptionData[]): FourDayPsyc
   // Analyze hourly patterns
   const hourlyPatterns = analyzeHourlyPatterns(days);
   
+  // Predict stock direction
+  const stockDirection = predictStockDirection(trades, days);
+  
   return {
     days,
     overallTrend,
-    hourlyPatterns
+    hourlyPatterns,
+    stockDirection
   };
 }
 
@@ -604,6 +628,223 @@ function analyzeOverallTrend(days: DailyTradePsychology[]): FourDayPsychologyAna
     confidence,
     activity,
     description
+  };
+}
+
+/**
+ * Predict stock direction based on comprehensive options data analysis
+ */
+function predictStockDirection(trades: OptionData[], days: DailyTradePsychology[]): StockDirectionPrediction {
+  if (trades.length === 0 || days.length === 0) {
+    return {
+      direction: 'neutral',
+      confidence: 'low',
+      strength: 0,
+      targetStrikes: { bullish: [], bearish: [] },
+      keyMetrics: {
+        callPutRatio: 1,
+        premiumFlow: 0,
+        volumeTrend: 0,
+        strikeConcentration: 0,
+        maxPain: null
+      },
+      reasoning: ['Insufficient data for prediction'],
+      timeframe: '5 days'
+    };
+  }
+
+  // Get most recent day data
+  const recentDay = days[days.length - 1];
+  const previousDay = days.length > 1 ? days[days.length - 2] : null;
+
+  // 1. Call/Put Ratio Analysis
+  const recentCallPutRatio = recentDay.dailySummary.callPutRatio;
+  const avgCallPutRatio = days.reduce((sum, d) => sum + d.dailySummary.callPutRatio, 0) / days.length;
+  const callPutRatioTrend = recentCallPutRatio > avgCallPutRatio * 1.2 ? 1 : 
+                           recentCallPutRatio < avgCallPutRatio * 0.8 ? -1 : 0;
+
+  // 2. Premium Flow Analysis
+  const recentPremiumFlow = recentDay.dailySummary.callPremium - recentDay.dailySummary.putPremium;
+  const totalPremium = recentDay.dailySummary.callPremium + recentDay.dailySummary.putPremium;
+  const premiumFlowRatio = totalPremium > 0 ? recentPremiumFlow / totalPremium : 0;
+  
+  // Compare with previous day
+  let premiumFlowMomentum = 0;
+  if (previousDay) {
+    const prevPremiumFlow = previousDay.dailySummary.callPremium - previousDay.dailySummary.putPremium;
+    premiumFlowMomentum = recentPremiumFlow > prevPremiumFlow ? 1 : 
+                         recentPremiumFlow < prevPremiumFlow ? -1 : 0;
+  }
+
+  // 3. Volume Trend Analysis
+  const volumes = days.map(d => d.dailySummary.totalVolume);
+  const volumeTrend = volumes.length > 1 ? 
+    (volumes[volumes.length - 1] - volumes[0]) / Math.max(volumes[0], 1) : 0;
+
+  // 4. Strike Concentration Analysis (where most volume is)
+  const strikeMap = new Map<number, { callVolume: number; putVolume: number; totalVolume: number }>();
+  trades.forEach(trade => {
+    const existing = strikeMap.get(trade.strike) || { callVolume: 0, putVolume: 0, totalVolume: 0 };
+    if (trade.optionType === 'Call') {
+      existing.callVolume += trade.volume;
+    } else {
+      existing.putVolume += trade.volume;
+    }
+    existing.totalVolume += trade.volume;
+    strikeMap.set(trade.strike, existing);
+  });
+
+  // Find strikes with highest volume
+  const sortedStrikes = Array.from(strikeMap.entries())
+    .sort((a, b) => b[1].totalVolume - a[1].totalVolume)
+    .slice(0, 5);
+
+  const bullishStrikes = sortedStrikes
+    .filter(([_, data]) => data.callVolume > data.putVolume * 1.5)
+    .map(([strike]) => strike)
+    .slice(0, 3);
+
+  const bearishStrikes = sortedStrikes
+    .filter(([_, data]) => data.putVolume > data.callVolume * 1.5)
+    .map(([strike]) => strike)
+    .slice(0, 3);
+
+  const avgStrike = sortedStrikes.length > 0 ?
+    sortedStrikes.reduce((sum, [strike]) => sum + strike, 0) / sortedStrikes.length : 0;
+
+  // 5. Max Pain Calculation
+  const strikes = Array.from(strikeMap.keys()).sort((a, b) => a - b);
+  let maxPain: number | null = null;
+  let maxPainValue = Infinity;
+  
+  strikes.forEach(testStrike => {
+    let totalPain = 0;
+    strikeMap.forEach((data, strike) => {
+      if (strike < testStrike) {
+        // Calls below strike lose value
+        totalPain += data.callVolume * (testStrike - strike);
+      } else if (strike > testStrike) {
+        // Puts above strike lose value
+        totalPain += data.putVolume * (strike - testStrike);
+      }
+    });
+    if (totalPain < maxPainValue) {
+      maxPainValue = totalPain;
+      maxPain = testStrike;
+    }
+  });
+
+  // 6. Sentiment Momentum
+  const recentSentiments = days.slice(-3).map(d => d.dailySummary.psychology.sentiment);
+  const bullishCount = recentSentiments.filter(s => s === 'bullish').length;
+  const bearishCount = recentSentiments.filter(s => s === 'bearish').length;
+  const sentimentMomentum = bullishCount > bearishCount ? 1 : 
+                           bearishCount > bullishCount ? -1 : 0;
+
+  // 7. Calculate overall direction score
+  let bullishScore = 0;
+  let bearishScore = 0;
+  const reasoning: string[] = [];
+
+  // Call/Put Ratio (weight: 25%)
+  if (callPutRatioTrend > 0) {
+    bullishScore += 25;
+    reasoning.push(`Call/Put ratio trending up (${recentCallPutRatio.toFixed(2)}:1)`);
+  } else if (callPutRatioTrend < 0) {
+    bearishScore += 25;
+    reasoning.push(`Put/Call ratio trending up (${(1/recentCallPutRatio).toFixed(2)}:1)`);
+  }
+
+  // Premium Flow (weight: 30%)
+  if (premiumFlowRatio > 0.3) {
+    bullishScore += 30;
+    reasoning.push(`Strong call premium flow (${(premiumFlowRatio * 100).toFixed(0)}% net)`);
+  } else if (premiumFlowRatio < -0.3) {
+    bearishScore += 30;
+    reasoning.push(`Strong put premium flow (${(Math.abs(premiumFlowRatio) * 100).toFixed(0)}% net)`);
+  }
+
+  if (premiumFlowMomentum > 0) {
+    bullishScore += 10;
+    reasoning.push('Premium flow momentum increasing');
+  } else if (premiumFlowMomentum < 0) {
+    bearishScore += 10;
+    reasoning.push('Premium flow momentum decreasing');
+  }
+
+  // Volume Trend (weight: 15%)
+  if (volumeTrend > 0.2) {
+    bullishScore += 15;
+    reasoning.push(`Volume increasing (${(volumeTrend * 100).toFixed(0)}% trend)`);
+  } else if (volumeTrend < -0.2) {
+    bearishScore += 15;
+    reasoning.push(`Volume decreasing (${(Math.abs(volumeTrend) * 100).toFixed(0)}% trend)`);
+  }
+
+  // Strike Concentration (weight: 15%)
+  if (bullishStrikes.length > bearishStrikes.length) {
+    bullishScore += 15;
+    reasoning.push(`Volume concentrated at bullish strikes (${bullishStrikes.join(', ').replace(/\B(?=(\d{3})+(?!\d))/g, ',')})`);
+  } else if (bearishStrikes.length > bullishStrikes.length) {
+    bearishScore += 15;
+    reasoning.push(`Volume concentrated at bearish strikes (${bearishStrikes.join(', ').replace(/\B(?=(\d{3})+(?!\d))/g, ',')})`);
+  }
+
+  // Sentiment Momentum (weight: 5%)
+  if (sentimentMomentum > 0) {
+    bullishScore += 5;
+    reasoning.push('Recent sentiment momentum bullish');
+  } else if (sentimentMomentum < 0) {
+    bearishScore += 5;
+    reasoning.push('Recent sentiment momentum bearish');
+  }
+
+  // Determine direction
+  const strength = Math.abs(bullishScore - bearishScore);
+  let direction: 'bullish' | 'bearish' | 'neutral' | 'mixed';
+  let confidence: 'high' | 'medium' | 'low';
+
+  if (strength > 50) {
+    direction = bullishScore > bearishScore ? 'bullish' : 'bearish';
+    confidence = 'high';
+  } else if (strength > 25) {
+    direction = bullishScore > bearishScore ? 'bullish' : 'bearish';
+    confidence = 'medium';
+  } else if (strength > 10) {
+    direction = bullishScore > bearishScore ? 'bullish' : 'bearish';
+    confidence = 'low';
+  } else {
+    direction = 'neutral';
+    confidence = 'low';
+  }
+
+  // If conflicting signals, mark as mixed
+  if ((bullishScore > 20 && bearishScore > 20) || Math.abs(bullishScore - bearishScore) < 10) {
+    direction = 'mixed';
+    reasoning.push('Conflicting signals detected');
+  }
+
+  if (reasoning.length === 0) {
+    reasoning.push('Insufficient data for clear direction');
+  }
+
+  return {
+    direction,
+    confidence,
+    strength,
+    targetStrikes: {
+      bullish: bullishStrikes,
+      bearish: bearishStrikes
+    },
+    keyMetrics: {
+      callPutRatio: recentCallPutRatio,
+      premiumFlow: premiumFlowRatio,
+      volumeTrend: volumeTrend,
+      strikeConcentration: avgStrike,
+      maxPain
+    },
+    reasoning,
+    timeframe: '5 days'
   };
 }
 

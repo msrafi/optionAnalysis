@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
-import { OptionData, formatPremium } from '../utils/dataParser';
+import { OptionData, formatPremium, isExpiryInCurrentWeek } from '../utils/dataParser';
 import { 
   analyzeTickerWeeklySentiment, 
   TickerWeeklyAnalysis,
-  WeeklyTickerData 
+  WeeklyTickerData,
+  analyzeFourDayTradePsychology
 } from '../utils/tradePsychology';
+import TickerDirectionCharts from './TickerDirectionCharts';
 
 interface TickerWeeklyAnalysisProps {
   trades: OptionData[];
@@ -36,9 +38,16 @@ const TickerWeeklyAnalysisComponent: React.FC<TickerWeeklyAnalysisProps> = ({ tr
       <p>Bullish/Bearish sentiment by ticker for each week</p>
       
       <div className="ticker-analysis-grid">
-        {tickerAnalyses.slice(0, 20).map((analysis) => (
-          <TickerAnalysisCard key={analysis.ticker} analysis={analysis} />
-        ))}
+        {tickerAnalyses.slice(0, 20).map((analysis) => {
+          const tickerTrades = trades.filter(t => t.ticker === analysis.ticker);
+          return (
+            <TickerAnalysisCard 
+              key={analysis.ticker} 
+              analysis={analysis} 
+              trades={tickerTrades}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -46,12 +55,26 @@ const TickerWeeklyAnalysisComponent: React.FC<TickerWeeklyAnalysisProps> = ({ tr
 
 interface TickerAnalysisCardProps {
   analysis: TickerWeeklyAnalysis;
+  trades: OptionData[];
 }
 
-const TickerAnalysisCard: React.FC<TickerAnalysisCardProps> = ({ analysis }) => {
+const TickerAnalysisCard: React.FC<TickerAnalysisCardProps> = ({ analysis, trades }) => {
   const totalVolume = analysis.weeks.reduce((sum, week) => sum + week.totalVolume, 0);
   const totalTrades = analysis.weeks.reduce((sum, week) => sum + week.totalTrades, 0);
   const totalPremium = analysis.weeks.reduce((sum, week) => sum + week.totalPremium, 0);
+
+  // Calculate stock direction prediction for this ticker based on current week's expiry
+  const { stockDirection, currentWeekTrades } = useMemo(() => {
+    if (trades.length === 0) return { stockDirection: null, currentWeekTrades: [] };
+    
+    // Filter to only include options expiring in the current week
+    const filtered = trades.filter(trade => isExpiryInCurrentWeek(trade.expiry));
+    
+    if (filtered.length === 0) return { stockDirection: null, currentWeekTrades: [] };
+    
+    const tickerAnalysis = analyzeFourDayTradePsychology(filtered);
+    return { stockDirection: tickerAnalysis.stockDirection, currentWeekTrades: filtered };
+  }, [trades]);
 
   return (
     <div className={`ticker-analysis-card ${analysis.overallSentiment}`}>
@@ -80,6 +103,66 @@ const TickerAnalysisCard: React.FC<TickerAnalysisCardProps> = ({ analysis }) => 
           <span className="metric-value">{analysis.weeks.length}</span>
         </div>
       </div>
+
+      {/* Stock Direction Prediction */}
+      {stockDirection && (
+        <div className="ticker-stock-direction">
+          <div className={`ticker-prediction-card ${stockDirection.direction}`}>
+            <div className="ticker-prediction-main">
+              <div className="ticker-prediction-direction">
+                <div className="ticker-direction-icon">
+                  {stockDirection.direction === 'bullish' && '↗'}
+                  {stockDirection.direction === 'bearish' && '↘'}
+                  {stockDirection.direction === 'neutral' && '→'}
+                  {stockDirection.direction === 'mixed' && '⇄'}
+                </div>
+                <div className="ticker-direction-label">
+                  <span className="ticker-direction-text">{stockDirection.direction.toUpperCase()}</span>
+                  <span className={`ticker-confidence-badge ${stockDirection.confidence}`}>
+                    {stockDirection.confidence}
+                  </span>
+                </div>
+              </div>
+              <div className="ticker-strength-meter">
+                <div className="ticker-strength-label">Strength</div>
+                <div className="ticker-strength-bar">
+                  <div 
+                    className="ticker-strength-fill"
+                    style={{ 
+                      width: `${stockDirection.strength}%`,
+                      background: stockDirection.direction === 'bullish' 
+                        ? 'linear-gradient(90deg, #4caf50, #66bb6a)' 
+                        : stockDirection.direction === 'bearish'
+                        ? 'linear-gradient(90deg, #f44336, #ef5350)'
+                        : 'linear-gradient(90deg, #9e9e9e, #bdbdbd)'
+                    }}
+                  ></div>
+                </div>
+                <div className="ticker-strength-value">{stockDirection.strength}%</div>
+              </div>
+            </div>
+
+            {stockDirection.reasoning.length > 0 && (
+              <div className="ticker-prediction-reasoning">
+                <div className="ticker-reasoning-header">Key Indicators:</div>
+                <ul className="ticker-reasoning-list">
+                  {stockDirection.reasoning.slice(0, 3).map((reason, idx) => (
+                    <li key={idx}>{reason}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Charts */}
+            {stockDirection && currentWeekTrades.length > 0 && (
+              <TickerDirectionCharts 
+                trades={currentWeekTrades}
+                prediction={stockDirection}
+              />
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="trend-info">
         <div className={`trend-direction ${analysis.trendDirection}`}>

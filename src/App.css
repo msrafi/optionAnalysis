@@ -5481,6 +5481,292 @@
   margin: 0;
 }
 
+/* Stock Direction Prediction Styles */
+.stock-direction-prediction {
+  margin: 2rem 0;
+  padding: 0 1rem;
+}
+
+.prediction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.prediction-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #ffffff;
+}
+
+.prediction-timeframe {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.prediction-card {
+  background: linear-gradient(135deg, rgba(30, 30, 45, 0.95), rgba(20, 20, 35, 0.95));
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.prediction-card.bullish {
+  border-left: 4px solid #4caf50;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(30, 30, 45, 0.95));
+}
+
+.prediction-card.bearish {
+  border-left: 4px solid #f44336;
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(30, 30, 45, 0.95));
+}
+
+.prediction-card.neutral {
+  border-left: 4px solid #9e9e9e;
+}
+
+.prediction-card.mixed {
+  border-left: 4px solid #ff9800;
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.1), rgba(30, 30, 45, 0.95));
+}
+
+.prediction-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.prediction-direction {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.direction-icon {
+  font-size: 3rem;
+  font-weight: bold;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.prediction-card.bullish .direction-icon {
+  color: #66bb6a;
+}
+
+.prediction-card.bearish .direction-icon {
+  color: #ef5350;
+}
+
+.prediction-card.neutral .direction-icon {
+  color: #bdbdbd;
+}
+
+.prediction-card.mixed .direction-icon {
+  color: #ffb74d;
+}
+
+.direction-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.direction-text {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.confidence-badge {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.confidence-badge.high {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.2));
+  color: #66bb6a;
+  border: 1px solid rgba(76, 175, 80, 0.4);
+}
+
+.confidence-badge.medium {
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.3), rgba(255, 152, 0, 0.2));
+  color: #ffb74d;
+  border: 1px solid rgba(255, 152, 0, 0.4);
+}
+
+.confidence-badge.low {
+  background: linear-gradient(135deg, rgba(158, 158, 158, 0.3), rgba(158, 158, 158, 0.2));
+  color: #bdbdbd;
+  border: 1px solid rgba(158, 158, 158, 0.4);
+}
+
+.strength-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 200px;
+}
+
+.strength-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.strength-bar {
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.strength-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.5s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.strength-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-align: right;
+}
+
+.prediction-metrics {
+  margin-bottom: 1.5rem;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.metric-item .metric-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-item .metric-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.metric-value.positive {
+  color: #66bb6a;
+}
+
+.metric-value.negative {
+  color: #ef5350;
+}
+
+.target-strikes {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bullish-strikes {
+  border-left: 3px solid rgba(76, 175, 80, 0.5);
+}
+
+.bearish-strikes {
+  border-left: 3px solid rgba(244, 67, 54, 0.5);
+}
+
+.strikes-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  min-width: 140px;
+}
+
+.strikes-list {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.strike-badge {
+  padding: 0.4rem 0.8rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.prediction-reasoning {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.reasoning-header {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.reasoning-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.reasoning-list li {
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+  border-left: 3px solid rgba(79, 195, 247, 0.5);
+  line-height: 1.5;
+}
+
 /* Five Day Trading Layout */
 .four-day-layout {
   display: grid;
@@ -6307,6 +6593,307 @@
 
 .confidence.low .confidence-value {
   color: #ef4444;
+}
+
+/* Ticker Stock Direction Prediction */
+.ticker-stock-direction {
+  margin: 0.5rem 0;
+}
+
+.ticker-prediction-card {
+  background: rgba(30, 30, 45, 0.5);
+  border-radius: 8px;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+}
+
+.ticker-prediction-card.bullish {
+  border-left: 3px solid #4caf50;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.08), rgba(30, 30, 45, 0.5));
+}
+
+.ticker-prediction-card.bearish {
+  border-left: 3px solid #f44336;
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.08), rgba(30, 30, 45, 0.5));
+}
+
+.ticker-prediction-card.neutral {
+  border-left: 3px solid #9e9e9e;
+  background: rgba(30, 30, 45, 0.5);
+}
+
+.ticker-prediction-card.mixed {
+  border-left: 3px solid #ff9800;
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.08), rgba(30, 30, 45, 0.5));
+}
+
+.ticker-prediction-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  gap: 0.75rem;
+}
+
+.ticker-prediction-direction {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.ticker-direction-icon {
+  font-size: 1.25rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.ticker-prediction-card.bullish .ticker-direction-icon {
+  color: #66bb6a;
+}
+
+.ticker-prediction-card.bearish .ticker-direction-icon {
+  color: #ef5350;
+}
+
+.ticker-prediction-card.neutral .ticker-direction-icon {
+  color: #bdbdbd;
+}
+
+.ticker-prediction-card.mixed .ticker-direction-icon {
+  color: #ffb74d;
+}
+
+.ticker-direction-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.ticker-direction-text {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+
+.ticker-confidence-badge {
+  font-size: 0.65rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  width: fit-content;
+}
+
+.ticker-confidence-badge.high {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.ticker-confidence-badge.medium {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.ticker-confidence-badge.low {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.ticker-strength-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 80px;
+}
+
+.ticker-strength-label {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.ticker-strength-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.ticker-strength-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.ticker-strength-value {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.ticker-prediction-reasoning {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ticker-reasoning-header {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.ticker-reasoning-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ticker-reasoning-list li {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  padding-left: 0.75rem;
+  position: relative;
+}
+
+.ticker-reasoning-list li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--accent-color);
+  font-weight: bold;
+}
+
+/* Ticker Direction Charts */
+.ticker-direction-charts {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ticker-chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ticker-chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ticker-chart-title {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.ticker-chart-ratio {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 0.15rem 0.4rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.ticker-chart-ratio.positive {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.ticker-chart-ratio.negative {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.ticker-chart-bars {
+  display: flex;
+  gap: 0.5rem;
+  height: 60px;
+  align-items: flex-end;
+}
+
+.ticker-chart-bar-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  height: 100%;
+}
+
+.ticker-chart-bar {
+  width: 100%;
+  position: relative;
+  border-radius: 4px 4px 0 0;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 4px;
+}
+
+.ticker-chart-bar.call-bar {
+  background: linear-gradient(180deg, #4caf50, #66bb6a);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.ticker-chart-bar.put-bar {
+  background: linear-gradient(180deg, #f44336, #ef5350);
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.ticker-chart-bar:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ticker-bar-value {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  padding: 0.15rem 0.25rem;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  position: absolute;
+  bottom: 100%;
+  margin-bottom: 0.25rem;
+}
+
+.ticker-chart-bar:hover .ticker-bar-value {
+  opacity: 1;
+}
+
+.ticker-bar-label {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .weekly-breakdown h5 {

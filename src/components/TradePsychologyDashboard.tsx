@@ -263,6 +263,110 @@ const OverallAnalysisDashboard: React.FC<OverallAnalysisDashboardProps> = ({ set
         </div>
       </div>
 
+      {/* Stock Direction Prediction */}
+      {analysis.stockDirection && (
+        <div className="stock-direction-prediction">
+          <div className="prediction-header">
+            <h3>Stock Direction Prediction</h3>
+            <span className="prediction-timeframe">Based on {analysis.stockDirection.timeframe} of data</span>
+          </div>
+          
+          <div className={`prediction-card ${analysis.stockDirection.direction}`}>
+            <div className="prediction-main">
+              <div className="prediction-direction">
+                <div className="direction-icon">
+                  {analysis.stockDirection.direction === 'bullish' && '↗'}
+                  {analysis.stockDirection.direction === 'bearish' && '↘'}
+                  {analysis.stockDirection.direction === 'neutral' && '→'}
+                  {analysis.stockDirection.direction === 'mixed' && '⇄'}
+                </div>
+                <div className="direction-label">
+                  <span className="direction-text">{analysis.stockDirection.direction.toUpperCase()}</span>
+                  <span className={`confidence-badge ${analysis.stockDirection.confidence}`}>
+                    {analysis.stockDirection.confidence} confidence
+                  </span>
+                </div>
+              </div>
+              <div className="strength-meter">
+                <div className="strength-label">Signal Strength</div>
+                <div className="strength-bar">
+                  <div 
+                    className="strength-fill"
+                    style={{ 
+                      width: `${analysis.stockDirection.strength}%`,
+                      background: analysis.stockDirection.direction === 'bullish' 
+                        ? 'linear-gradient(90deg, #4caf50, #66bb6a)' 
+                        : analysis.stockDirection.direction === 'bearish'
+                        ? 'linear-gradient(90deg, #f44336, #ef5350)'
+                        : 'linear-gradient(90deg, #9e9e9e, #bdbdbd)'
+                    }}
+                  ></div>
+                </div>
+                <div className="strength-value">{analysis.stockDirection.strength}%</div>
+              </div>
+            </div>
+
+            <div className="prediction-metrics">
+              <div className="metric-grid">
+                <div className="metric-item">
+                  <span className="metric-label">Call/Put Ratio</span>
+                  <span className="metric-value">{analysis.stockDirection.keyMetrics.callPutRatio.toFixed(2)}:1</span>
+                </div>
+                <div className="metric-item">
+                  <span className="metric-label">Premium Flow</span>
+                  <span className={`metric-value ${analysis.stockDirection.keyMetrics.premiumFlow > 0 ? 'positive' : 'negative'}`}>
+                    {(analysis.stockDirection.keyMetrics.premiumFlow * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="metric-item">
+                  <span className="metric-label">Volume Trend</span>
+                  <span className={`metric-value ${analysis.stockDirection.keyMetrics.volumeTrend > 0 ? 'positive' : 'negative'}`}>
+                    {(analysis.stockDirection.keyMetrics.volumeTrend * 100).toFixed(1)}%
+                  </span>
+                </div>
+                {analysis.stockDirection.keyMetrics.maxPain && (
+                  <div className="metric-item">
+                    <span className="metric-label">Max Pain</span>
+                    <span className="metric-value">${analysis.stockDirection.keyMetrics.maxPain.toFixed(0)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {analysis.stockDirection.targetStrikes.bullish.length > 0 && (
+              <div className="target-strikes bullish-strikes">
+                <span className="strikes-label">Bullish Target Strikes:</span>
+                <div className="strikes-list">
+                  {analysis.stockDirection.targetStrikes.bullish.map(strike => (
+                    <span key={strike} className="strike-badge">${strike.toFixed(0)}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {analysis.stockDirection.targetStrikes.bearish.length > 0 && (
+              <div className="target-strikes bearish-strikes">
+                <span className="strikes-label">Bearish Target Strikes:</span>
+                <div className="strikes-list">
+                  {analysis.stockDirection.targetStrikes.bearish.map(strike => (
+                    <span key={strike} className="strike-badge">${strike.toFixed(0)}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="prediction-reasoning">
+              <div className="reasoning-header">Key Indicators:</div>
+              <ul className="reasoning-list">
+                {analysis.stockDirection.reasoning.map((reason, idx) => (
+                  <li key={idx}>{reason}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="four-day-layout">
         {analysis.days.map((day, index) => (
           <DayColumn
