@@ -1712,7 +1712,6 @@ GOOGL,255,11/07/2025,Put,1000,$460K,2068,0,"Tuesday, October 28, 2025 at 11:05 A
 BABA,167.5,11/21/2025,Put,787,$417.1K,5058,0,"Tuesday, October 28, 2025 at 11:05 AM",Unusual Put Sweep,options_data_2025-10-28_15-00.csv
 BABA,167.5,11/21/2025,Put,845,$452.1K,5948,0,"Tuesday, October 28, 2025 at 11:07 AM",Unusual Put Sweep,options_data_2025-10-28_15-00.csv
 BABA,167.5,11/21/2025,Put,1340,$725.7K,7986,0,"Tuesday, October 28, 2025 at 11:08 AM",Unusual Put Sweep,options_data_2025-10-28_15-00.csv
-GLD,364,11/05/2025,Call,1000,$530K,1081,0,"Tuesday, October 28, 2025 at 11:10 AM",Unusual Call Sweep,options_data_2025-10-28_15-00.csv
 NVDA,190,01/16/2026,Call,423,$772K,1886,0,"Tuesday, October 28, 2025 at 11:19 AM",Call Sweep,options_data_2025-10-28_15-00.csv
 TSLA,525,11/14/2025,Call,1013,$623.1K,2143,0,"Tuesday, October 28, 2025 at 11:22 AM",Unusual Call Sweep,options_data_2025-10-28_15-00.csv
 KWEB,55,02/20/2026,Put,973,$1.5M,1223,0,"Tuesday, October 28, 2025 at 11:25 AM",Put Sweep,options_data_2025-10-28_15-00.csv
@@ -2505,3 +2504,130 @@ NVDA,200,03/20/2026,Call,200,$427K,2319,0,"Wednesday, November 5, 2025 at 4:12 P
 MU,300,01/16/2026,Call,414,$467.8K,1719,0,"Wednesday, November 5, 2025 at 4:13 PM",Call Sweep,options_data_2025-11-05_16-00.csv
 AMD,310,05/15/2026,Call,500,$1.4M,503,0,"Wednesday, November 5, 2025 at 4:14 PM",Call Sweep,options_data_2025-11-05_16-00.csv
 AMD,300,08/21/2026,Call,331,$1.3M,582,0,"Wednesday, November 5, 2025 at 4:14 PM",Call Sweep,options_data_2025-11-05_16-00.csv
+NVDA,200,09/18/2026,Call,250,$867.8K,250,0,"Thursday, November 6, 2025 at 9:45 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+ASTS,90,12/05/2025,Put,279,$678K,279,0,"Thursday, November 6, 2025 at 9:45 AM",Unusual Put Sweep,options_data_2025-11-05_15-00.csv
+GOOG,280,01/16/2026,Put,351,$454.5K,355,0,"Thursday, November 6, 2025 at 9:46 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+TSLA,480,11/07/2025,Put,268,$627.1K,1002,0,"Thursday, November 6, 2025 at 9:48 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+TSLA,480,11/07/2025,Put,220,$514.8K,1225,0,"Thursday, November 6, 2025 at 9:48 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+GOOG,260,06/18/2026,Put,305,$555.1K,2169,0,"Thursday, November 6, 2025 at 9:51 AM",Unusual Put Sweep,options_data_2025-11-05_15-00.csv
+GOOG,260,06/18/2026,Put,224,$407.7K,2393,0,"Thursday, November 6, 2025 at 9:51 AM",Unusual Put Sweep,options_data_2025-11-05_15-00.csv
+TSLA,450,11/07/2025,Call,1248,$2.1M,3304,0,"Thursday, November 6, 2025 at 9:56 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+NVDA,200,12/19/2025,Call,441,$493.9K,1443,0,"Thursday, November 6, 2025 at 9:56 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+SLV,46,02/20/2026,Call,2526,$490K,7492,0,"Thursday, November 6, 2025 at 9:57 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,450,11/07/2025,Call,450,$886.4K,4432,0,"Thursday, November 6, 2025 at 9:59 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,500,11/28/2025,Call,299,$466.2K,775,0,"Thursday, November 6, 2025 at 10:01 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,500,11/28/2025,Call,300,$475.1K,1406,0,"Thursday, November 6, 2025 at 10:02 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,450,12/19/2025,Call,411,$1.9M,578,0,"Thursday, November 6, 2025 at 10:03 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,470,11/07/2025,Put,289,$428.7K,932,0,"Thursday, November 6, 2025 at 10:05 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+DDOG,160,03/20/2026,Call,152,$585.2K,524,0,"Thursday, November 6, 2025 at 10:06 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+AMD,260,01/16/2026,Call,763,$1.4M,931,0,"Thursday, November 6, 2025 at 10:07 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+SNDK,260,11/21/2025,Call,522,$574.2K,1423,0,"Thursday, November 6, 2025 at 10:07 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+MU,330,02/20/2026,Call,400,$521.6K,412,0,"Thursday, November 6, 2025 at 10:07 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+MU,240,11/14/2025,Put,501,$440.9K,710,0,"Thursday, November 6, 2025 at 10:08 AM",Unusual Put Sweep,options_data_2025-11-05_15-00.csv
+XLV,143,11/21/2025,Call,1600,$600K,1601,0,"Thursday, November 6, 2025 at 10:17 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+LRCX,170,12/19/2025,Call,681,$595.9K,812,0,"Thursday, November 6, 2025 at 10:17 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,457.5,11/07/2025,Put,856,$971.4K,7739,0,"Thursday, November 6, 2025 at 10:18 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+CRWV,97.5,12/19/2025,Put,491,$419.8K,518,0,"Thursday, November 6, 2025 at 10:19 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+MSFT,500,11/14/2025,Call,1002,$736.5K,1911,0,"Thursday, November 6, 2025 at 10:19 AM",Unusual Call Sweep,options_data_2025-11-05_15-00.csv
+HOOD,150,01/16/2026,Call,509,$468.3K,3342,0,"Thursday, November 6, 2025 at 10:24 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+APP,640,11/07/2025,Call,1083,$704K,1962,0,"Thursday, November 6, 2025 at 10:25 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+APP,640,11/07/2025,Call,897,$583.1K,2878,0,"Thursday, November 6, 2025 at 10:25 AM",Unusual Call Sweep,options_data_2025-11-05_15-00.csv
+GLD,360,11/21/2025,Put,2000,$536K,2105,0,"Thursday, November 6, 2025 at 10:26 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+AVGO,370,12/19/2025,Call,200,$438K,1184,0,"Thursday, November 6, 2025 at 10:26 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+SLV,38,05/15/2026,Put,3683,$401.4K,8684,0,"Thursday, November 6, 2025 at 10:27 AM",Unusual Put Sweep,options_data_2025-11-05_15-00.csv
+DAVE,195,11/21/2025,Call,249,$983.6K,500,0,"Thursday, November 6, 2025 at 10:28 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+DAVE,195,11/21/2025,Call,244,$976K,750,0,"Thursday, November 6, 2025 at 10:28 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+GOOGL,290,02/20/2026,Call,200,$442K,574,0,"Thursday, November 6, 2025 at 10:30 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+HOOD,135,11/21/2025,Put,799,$759.1K,1485,0,"Thursday, November 6, 2025 at 10:30 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+TSM,290,12/12/2025,Put,9945,$13M,10000,0,"Thursday, November 6, 2025 at 10:31 AM",Highly Unusual Put Sweep,options_data_2025-11-05_15-00.csv
+DASH,120,03/20/2026,Put,2499,$474.8K,2526,0,"Thursday, November 6, 2025 at 10:33 AM",Unusual Put Sweep,options_data_2025-11-05_15-00.csv
+GOOGL,300,03/20/2026,Call,500,$1M,586,0,"Thursday, November 6, 2025 at 10:34 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+PLTR,140,12/18/2026,Call,200,$1.4M,404,0,"Thursday, November 6, 2025 at 10:37 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+ARM,170,12/19/2025,Put,449,$875.6K,453,0,"Thursday, November 6, 2025 at 10:43 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+MA,560,06/17/2027,Call,199,$1.6M,200,0,"Thursday, November 6, 2025 at 10:43 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+NVDA,202.5,11/21/2025,Call,895,$420.7K,3680,0,"Thursday, November 6, 2025 at 10:44 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,450,11/14/2025,Put,330,$594K,4327,0,"Thursday, November 6, 2025 at 10:47 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+TSLA,450,11/14/2025,Put,1741,$3.1M,6070,0,"Thursday, November 6, 2025 at 10:47 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+AMD,235,11/07/2025,Put,8622,$1.4M,26319,0,"Thursday, November 6, 2025 at 10:48 AM",Highly Unusual Put Sweep,options_data_2025-11-05_15-00.csv
+TSLA,442.5,11/07/2025,Put,1874,$1.4M,8292,0,"Thursday, November 6, 2025 at 10:50 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+NVDA,150,01/16/2026,Put,2580,$616.7K,2725,0,"Thursday, November 6, 2025 at 10:51 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+URA,48,12/19/2025,Put,3463,$1.4M,3597,0,"Thursday, November 6, 2025 at 10:52 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+AMD,250,11/07/2025,Put,514,$668.2K,10280,0,"Thursday, November 6, 2025 at 10:53 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+IBIT,55,01/15/2027,Put,498,$500.5K,1017,0,"Thursday, November 6, 2025 at 10:57 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+AMD,235,11/07/2025,Call,1000,$620K,1878,0,"Thursday, November 6, 2025 at 10:58 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+CVNA,300,11/21/2025,Call,782,$1.5M,2526,0,"Thursday, November 6, 2025 at 10:59 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+FLR,40,11/21/2025,Put,3510,$403.6K,3671,0,"Thursday, November 6, 2025 at 11:00 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+GDXJ,90,12/19/2025,Put,1059,$476.6K,1130,0,"Thursday, November 6, 2025 at 11:00 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+TSLA,455,11/14/2025,Call,871,$1.3M,3294,0,"Thursday, November 6, 2025 at 11:00 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+AMZN,245,12/19/2025,Put,1566,$1.6M,1746,0,"Thursday, November 6, 2025 at 11:00 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+MU,250,01/16/2026,Call,595,$1.4M,1046,0,"Thursday, November 6, 2025 at 11:00 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+DAVE,195,11/21/2025,Call,180,$837K,1233,0,"Thursday, November 6, 2025 at 11:01 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+AMD,300,01/15/2027,Call,254,$1.1M,515,0,"Thursday, November 6, 2025 at 11:01 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+AMD,300,01/15/2027,Call,246,$1.1M,762,0,"Thursday, November 6, 2025 at 11:02 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+FIVN,25,07/17/2026,Call,1499,$569.6K,1500,0,"Thursday, November 6, 2025 at 11:03 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,455,11/14/2025,Call,810,$1.2M,5384,0,"Thursday, November 6, 2025 at 11:07 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+XME,80,01/16/2026,Call,304,$422.6K,707,0,"Thursday, November 6, 2025 at 11:08 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+GLD,366,11/14/2025,Call,1000,$449.8K,1072,0,"Thursday, November 6, 2025 at 11:13 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+CRCL,95,11/21/2025,Put,1000,$500.1K,1048,0,"Thursday, November 6, 2025 at 11:13 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+NVDA,185,01/16/2026,Put,400,$482K,620,0,"Thursday, November 6, 2025 at 11:15 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+MSTR,262.5,11/14/2025,Call,2479,$793.3K,2566,0,"Thursday, November 6, 2025 at 11:24 AM",Unusual Call Sweep,options_data_2025-11-05_15-00.csv
+TEM,75,01/16/2026,Put,472,$472K,645,0,"Thursday, November 6, 2025 at 11:26 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+TSLA,450,11/07/2025,Put,501,$696.4K,29748,0,"Thursday, November 6, 2025 at 11:32 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+BLSH,60,11/21/2025,Put,463,$747.7K,539,0,"Thursday, November 6, 2025 at 11:49 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+NVDA,190,01/21/2028,Call,254,$1.4M,587,0,"Thursday, November 6, 2025 at 11:50 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+AMD,240,11/07/2025,Put,1005,$557.8K,40409,0,"Thursday, November 6, 2025 at 11:50 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+IBIT,57,11/14/2025,Put,2664,$407.8K,7873,0,"Thursday, November 6, 2025 at 11:55 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+IBIT,57,11/14/2025,Put,2669,$413K,10542,0,"Thursday, November 6, 2025 at 11:55 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+CNR,80,12/18/2026,Put,1000,$1.4M,1002,0,"Thursday, November 6, 2025 at 11:55 AM",Put Sweep,options_data_2025-11-05_15-00.csv
+ADBE,385,08/21/2026,Call,164,$488.6K,164,0,"Thursday, November 6, 2025 at 11:56 AM",Call Sweep,options_data_2025-11-05_15-00.csv
+IREN,90,01/16/2026,Call,1131,$995.3K,1301,0,"Thursday, November 6, 2025 at 12:04 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+MSTR,260,11/14/2025,Call,2005,$661.7K,2768,0,"Thursday, November 6, 2025 at 12:07 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,480,11/28/2025,Call,499,$671.2K,1076,0,"Thursday, November 6, 2025 at 12:09 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+NVDA,200,02/20/2026,Call,300,$434.6K,1804,0,"Thursday, November 6, 2025 at 12:10 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+PLTR,175,02/20/2026,Put,251,$540.9K,523,0,"Thursday, November 6, 2025 at 12:12 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+PYPL,65,12/19/2025,Put,1849,$486.3K,1943,0,"Thursday, November 6, 2025 at 12:13 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+AAPL,260,01/16/2026,Put,977,$630.2K,2175,0,"Thursday, November 6, 2025 at 12:14 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+AAPL,255,12/19/2025,Put,1198,$407.3K,1517,0,"Thursday, November 6, 2025 at 12:15 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+GOOGL,200,06/17/2027,Call,219,$2.4M,1143,0,"Thursday, November 6, 2025 at 12:15 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,480,11/28/2025,Call,499,$679.9K,1592,0,"Thursday, November 6, 2025 at 12:19 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+MSFT,545,01/16/2026,Call,1500,$992.3K,1726,0,"Thursday, November 6, 2025 at 12:23 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,450,11/07/2025,Call,714,$535.5K,38812,0,"Thursday, November 6, 2025 at 12:24 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+NVDA,200,12/19/2025,Call,2040,$1.6M,11032,0,"Thursday, November 6, 2025 at 12:29 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,480,12/05/2025,Call,505,$871.5K,3345,0,"Thursday, November 6, 2025 at 12:29 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+NVDA,200,12/19/2025,Call,2000,$1.6M,13106,0,"Thursday, November 6, 2025 at 12:31 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+DAVE,195,11/21/2025,Call,162,$620.5K,1724,0,"Thursday, November 6, 2025 at 12:38 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+NVDA,185,11/21/2025,Put,936,$711.4K,7341,0,"Thursday, November 6, 2025 at 12:40 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+PLTR,175,12/18/2026,Put,200,$810K,211,0,"Thursday, November 6, 2025 at 12:40 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+PLTR,115,06/17/2027,Call,500,$4.3M,512,0,"Thursday, November 6, 2025 at 12:42 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+UNH,250,06/18/2026,Put,1000,$925K,3089,0,"Thursday, November 6, 2025 at 12:43 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+IREN,70,01/16/2026,Call,550,$789.3K,1259,0,"Thursday, November 6, 2025 at 12:45 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+NVDA,180,11/28/2025,Put,4057,$2.5M,5573,0,"Thursday, November 6, 2025 at 12:48 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+AMGN,315,12/18/2026,Call,153,$551.6K,153,0,"Thursday, November 6, 2025 at 12:48 PM",Unusual Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,440,11/07/2025,Call,606,$739.4K,22590,0,"Thursday, November 6, 2025 at 12:48 PM",Unusual Call Sweep,options_data_2025-11-05_15-00.csv
+NVDA,180,11/28/2025,Put,3999,$2.5M,11575,0,"Thursday, November 6, 2025 at 12:48 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+PLTR,155,01/16/2026,Put,1000,$810K,1236,0,"Thursday, November 6, 2025 at 12:51 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+GOOGL,295,06/17/2027,Call,199,$1.1M,1347,0,"Thursday, November 6, 2025 at 12:51 PM",Unusual Call Sweep,options_data_2025-11-05_15-00.csv
+NVDA,210,12/19/2025,Put,400,$1.1M,828,0,"Thursday, November 6, 2025 at 12:52 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+META,720,01/16/2026,Call,500,$605K,2218,0,"Thursday, November 6, 2025 at 12:52 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+BA,175,05/15/2026,Put,500,$440K,508,0,"Thursday, November 6, 2025 at 12:54 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+GOOGL,295,06/17/2027,Call,169,$963.3K,2230,0,"Thursday, November 6, 2025 at 1:01 PM",Unusual Call Sweep,options_data_2025-11-05_15-00.csv
+CG,55,01/15/2027,Call,597,$465.7K,1761,0,"Thursday, November 6, 2025 at 1:01 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+GOOGL,295,06/17/2027,Call,224,$1.3M,3861,0,"Thursday, November 6, 2025 at 1:06 PM",Unusual Call Sweep,options_data_2025-11-05_15-00.csv
+GOOG,250,01/16/2026,Call,200,$867K,353,0,"Thursday, November 6, 2025 at 1:11 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+NVDA,185,11/07/2025,Put,3573,$485.9K,69747,0,"Thursday, November 6, 2025 at 1:28 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+AVGO,320,12/05/2025,Call,150,$619.5K,227,0,"Thursday, November 6, 2025 at 1:28 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+NKE,40,01/21/2028,Call,199,$532.3K,199,0,"Thursday, November 6, 2025 at 1:45 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,440,11/14/2025,Call,203,$479.1K,14579,0,"Thursday, November 6, 2025 at 1:59 PM",Unusual Call Sweep,options_data_2025-11-05_15-00.csv
+IREN,70,03/20/2026,Put,250,$502.5K,538,0,"Thursday, November 6, 2025 at 1:59 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+TSLA,450,11/07/2025,Call,844,$818.7K,58201,0,"Thursday, November 6, 2025 at 2:05 PM",Unusual Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,465,11/14/2025,Put,258,$731.4K,2115,0,"Thursday, November 6, 2025 at 2:13 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+FLR,52.5,03/20/2026,Put,601,$643.1K,1086,0,"Thursday, November 6, 2025 at 2:17 PM",Unusual Put Sweep,options_data_2025-11-05_15-00.csv
+NVDA,200,12/05/2025,Call,635,$415.9K,4856,0,"Thursday, November 6, 2025 at 2:23 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+GOOG,290,12/19/2025,Call,415,$539.5K,1985,0,"Thursday, November 6, 2025 at 2:30 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+GOOGL,280,11/14/2025,Call,666,$672.7K,2342,0,"Thursday, November 6, 2025 at 2:35 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+NVDA,185,12/05/2025,Call,398,$557.2K,1759,0,"Thursday, November 6, 2025 at 2:46 PM",Unusual Call Sweep,options_data_2025-11-05_15-00.csv
+GOOGL,390,12/18/2026,Call,300,$573K,301,0,"Thursday, November 6, 2025 at 2:54 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+TSLA,472.5,11/07/2025,Call,6014,$1.9M,17049,0,"Thursday, November 6, 2025 at 2:54 PM",Highly Unusual Call Sweep,options_data_2025-11-05_15-00.csv
+C,97.5,12/19/2025,Put,2579,$678.3K,2689,0,"Thursday, November 6, 2025 at 2:58 PM",Put Sweep,options_data_2025-11-05_15-00.csv
+INTC,36.5,11/14/2025,Call,2243,$423.9K,2333,0,"Thursday, November 6, 2025 at 3:06 PM",Unusual Call Sweep,options_data_2025-11-05_15-00.csv
+JPM,315,01/16/2026,Call,386,$559.7K,535,0,"Thursday, November 6, 2025 at 3:13 PM",Call Sweep,options_data_2025-11-05_15-00.csv
