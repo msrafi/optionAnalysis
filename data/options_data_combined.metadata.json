@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2025-11-05T19:30:46.301Z",
+  "generatedAt": "2025-11-06T02:33:43.709Z",
   "generatedBy": "combineDataFiles.js",
   "sourceFiles": {
-    "count": 43,
-    "latest": "options_data_2025-11-05_14-00.csv",
-    "latestModified": "2025-11-05T19:26:16.058Z",
+    "count": 44,
+    "latest": "options_data_2025-11-05_16-00.csv",
+    "latestModified": "2025-11-06T02:33:03.942Z",
     "files": [
       {
         "filename": "options_data_2025-11-04_16-00.csv",
@@ -263,26 +263,32 @@
         "modifiedTime": "2025-11-05T19:26:16.058Z",
         "parsedTimestamp": "2025-11-05T19:00:00.000Z",
         "size": 29297
+      },
+      {
+        "filename": "options_data_2025-11-05_16-00.csv",
+        "modifiedTime": "2025-11-06T02:33:03.942Z",
+        "parsedTimestamp": "2025-11-05T21:00:00.000Z",
+        "size": 50196
       }
     ]
   },
   "combinedFile": {
     "filename": "options_data_combined.csv",
-    "size": 315653,
+    "size": 320317,
     "records": {
-      "totalUnique": 2470,
-      "newRecordsAdded": 100,
+      "totalUnique": 2506,
+      "newRecordsAdded": 200,
       "expiredRemoved": 0,
-      "duplicatesRemoved": 4,
-      "existingRecordsKept": 2374
+      "duplicatesRemoved": 164,
+      "existingRecordsKept": 2470
     },
     "fileStats": [
       {
-        "filename": "options_data_2025-11-05_14-00.csv",
-        "records": 100,
-        "duplicates": 4,
+        "filename": "options_data_2025-11-05_16-00.csv",
+        "records": 200,
+        "duplicates": 164,
         "expired": 0,
-        "unique": 96
+        "unique": 36
       }
     ]
   },
