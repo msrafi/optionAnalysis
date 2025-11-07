@@ -252,9 +252,9 @@ function combineAllFiles() {
   // Load existing combined file
   const { trades: existingTrades, processedFiles } = loadExistingCombinedFile();
   
-  // Find all data files
+  // Find all data files (including darkpool files that may contain options data)
   const allFiles = fs.readdirSync(DATA_DIR)
-    .filter(f => f.startsWith('options_data_') && f.endsWith('.csv') && f !== 'options_data_combined.csv')
+    .filter(f => (f.startsWith('options_data_') || f.startsWith('darkpool_data_')) && f.endsWith('.csv') && f !== 'options_data_combined.csv')
     .sort();
   
   // Filter to only new files (not already processed)

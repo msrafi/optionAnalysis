@@ -2631,3 +2631,21 @@ TSLA,472.5,11/07/2025,Call,6014,$1.9M,17049,0,"Thursday, November 6, 2025 at 2:5
 C,97.5,12/19/2025,Put,2579,$678.3K,2689,0,"Thursday, November 6, 2025 at 2:58 PM",Put Sweep,options_data_2025-11-05_15-00.csv
 INTC,36.5,11/14/2025,Call,2243,$423.9K,2333,0,"Thursday, November 6, 2025 at 3:06 PM",Unusual Call Sweep,options_data_2025-11-05_15-00.csv
 JPM,315,01/16/2026,Call,386,$559.7K,535,0,"Thursday, November 6, 2025 at 3:13 PM",Call Sweep,options_data_2025-11-05_15-00.csv
+PLTR,140,06/18/2026,Put,500,$700K,927,0,"Thursday, November 6, 2025 at 3:17 PM",Put Sweep,darkpool_data_2025-11-06_16-00.csv
+ADBE,370,09/18/2026,Call,165,$643.7K,168,0,"Thursday, November 6, 2025 at 3:23 PM",Call Sweep,darkpool_data_2025-11-06_16-00.csv
+GOOG,280,01/16/2026,Put,357,$467.7K,866,0,"Thursday, November 6, 2025 at 3:28 PM",Put Sweep,darkpool_data_2025-11-06_16-00.csv
+MSFT,495,11/07/2025,Call,703,$421.4K,2358,0,"Thursday, November 6, 2025 at 3:32 PM",Unusual Call Sweep,darkpool_data_2025-11-06_16-00.csv
+NIO,7,05/15/2026,Call,3189,$519.8K,3888,0,"Thursday, November 6, 2025 at 3:40 PM",Call Sweep,darkpool_data_2025-11-06_16-00.csv
+TSLA,500,11/14/2025,Call,1846,$941.5K,30206,0,"Thursday, November 6, 2025 at 3:44 PM",Call Sweep,darkpool_data_2025-11-06_16-00.csv
+IREN,69,12/26/2025,Call,800,$1.1M,801,0,"Thursday, November 6, 2025 at 3:52 PM",Call Sweep,darkpool_data_2025-11-06_16-00.csv
+TSLA,467.5,11/14/2025,Put,680,$2M,1143,0,"Thursday, November 6, 2025 at 3:52 PM",Put Sweep,darkpool_data_2025-11-06_16-00.csv
+HOOD,80,12/17/2027,Call,346,$2.4M,356,0,"Thursday, November 6, 2025 at 3:55 PM",Call Sweep,darkpool_data_2025-11-06_16-00.csv
+NVDA,150,01/16/2026,Put,1726,$503.2K,8429,0,"Thursday, November 6, 2025 at 3:58 PM",Put Sweep,darkpool_data_2025-11-06_16-00.csv
+PLTR,210,06/17/2027,Call,200,$900K,408,0,"Thursday, November 6, 2025 at 3:59 PM",Call Sweep,darkpool_data_2025-11-06_16-00.csv
+PLTR,210,06/17/2027,Call,623,$2.8M,1231,0,"Thursday, November 6, 2025 at 3:59 PM",Unusual Call Sweep,darkpool_data_2025-11-06_16-00.csv
+PLTR,210,06/17/2027,Call,393,$1.8M,1745,0,"Thursday, November 6, 2025 at 3:59 PM",Unusual Call Sweep,darkpool_data_2025-11-06_16-00.csv
+XHB,110,09/18/2026,Call,910,$873.6K,911,0,"Thursday, November 6, 2025 at 4:03 PM",Call Sweep,darkpool_data_2025-11-06_16-00.csv
+DUOL,220,01/16/2026,Put,192,$800.6K,506,0,"Thursday, November 6, 2025 at 4:03 PM",Unusual Put Sweep,darkpool_data_2025-11-06_16-00.csv
+TSLA,420,01/16/2026,Put,249,$808K,939,0,"Thursday, November 6, 2025 at 4:08 PM",Put Sweep,darkpool_data_2025-11-06_16-00.csv
+NVDA,160,01/16/2026,Put,1000,$480K,7297,0,"Thursday, November 6, 2025 at 4:11 PM",Put Sweep,darkpool_data_2025-11-06_16-00.csv
+AMZN,240,03/20/2026,Put,500,$872.5K,1035,0,"Thursday, November 6, 2025 at 4:13 PM",Put Sweep,darkpool_data_2025-11-06_16-00.csv
