@@ -264,11 +264,6 @@ function combineAllFiles() {
   console.log(`   ${processedFiles.size} already processed`);
   console.log(`   ${newFiles.length} new files to process`);
   
-  if (newFiles.length === 0) {
-    console.log('\n✅ No new files to process. Combined file is up to date.');
-    return;
-  }
-  
   // Track unique trades - start with existing trades
   const uniqueTrades = new Map(existingTrades);
   const fileStats = [];
@@ -276,55 +271,59 @@ function combineAllFiles() {
   let totalExpired = 0;
   let totalDuplicates = 0;
   
-  // Process only new files
-  for (const filename of newFiles) {
-    const filePath = path.join(DATA_DIR, filename);
-    console.log(`  Processing: ${filename}...`);
-    
-    const fileData = parseCSVFile(filePath, filename);
-    totalNewRecords += fileData.length;
-    
-    // Filter out expired options and deduplicate
-    let duplicates = 0;
-    let expired = 0;
-    let newUnique = 0;
-    
-    for (const trade of fileData) {
-      // Double-check expiry (in case date changed since file was created)
-      const isExpired = isOptionExpired(trade.expiry);
+  // Process new files if any exist
+  if (newFiles.length > 0) {
+    for (const filename of newFiles) {
+      const filePath = path.join(DATA_DIR, filename);
+      console.log(`  Processing: ${filename}...`);
       
-      if (isExpired) {
-        expired++;
-        continue; // Skip expired options
+      const fileData = parseCSVFile(filePath, filename);
+      totalNewRecords += fileData.length;
+      
+      // Filter out expired options and deduplicate
+      let duplicates = 0;
+      let expired = 0;
+      let newUnique = 0;
+      
+      for (const trade of fileData) {
+        // Double-check expiry (in case date changed since file was created)
+        const isExpired = isOptionExpired(trade.expiry);
+        
+        if (isExpired) {
+          expired++;
+          continue; // Skip expired options
+        }
+        
+        // Deduplicate using same logic as app
+        const key = `${trade.ticker}_${trade.strike}_${trade.expiry}_${trade.optionType}_${trade.volume}_${trade.premium}_${trade.timestamp}`;
+        
+        if (!uniqueTrades.has(key)) {
+          uniqueTrades.set(key, trade);
+          newUnique++;
+        } else {
+          duplicates++;
+        }
       }
       
-      // Deduplicate using same logic as app
-      const key = `${trade.ticker}_${trade.strike}_${trade.expiry}_${trade.optionType}_${trade.volume}_${trade.premium}_${trade.timestamp}`;
+      totalExpired += expired;
+      totalDuplicates += duplicates;
       
-      if (!uniqueTrades.has(key)) {
-        uniqueTrades.set(key, trade);
-        newUnique++;
-      } else {
-        duplicates++;
-      }
+      fileStats.push({
+        filename,
+        records: fileData.length,
+        duplicates,
+        expired,
+        unique: newUnique
+      });
+      
+      const expiredMsg = expired > 0 ? `, ${expired} expired` : '';
+      console.log(`    ✓ ${fileData.length} records (${newUnique} new unique, ${duplicates} duplicates${expiredMsg})`);
     }
-    
-    totalExpired += expired;
-    totalDuplicates += duplicates;
-    
-    fileStats.push({
-      filename,
-      records: fileData.length,
-      duplicates,
-      expired,
-      unique: newUnique
-    });
-    
-    const expiredMsg = expired > 0 ? `, ${expired} expired` : '';
-    console.log(`    ✓ ${fileData.length} records (${newUnique} new unique, ${duplicates} duplicates${expiredMsg})`);
+  } else {
+    console.log('\n✅ No new files to process.');
   }
   
-  // Remove expired options from existing data
+  // Always remove expired options from existing data (even if no new files)
   console.log('\n🧹 Removing expired options from existing data...');
   let expiredRemovedFromExisting = 0;
   for (const [key, trade] of uniqueTrades.entries()) {
@@ -335,6 +334,16 @@ function combineAllFiles() {
   }
   if (expiredRemovedFromExisting > 0) {
     console.log(`   Removed ${expiredRemovedFromExisting} expired options from existing data`);
+  } else {
+    console.log(`   No expired options found in existing data`);
+  }
+  
+  // Only write file if we have new files or removed expired options
+  const needsUpdate = newFiles.length > 0 || expiredRemovedFromExisting > 0;
+  
+  if (!needsUpdate) {
+    console.log('\n✅ Combined file is up to date. No changes needed.');
+    return;
   }
   
   // Get file timestamps for new files only (for metadata)

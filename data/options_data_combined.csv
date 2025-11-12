@@ -2785,3 +2785,140 @@ SLV,45,06/18/2026,Call,2699,$1.5M,4899,0,"Tuesday, November 11, 2025 at 4:11 PM"
 TSLA,300,05/15/2026,Put,300,$423K,2540,0,"Tuesday, November 11, 2025 at 4:12 PM",Put Sweep,darkpool_data_2025-11-11_16-00.csv
 NVDA,195,11/14/2025,Put,1005,$432.1K,66352,0,"Tuesday, November 11, 2025 at 4:14 PM",Put Sweep,darkpool_data_2025-11-11_16-00.csv
 WULF,25,06/18/2026,Call,4000,$540K,9739,0,"Tuesday, November 11, 2025 at 4:14 PM",Call Sweep,darkpool_data_2025-11-11_16-00.csv
+AMD,255,11/14/2025,Put,1098,$658.8K,1811,0,"Wednesday, November 12, 2025 at 9:46 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+AMD,300,04/17/2026,Call,412,$970.5K,563,0,"Wednesday, November 12, 2025 at 9:47 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+AMD,300,04/17/2026,Call,249,$605.1K,812,0,"Wednesday, November 12, 2025 at 9:47 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+SLV,47,05/15/2026,Call,2295,$1M,2295,0,"Wednesday, November 12, 2025 at 9:50 AM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+PLTR,175,03/20/2026,Put,400,$752K,407,0,"Wednesday, November 12, 2025 at 9:50 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+WULF,10,01/16/2026,Call,7500,$2.7M,7505,0,"Wednesday, November 12, 2025 at 9:50 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+SOFI,32,06/18/2026,Call,645,$454.7K,1816,0,"Wednesday, November 12, 2025 at 9:53 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+SLV,46.5,05/15/2026,Call,3003,$1.5M,3024,0,"Wednesday, November 12, 2025 at 9:55 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+GOOGL,290,12/19/2025,Put,5939,$7.2M,7311,0,"Wednesday, November 12, 2025 at 9:56 AM",Unusual Put Sweep,darkpool_data_2025-11-12_16-00.csv
+GOOGL,290,12/19/2025,Put,1720,$2.1M,9031,0,"Wednesday, November 12, 2025 at 9:56 AM",Unusual Put Sweep,darkpool_data_2025-11-12_16-00.csv
+SLV,47,06/30/2026,Call,2416,$1.3M,2549,0,"Wednesday, November 12, 2025 at 9:58 AM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+GS,835,11/21/2025,Put,318,$523.1K,318,0,"Wednesday, November 12, 2025 at 9:59 AM",Unusual Put Sweep,darkpool_data_2025-11-12_16-00.csv
+SLV,49.5,06/18/2026,Call,1746,$768.2K,1747,0,"Wednesday, November 12, 2025 at 10:00 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+SLV,50,06/18/2026,Call,2270,$964.8K,2510,0,"Wednesday, November 12, 2025 at 10:00 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+SLV,46.5,06/18/2026,Call,1010,$565.6K,3654,0,"Wednesday, November 12, 2025 at 10:01 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+PLTR,187.5,11/14/2025,Put,1231,$480.6K,3699,0,"Wednesday, November 12, 2025 at 10:02 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+TAN,54,12/19/2025,Call,2196,$439.2K,4856,0,"Wednesday, November 12, 2025 at 10:03 AM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+INTC,32,03/20/2026,Call,668,$541.1K,668,0,"Wednesday, November 12, 2025 at 10:06 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+SOXX,290,12/19/2025,Put,1000,$1M,2400,0,"Wednesday, November 12, 2025 at 10:08 AM",Unusual Put Sweep,darkpool_data_2025-11-12_16-00.csv
+BE,120,12/19/2025,Call,1025,$2.1M,2061,0,"Wednesday, November 12, 2025 at 10:08 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+SLV,46,06/18/2026,Call,1000,$595K,5598,0,"Wednesday, November 12, 2025 at 10:09 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+C,120,03/20/2026,Call,2141,$477.4K,2239,0,"Wednesday, November 12, 2025 at 10:09 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+TSLA,560,01/16/2026,Call,836,$735.7K,8733,0,"Wednesday, November 12, 2025 at 10:13 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+TSLA,550,01/16/2026,Call,764,$764K,5285,0,"Wednesday, November 12, 2025 at 10:13 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+TSLA,550,01/16/2026,Call,467,$467K,4521,0,"Wednesday, November 12, 2025 at 10:13 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+TSLA,550,01/16/2026,Call,578,$578K,7242,0,"Wednesday, November 12, 2025 at 10:14 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+TSLA,550,01/16/2026,Call,798,$798K,8400,0,"Wednesday, November 12, 2025 at 10:14 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+ALB,120,12/19/2025,Call,2315,$937.8K,2319,0,"Wednesday, November 12, 2025 at 10:16 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+SOXX,290,12/19/2025,Put,500,$480K,4403,0,"Wednesday, November 12, 2025 at 10:16 AM",Unusual Put Sweep,darkpool_data_2025-11-12_16-00.csv
+LLY,1,11/21/2025,Call,240,$720K,868,0,"Wednesday, November 12, 2025 at 10:18 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+LLY,1,11/21/2025,Call,176,$528K,1044,0,"Wednesday, November 12, 2025 at 10:18 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+TSLA,445,01/16/2026,Call,180,$652.5K,517,0,"Wednesday, November 12, 2025 at 10:19 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+TSLA,445,01/16/2026,Call,310,$1.1M,958,0,"Wednesday, November 12, 2025 at 10:21 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+AMD,270,11/14/2025,Call,5015,$651.9K,18227,0,"Wednesday, November 12, 2025 at 10:21 AM",Highly Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+TSLA,550,01/16/2026,Call,1500,$1.6M,11515,0,"Wednesday, November 12, 2025 at 10:23 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+TSLA,550,01/16/2026,Call,1172,$1.2M,14516,0,"Wednesday, November 12, 2025 at 10:23 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,195,09/18/2026,Call,150,$536.3K,155,0,"Wednesday, November 12, 2025 at 10:25 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+AMD,260,01/21/2028,Call,167,$1.6M,216,0,"Wednesday, November 12, 2025 at 10:25 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+META,720,05/15/2026,Call,180,$672.3K,185,0,"Wednesday, November 12, 2025 at 10:27 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+MU,270,03/20/2026,Call,210,$681.5K,228,0,"Wednesday, November 12, 2025 at 10:32 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+AMD,270,11/21/2025,Call,1001,$679K,6601,0,"Wednesday, November 12, 2025 at 10:32 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+ORCL,250,11/21/2025,Call,2001,$400.2K,3633,0,"Wednesday, November 12, 2025 at 10:32 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,190,12/12/2025,Put,501,$501K,2793,0,"Wednesday, November 12, 2025 at 10:35 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+BABA,140,06/18/2026,Put,500,$530K,505,0,"Wednesday, November 12, 2025 at 10:39 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,205,12/12/2025,Call,1742,$1.1M,4538,0,"Wednesday, November 12, 2025 at 10:39 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+MRVL,80,03/20/2026,Call,390,$795.6K,600,0,"Wednesday, November 12, 2025 at 10:39 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+AMD,260,12/19/2025,Call,250,$515K,3373,0,"Wednesday, November 12, 2025 at 10:39 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+AAPL,255,01/16/2026,Call,463,$1.1M,2726,0,"Wednesday, November 12, 2025 at 10:45 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,200,12/19/2025,Call,673,$619.2K,2684,0,"Wednesday, November 12, 2025 at 10:47 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+OPEN,7,11/21/2025,Call,2999,$501.3K,3225,0,"Wednesday, November 12, 2025 at 10:53 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+UPS,90,12/19/2025,Call,939,$563.4K,1033,0,"Wednesday, November 12, 2025 at 10:58 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+GS,740,04/17/2026,Put,200,$534.9K,201,0,"Wednesday, November 12, 2025 at 11:01 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+GS,740,04/17/2026,Put,221,$590.7K,422,0,"Wednesday, November 12, 2025 at 11:01 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+SOC,5,01/16/2026,Put,4000,$420K,5202,0,"Wednesday, November 12, 2025 at 11:02 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+UPS,90,12/19/2025,Call,3445,$2.1M,4478,0,"Wednesday, November 12, 2025 at 11:03 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+GS,715,04/17/2026,Put,250,$532.5K,350,0,"Wednesday, November 12, 2025 at 11:07 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+NFLX,1,11/21/2025,Call,200,$580K,1246,0,"Wednesday, November 12, 2025 at 11:08 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+GLD,435,06/18/2026,Call,788,$1M,788,0,"Wednesday, November 12, 2025 at 11:13 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+GLD,400,09/18/2026,Put,284,$958.5K,284,0,"Wednesday, November 12, 2025 at 11:14 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+AMD,260,11/14/2025,Call,1003,$501.5K,68117,0,"Wednesday, November 12, 2025 at 11:16 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+IREN,65,03/20/2026,Call,1660,$2M,1733,0,"Wednesday, November 12, 2025 at 11:18 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+QCOM,175,11/14/2025,Call,1195,$412.4K,1862,0,"Wednesday, November 12, 2025 at 11:19 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+GLD,390,03/20/2026,Call,424,$854.4K,1028,0,"Wednesday, November 12, 2025 at 11:22 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+GLD,381,11/17/2025,Call,1437,$948.4K,9909,0,"Wednesday, November 12, 2025 at 11:23 AM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+AMZN,245,12/19/2025,Put,621,$586.8K,1963,0,"Wednesday, November 12, 2025 at 11:26 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+AMZN,245,12/19/2025,Put,943,$895.9K,2917,0,"Wednesday, November 12, 2025 at 11:26 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+AMZN,245,12/19/2025,Put,1212,$1.2M,4562,0,"Wednesday, November 12, 2025 at 11:27 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+MSFT,500,12/19/2025,Put,473,$617.3K,1217,0,"Wednesday, November 12, 2025 at 11:27 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+CPER,33,04/17/2026,Call,2001,$400.2K,2008,0,"Wednesday, November 12, 2025 at 11:40 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+META,615,01/16/2026,Call,225,$799.9K,690,0,"Wednesday, November 12, 2025 at 11:45 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+STX,350,06/18/2026,Call,200,$780K,201,0,"Wednesday, November 12, 2025 at 11:47 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+IBIT,57,12/31/2025,Call,1000,$465K,1014,0,"Wednesday, November 12, 2025 at 11:53 AM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+CRCL,90,11/14/2025,Put,818,$409K,13364,0,"Wednesday, November 12, 2025 at 11:54 AM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+GLD,385,11/17/2025,Call,1997,$908.6K,2609,0,"Wednesday, November 12, 2025 at 11:57 AM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,195,06/18/2026,Put,307,$813.6K,335,0,"Wednesday, November 12, 2025 at 12:02 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,220,06/18/2026,Call,320,$604.8K,499,0,"Wednesday, November 12, 2025 at 12:02 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+SLV,46.5,06/18/2026,Call,1400,$889K,22050,0,"Wednesday, November 12, 2025 at 12:11 PM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,190,11/14/2025,Put,2331,$466.2K,72627,0,"Wednesday, November 12, 2025 at 12:15 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,205,12/19/2025,Call,1031,$721.7K,1989,0,"Wednesday, November 12, 2025 at 12:19 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+GDX,75,02/20/2026,Put,1000,$450.3K,1219,0,"Wednesday, November 12, 2025 at 12:24 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+GLD,410,10/16/2026,Call,170,$474.7K,180,0,"Wednesday, November 12, 2025 at 12:28 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+ORCL,250,06/18/2026,Call,229,$685.9K,268,0,"Wednesday, November 12, 2025 at 12:28 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,205,12/19/2025,Call,823,$576.1K,4429,0,"Wednesday, November 12, 2025 at 12:48 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+CSCO,74,11/14/2025,Call,2499,$437.3K,11851,0,"Wednesday, November 12, 2025 at 12:49 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+APP,600,11/21/2025,Call,250,$457.5K,1007,0,"Wednesday, November 12, 2025 at 12:49 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+GLD,380,12/19/2025,Call,339,$550.9K,2294,0,"Wednesday, November 12, 2025 at 12:54 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,190,11/21/2025,Put,980,$684.6K,6846,0,"Wednesday, November 12, 2025 at 1:05 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+IBIT,66,01/15/2027,Call,544,$609.3K,602,0,"Wednesday, November 12, 2025 at 1:05 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,205,12/19/2025,Call,592,$411.4K,5677,0,"Wednesday, November 12, 2025 at 1:06 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,205,12/12/2025,Call,1987,$1.2M,19414,0,"Wednesday, November 12, 2025 at 1:13 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,170,11/21/2025,Call,258,$615.3K,597,0,"Wednesday, November 12, 2025 at 1:13 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+GOOGL,350,12/18/2026,Call,402,$1.1M,424,0,"Wednesday, November 12, 2025 at 1:21 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,205,12/19/2025,Call,602,$433.4K,7114,0,"Wednesday, November 12, 2025 at 1:23 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+MSFT,500,12/19/2025,Put,400,$438K,2754,0,"Wednesday, November 12, 2025 at 1:31 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+MSFT,500,12/19/2025,Put,500,$545K,3743,0,"Wednesday, November 12, 2025 at 1:32 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+AMD,270,11/14/2025,Call,4109,$410.9K,69750,0,"Wednesday, November 12, 2025 at 1:32 PM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+MSFT,505,11/21/2025,Call,497,$462.2K,8180,0,"Wednesday, November 12, 2025 at 1:38 PM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+BX,150,03/20/2026,Put,666,$899.1K,667,0,"Wednesday, November 12, 2025 at 1:39 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+MRNA,27,01/16/2026,Call,1747,$532.8K,1755,0,"Wednesday, November 12, 2025 at 1:41 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+CLF,9.5,11/21/2025,Call,6180,$889.9K,7006,0,"Wednesday, November 12, 2025 at 1:45 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,185,04/17/2026,Put,301,$531.3K,723,0,"Wednesday, November 12, 2025 at 1:47 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+FSLR,360,09/18/2026,Call,195,$524.6K,196,0,"Wednesday, November 12, 2025 at 1:50 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+XLV,155,01/16/2026,Call,2236,$760.2K,2946,0,"Wednesday, November 12, 2025 at 1:50 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+WRBY,25,12/18/2026,Call,4000,$1.2M,8172,0,"Wednesday, November 12, 2025 at 1:58 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+TSLA,450,12/19/2025,Call,500,$1M,4423,0,"Wednesday, November 12, 2025 at 2:02 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,205,12/12/2025,Call,1780,$1.1M,21233,0,"Wednesday, November 12, 2025 at 2:13 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+IAG,25,01/15/2027,Call,3700,$573.5K,3800,0,"Wednesday, November 12, 2025 at 2:14 PM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,205,12/19/2025,Call,758,$519.2K,11331,0,"Wednesday, November 12, 2025 at 2:16 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+CORZ,20,12/19/2025,Put,1190,$511.7K,4909,0,"Wednesday, November 12, 2025 at 2:18 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,170,11/21/2025,Call,267,$636.8K,1083,0,"Wednesday, November 12, 2025 at 2:43 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,195,11/14/2025,Put,2070,$900.6K,24546,0,"Wednesday, November 12, 2025 at 2:43 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+KWEB,39,06/18/2026,Put,1161,$452.8K,1662,0,"Wednesday, November 12, 2025 at 2:47 PM",Unusual Put Sweep,darkpool_data_2025-11-12_16-00.csv
+AMD,250,11/14/2025,Put,1445,$440.8K,64013,0,"Wednesday, November 12, 2025 at 2:55 PM",Unusual Put Sweep,darkpool_data_2025-11-12_16-00.csv
+MSFT,520,01/16/2026,Call,610,$1M,1435,0,"Wednesday, November 12, 2025 at 2:57 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+OPEN,10,01/16/2026,Call,5000,$777.6K,9938,0,"Wednesday, November 12, 2025 at 3:13 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+MSTR,200,11/21/2025,Put,1000,$420K,4763,0,"Wednesday, November 12, 2025 at 3:17 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,205,12/19/2025,Call,699,$457.8K,16426,0,"Wednesday, November 12, 2025 at 3:20 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,185,11/21/2025,Put,1069,$523.8K,44998,0,"Wednesday, November 12, 2025 at 3:21 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+TSLA,430,12/12/2025,Call,243,$630.6K,985,0,"Wednesday, November 12, 2025 at 3:22 PM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NFLX,1,11/21/2025,Call,521,$480.7K,2662,0,"Wednesday, November 12, 2025 at 3:25 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+MSFT,507.5,11/28/2025,Call,510,$555.9K,915,0,"Wednesday, November 12, 2025 at 3:27 PM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,205,12/19/2025,Call,847,$567.5K,18003,0,"Wednesday, November 12, 2025 at 3:33 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+MSFT,500,11/28/2025,Call,795,$1.2M,4462,0,"Wednesday, November 12, 2025 at 3:35 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+SLV,48.5,06/18/2026,Call,892,$486.1K,15177,0,"Wednesday, November 12, 2025 at 3:37 PM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,185,11/21/2025,Put,1078,$495.9K,51531,0,"Wednesday, November 12, 2025 at 3:39 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+TSLA,470,12/19/2025,Call,307,$455.9K,1218,0,"Wednesday, November 12, 2025 at 3:41 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+AAPL,260,12/19/2025,Call,246,$447.7K,878,0,"Wednesday, November 12, 2025 at 3:46 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+ORCL,225,11/28/2025,Call,460,$473.8K,525,0,"Wednesday, November 12, 2025 at 3:46 PM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,210,04/17/2026,Call,400,$696K,1690,0,"Wednesday, November 12, 2025 at 3:46 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+AVGO,340,12/19/2025,Put,460,$782K,509,0,"Wednesday, November 12, 2025 at 3:47 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+AVGO,360,12/19/2025,Put,202,$536.3K,349,0,"Wednesday, November 12, 2025 at 3:47 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+U,35,12/19/2025,Put,6067,$679.5K,18308,0,"Wednesday, November 12, 2025 at 4:00 PM",Unusual Put Sweep,darkpool_data_2025-11-12_16-00.csv
+LLY,1,11/14/2025,Call,496,$545.6K,2408,0,"Wednesday, November 12, 2025 at 4:01 PM",Call Sweep,darkpool_data_2025-11-12_16-00.csv
+TSLA,420,11/14/2025,Call,510,$744.7K,40561,0,"Wednesday, November 12, 2025 at 4:05 PM",Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+AAPL,277.5,11/14/2025,Call,7391,$428.7K,46524,0,"Wednesday, November 12, 2025 at 4:05 PM",Highly Unusual Call Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,185,11/21/2025,Put,1206,$500.5K,63509,0,"Wednesday, November 12, 2025 at 4:12 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
+NVDA,150,03/20/2026,Put,1229,$589.9K,1602,0,"Wednesday, November 12, 2025 at 4:13 PM",Put Sweep,darkpool_data_2025-11-12_16-00.csv
