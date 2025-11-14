@@ -177,9 +177,7 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
             container_id: uniqueId,
             hide_top_toolbar: hide_top_toolbar,
             hide_legend: hide_legend,
-            studies: [
-              'Volume@tv-basicstudies'
-            ],
+
             withdateranges: true,
             range: '1M',
             hide_volume: false,
