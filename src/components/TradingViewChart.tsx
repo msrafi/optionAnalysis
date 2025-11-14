@@ -112,13 +112,15 @@ const TradingViewChart: React.FC<TradingViewChartProps> = ({
     const uniqueId = container_id || `tradingview_${symbol}_${Math.random().toString(36).substr(2, 9)}`;
     
     // Create container div that React doesn't manage
-    let container = document.getElementById(uniqueId);
+    let container: HTMLDivElement | null = document.getElementById(uniqueId) as HTMLDivElement | null;
     if (!container) {
       container = document.createElement('div');
       container.id = uniqueId;
       container.style.width = '100%';
       container.style.height = '100%';
       wrapperRef.current.appendChild(container);
+      containerRef.current = container;
+    } else {
       containerRef.current = container;
     }
 
