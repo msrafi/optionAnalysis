@@ -5,6 +5,7 @@ import VolumeProfileChart from './VolumeProfileChart';
 import TradeList from './TradeList';
 import StrikeExpiryHeatmap from './StrikeExpiryHeatmap';
 import TickerPsychologyAnalysis from './TickerPsychologyAnalysis';
+import TradingViewChart from './TradingViewChart';
 import { 
   mergeDataFromFiles,
   getTickerSummaries, 
@@ -458,6 +459,27 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
               ))}
             </div>
           </div>
+
+          {/* TradingView Chart Section */}
+          {selectedTicker && (
+            <div className="tradingview-chart-section" style={{ marginBottom: '2rem', width: '100%' }}>
+              <h3 style={{ marginBottom: '1rem' }}>Price Chart - {selectedTicker}</h3>
+              <div style={{ 
+                border: '1px solid #333', 
+                borderRadius: '8px', 
+                overflow: 'hidden',
+                backgroundColor: '#1a1a1a'
+              }}>
+                <TradingViewChart 
+                  symbol={selectedTicker}
+                  height={500}
+                  theme="dark"
+                  interval="D"
+                  style="1"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Charts Section - Two Column Layout */}
           <div className="charts-section">
