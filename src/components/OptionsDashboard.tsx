@@ -6,6 +6,7 @@ import TradeList from './TradeList';
 import StrikeExpiryHeatmap from './StrikeExpiryHeatmap';
 import TickerPsychologyAnalysis from './TickerPsychologyAnalysis';
 import TradingViewChart from './TradingViewChart';
+import PunchcardChart from './PunchcardChart';
 import { 
   mergeDataFromFiles,
   getTickerSummaries, 
@@ -14,7 +15,8 @@ import {
   getHighestVolumeData,
   clearDataCache,
   OptionData,
-  MergedDataInfo
+  MergedDataInfo,
+  parseTimestampFromData
 } from '../utils/dataParser';
 import { loadAllDataFiles, clearFileCache, loadCombinedFileMetadata } from '../utils/fileLoader';
 import { getCurrentPrice, clearPriceCache } from '../utils/stockPrice';
@@ -27,9 +29,12 @@ export interface OptionsDashboardProps {
   setActiveDashboard: (dashboard: 'options' | 'darkpool' | 'psychology') => void;
 }
 
+type DateFilter = 'all' | 'last5days' | 'past3days' | 'past1day';
+
 const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, setActiveDashboard }) => {
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [selectedExpiry, setSelectedExpiry] = useState<string | null>(null);
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [optionData, setOptionData] = useState<OptionData[]>([]);
   const [dataInfo, setDataInfo] = useState<MergedDataInfo | null>(null);
   const [loading, setLoading] = useState(true);
@@ -135,6 +140,118 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
   }, [tickerSummaries, searchTerm]);
 
 
+  // Helper function to check if a date is a trading day (Monday-Friday)
+  const isTradingDay = useCallback((date: Date): boolean => {
+    const dayOfWeek = date.getDay();
+    return dayOfWeek >= 1 && dayOfWeek <= 5; // Monday = 1, Friday = 5
+  }, []);
+
+  // Helper function to get the most recent trading day with data from trades
+  const getMostRecentTradingDayWithData = useCallback((trades: OptionData[]): Date | null => {
+    const dates = new Set<string>();
+    
+    trades.forEach(trade => {
+      const tradeDate = parseTimestampFromData(trade.timestamp);
+      if (tradeDate && isTradingDay(tradeDate)) {
+        // Use local date components to avoid timezone issues
+        const year = tradeDate.getFullYear();
+        const month = tradeDate.getMonth();
+        const day = tradeDate.getDate();
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        dates.add(dateStr);
+      }
+    });
+    
+    if (dates.size === 0) return null;
+    
+    const sortedDates = Array.from(dates)
+      .map(dateStr => {
+        const [year, month, day] = dateStr.split('-').map(Number);
+        return new Date(year, month - 1, day);
+      })
+      .sort((a, b) => b.getTime() - a.getTime());
+    
+    return sortedDates[0];
+  }, [isTradingDay]);
+
+  // Helper function to get previous trading day
+  const getPreviousTradingDay = useCallback((date: Date): Date => {
+    const prevDay = new Date(date);
+    prevDay.setDate(prevDay.getDate() - 1);
+    
+    // Skip weekends
+    while (!isTradingDay(prevDay)) {
+      prevDay.setDate(prevDay.getDate() - 1);
+    }
+    
+    return prevDay;
+  }, [isTradingDay]);
+
+  // Filter trades by date filter
+  const filterTradesByDate = useCallback((trades: OptionData[], filter: DateFilter): OptionData[] => {
+    if (filter === 'all') {
+      return trades;
+    }
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Find the most recent trading day with data
+    const mostRecentTradingDay = getMostRecentTradingDayWithData(trades);
+    if (!mostRecentTradingDay) return trades; // No trading days found, return all
+    
+    let startDate: Date;
+    let endDate: Date;
+    
+    if (filter === 'last5days') {
+      // Last 5 trading days including the most recent trading day
+      endDate = new Date(mostRecentTradingDay);
+      endDate.setDate(endDate.getDate() + 1); // End of most recent trading day (exclusive)
+      
+      startDate = new Date(mostRecentTradingDay);
+      // Go back 4 more trading days
+      for (let i = 0; i < 4; i++) {
+        startDate = getPreviousTradingDay(startDate);
+      }
+    } else if (filter === 'past3days') {
+      // Past 3 trading days (not including the most recent if it's today)
+      const mostRecentDateOnly = new Date(mostRecentTradingDay.getFullYear(), mostRecentTradingDay.getMonth(), mostRecentTradingDay.getDate());
+      const todayDateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      
+      if (mostRecentDateOnly.getTime() === todayDateOnly.getTime() && isTradingDay(today)) {
+        // Most recent is today, so exclude today
+        endDate = new Date(today);
+        startDate = getPreviousTradingDay(today);
+        for (let i = 0; i < 2; i++) {
+          startDate = getPreviousTradingDay(startDate);
+        }
+      } else {
+        // Most recent is not today, include it
+        endDate = new Date(mostRecentTradingDay);
+        endDate.setDate(endDate.getDate() + 1);
+        startDate = getPreviousTradingDay(mostRecentTradingDay);
+        for (let i = 0; i < 2; i++) {
+          startDate = getPreviousTradingDay(startDate);
+        }
+      }
+    } else {
+      // Past 1 day: Show the most recent trading day with data
+      startDate = new Date(mostRecentTradingDay);
+      endDate = new Date(mostRecentTradingDay);
+      endDate.setDate(endDate.getDate() + 1); // End of most recent trading day (exclusive)
+    }
+
+    return trades.filter(trade => {
+      const tradeDate = parseTimestampFromData(trade.timestamp);
+      if (!tradeDate) return false;
+      
+      // Get date only (without time) for comparison
+      const tradeDateOnly = new Date(tradeDate.getFullYear(), tradeDate.getMonth(), tradeDate.getDate());
+      
+      return tradeDateOnly >= startDate && tradeDateOnly < endDate;
+    });
+  }, [getMostRecentTradingDayWithData, getPreviousTradingDay, isTradingDay]);
+
   const expiryDates = useMemo(() => {
     if (!selectedTicker) return [];
     return getExpiryDatesForTicker(optionData, selectedTicker);
@@ -142,31 +259,45 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
 
   const volumeProfileData = useMemo(() => {
     if (!selectedTicker) return [];
-    return getVolumeProfileForTicker(optionData, selectedTicker, selectedExpiry || undefined);
-  }, [optionData, selectedTicker, selectedExpiry]);
+    // Apply date filter to trades before calculating volume profile
+    const tickerFiltered = optionData.filter(option => 
+      option.ticker === selectedTicker && 
+      (!selectedExpiry || option.expiry === selectedExpiry)
+    );
+    const dateFiltered = filterTradesByDate(tickerFiltered, dateFilter);
+    return getVolumeProfileForTicker(dateFiltered, selectedTicker, selectedExpiry || undefined);
+  }, [optionData, selectedTicker, selectedExpiry, dateFilter, filterTradesByDate]);
 
-  // Get filtered trades for the selected ticker and expiry
+  // Get filtered trades for the selected ticker and expiry, then apply date filter
   const filteredTrades = useMemo(() => {
     if (!selectedTicker) return [];
-    return optionData.filter(trade => {
+    const tickerExpiryFiltered = optionData.filter(trade => {
       const matchesTicker = trade.ticker === selectedTicker;
       const matchesExpiry = !selectedExpiry || trade.expiry === selectedExpiry;
       return matchesTicker && matchesExpiry;
     });
-  }, [optionData, selectedTicker, selectedExpiry]);
+    return filterTradesByDate(tickerExpiryFiltered, dateFilter);
+  }, [optionData, selectedTicker, selectedExpiry, dateFilter, filterTradesByDate]);
 
   const highestVolumeData = useMemo(() => {
     if (!selectedTicker) return null;
-    return getHighestVolumeData(optionData, selectedTicker, selectedExpiry || undefined);
-  }, [optionData, selectedTicker, selectedExpiry]);
-
-  const tickerTrades = useMemo(() => {
-    if (!selectedTicker) return [];
-    return optionData.filter(option => 
+    // Apply date filter to trades before calculating highest volume
+    const tickerFiltered = optionData.filter(option => 
       option.ticker === selectedTicker && 
       (!selectedExpiry || option.expiry === selectedExpiry)
     );
-  }, [optionData, selectedTicker, selectedExpiry]);
+    const dateFiltered = filterTradesByDate(tickerFiltered, dateFilter);
+    return getHighestVolumeData(dateFiltered, selectedTicker, selectedExpiry || undefined);
+  }, [optionData, selectedTicker, selectedExpiry, dateFilter, filterTradesByDate]);
+
+  const tickerTrades = useMemo(() => {
+    if (!selectedTicker) return [];
+    const tickerExpiryFiltered = optionData.filter(option => 
+      option.ticker === selectedTicker && 
+      (!selectedExpiry || option.expiry === selectedExpiry)
+    );
+    return filterTradesByDate(tickerExpiryFiltered, dateFilter);
+  }, [optionData, selectedTicker, selectedExpiry, dateFilter, filterTradesByDate]);
 
   const handleTickerSelect = useCallback((ticker: string) => {
     setSelectedTicker(ticker);
@@ -435,28 +566,79 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
             )}
           </div>
 
-          {/* Expiry Date Filter */}
-          <div className="expiry-filter">
-            <div className="filter-header">
-              <Calendar className="filter-icon" />
-              <span>Filter by Expiry Date:</span>
-            </div>
-            <div className="expiry-buttons">
-              <button 
-                className={`expiry-button ${!selectedExpiry ? 'active' : ''}`}
-                onClick={() => setSelectedExpiry(null)}
-              >
-                All Expiries
-              </button>
-              {expiryDates.map((expiry) => (
-                <button
-                  key={expiry}
-                  className={`expiry-button ${selectedExpiry === expiry ? 'active' : ''}`}
-                  onClick={() => handleExpirySelect(expiry)}
+          {/* Date Filter and Expiry Date Filter */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '1.5rem' }}>
+            {/* Date Filter */}
+            <div className="expiry-filter">
+              <div className="filter-header">
+                <Calendar className="filter-icon" />
+                <span>Filter by Trade Date:</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: '1rem' }}>
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value as DateFilter)}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#1e1e1e',
+                    color: '#fff',
+                    border: '1px solid #444',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
                 >
-                  {new Date(expiry).toLocaleDateString()}
+                  <option value="all">All Data</option>
+                  <option value="last5days">Last 5 Trading Days</option>
+                  <option value="past3days">Past 3 Trading Days</option>
+                  <option value="past1day">Last Trading Day</option>
+                </select>
+                {dateFilter !== 'all' && tickerTrades.length > 0 && (() => {
+                  const dates = new Set<string>();
+                  tickerTrades.forEach(trade => {
+                    const tradeDate = parseTimestampFromData(trade.timestamp);
+                    if (tradeDate) {
+                      const dateStr = tradeDate.toLocaleDateString('en-US', {
+                        month: '2-digit',
+                        day: '2-digit',
+                        year: '2-digit'
+                      });
+                      dates.add(dateStr);
+                    }
+                  });
+                  const includedDates = Array.from(dates).sort().reverse();
+                  return includedDates.length > 0 ? (
+                    <span style={{ fontSize: '13px', color: '#ccc' }}>
+                      Showing: {includedDates.join(', ')}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
+            </div>
+
+            {/* Expiry Date Filter */}
+            <div className="expiry-filter">
+              <div className="filter-header">
+                <Calendar className="filter-icon" />
+                <span>Filter by Expiry Date:</span>
+              </div>
+              <div className="expiry-buttons">
+                <button 
+                  className={`expiry-button ${!selectedExpiry ? 'active' : ''}`}
+                  onClick={() => setSelectedExpiry(null)}
+                >
+                  All Expiries
                 </button>
-              ))}
+                {expiryDates.map((expiry) => (
+                  <button
+                    key={expiry}
+                    className={`expiry-button ${selectedExpiry === expiry ? 'active' : ''}`}
+                    onClick={() => handleExpirySelect(expiry)}
+                  >
+                    {new Date(expiry).toLocaleDateString()}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -480,6 +662,38 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
               </div>
             </div>
           )}
+
+          {/* Heatmap & Trade History - Two Column Layout */}
+          <div className="heatmap-trades-section">
+            {/* Left Column - Strike × Expiry Heatmap */}
+            <div className="heatmap-column">
+              <StrikeExpiryHeatmap 
+                trades={tickerTrades}
+                currentPrice={currentPrice || undefined}
+              />
+            </div>
+
+            {/* Right Column - Trade List */}
+            <div className="trades-column">
+              <div className="trade-list-section">
+                <h3>Trade History for {selectedTicker}</h3>
+                <p>Found {tickerTrades.length} trades</p>
+                <TradeList 
+                  trades={tickerTrades}
+                  ticker={selectedTicker}
+                  expiry={selectedExpiry || undefined}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Punchcard Chart */}
+          <div className="punchcard-section" style={{ marginTop: '2rem', width: '100%' }}>
+            <PunchcardChart 
+              trades={tickerTrades}
+              ticker={selectedTicker}
+            />
+          </div>
 
           {/* Charts Section - Two Column Layout */}
           <div className="charts-section">
@@ -527,30 +741,6 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
             <div className="stat-card">
               <h4>Open Interest</h4>
               <p>{volumeProfileData.reduce((sum, item) => sum + item.openInterest, 0).toLocaleString()}</p>
-            </div>
-          </div>
-
-          {/* Heatmap & Trade History - Two Column Layout */}
-          <div className="heatmap-trades-section">
-            {/* Left Column - Strike × Expiry Heatmap */}
-            <div className="heatmap-column">
-              <StrikeExpiryHeatmap 
-                trades={tickerTrades}
-                currentPrice={currentPrice || undefined}
-              />
-            </div>
-
-            {/* Right Column - Trade List */}
-            <div className="trades-column">
-              <div className="trade-list-section">
-                <h3>Trade History for {selectedTicker}</h3>
-                <p>Found {tickerTrades.length} trades</p>
-                <TradeList 
-                  trades={tickerTrades}
-                  ticker={selectedTicker}
-                  expiry={selectedExpiry || undefined}
-                />
-              </div>
             </div>
           </div>
 

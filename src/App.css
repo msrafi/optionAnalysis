@@ -4529,6 +4529,91 @@
   }
 }
 
+/* Punchcard Chart Styles */
+.punchcard-chart {
+  background: rgba(30, 30, 30, 0.6);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.punchcard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.punchcard-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #4fc3f7, #60a5fa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.punchcard-legend {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.punchcard-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.punchcard-legend .legend-circle {
+  border-radius: 50%;
+}
+
+.punchcard-container {
+  background: rgba(20, 20, 20, 0.5);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.punchcard-no-data {
+  padding: 3rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.punchcard-no-data p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.punchcard-tooltip {
+  max-width: 300px;
+}
+
+.punchcard-tooltip .tooltip-trades {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.punchcard-tooltip .tooltip-trade-item {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 2px 0;
+  padding: 2px 0;
+}
+
 /* Navigation buttons in header */
 .nav-buttons {
   display: flex;
