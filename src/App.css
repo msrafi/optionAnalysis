@@ -1860,7 +1860,7 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
   min-width: 220px;
   max-width: 400px;
-  max-height: 90vh;
+  max-height: 40vh;
   overflow-y: auto;
   animation: tooltipFadeIn 0.2s ease-out;
   cursor: default;
@@ -4598,20 +4598,25 @@
 }
 
 .punchcard-tooltip {
-  max-width: 300px;
+  max-width: 400px;
+  max-height: 600px;
+  overflow-y: auto;
 }
 
 .punchcard-tooltip .tooltip-trades {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .punchcard-tooltip .tooltip-trade-item {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.8);
-  margin: 2px 0;
-  padding: 2px 0;
+  margin: 4px 0;
+  padding: 4px 0;
+}
+
+.punchcard-tooltip .tooltip-trade-item:last-child {
+  border-bottom: none;
 }
 
 /* Navigation buttons in header */
