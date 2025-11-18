@@ -688,12 +688,14 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
           </div>
 
           {/* Punchcard Chart */}
-          <div className="punchcard-section" style={{ marginTop: '2rem', width: '100%' }}>
-            <PunchcardChart 
-              trades={tickerTrades}
-              ticker={selectedTicker}
-            />
-          </div>
+          {selectedTicker && (
+            <div className="punchcard-section" style={{ marginTop: '2rem', width: '100%' }}>
+              <PunchcardChart 
+                trades={tickerTrades}
+                ticker={selectedTicker}
+              />
+            </div>
+          )}
 
           {/* Charts Section - Two Column Layout */}
           <div className="charts-section">

@@ -19,6 +19,20 @@ interface PunchcardDataPoint {
 }
 
 const PunchcardChart: React.FC<PunchcardChartProps> = ({ trades, ticker }) => {
+  // Safety check
+  if (!trades || !Array.isArray(trades)) {
+    return (
+      <div className="punchcard-chart">
+        <div className="punchcard-header">
+          <h3>Purchase Time Punchcard - {ticker || 'N/A'}</h3>
+        </div>
+        <div className="punchcard-no-data">
+          <p>No trade data available</p>
+        </div>
+      </div>
+    );
+  }
+
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     x: number;
@@ -213,6 +227,38 @@ const PunchcardChart: React.FC<PunchcardChartProps> = ({ trades, ticker }) => {
     setTooltip(prev => ({ ...prev, visible: false }));
   };
 
+  // Calculate dimensions - use 50% of width
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth - 100;
+    }
+    return 1200;
+  });
+  
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const updateWidth = () => {
+      if (containerRef.current) {
+        const width = containerRef.current.offsetWidth;
+        setContainerWidth(width);
+      } else {
+        // Fallback to window width if ref not available yet
+        setContainerWidth(window.innerWidth - 100);
+      }
+    };
+    
+    // Initial update
+    updateWidth();
+    
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(updateWidth);
+    
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
   if (dates.length === 0 || timeSlots.length === 0) {
     return (
       <div className="punchcard-chart">
@@ -225,23 +271,6 @@ const PunchcardChart: React.FC<PunchcardChartProps> = ({ trades, ticker }) => {
       </div>
     );
   }
-
-  // Calculate dimensions - use 50% of width
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(1200);
-  
-  useEffect(() => {
-    const updateWidth = () => {
-      if (containerRef.current) {
-        const width = containerRef.current.offsetWidth;
-        setContainerWidth(width);
-      }
-    };
-    
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
-  }, []);
 
   const cellHeight = 50;
   const chartWidthPercent = 50; // Use 50% of container width
