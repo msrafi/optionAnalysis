@@ -327,7 +327,7 @@ const PunchcardChart: React.FC<PunchcardChartProps> = ({ trades, ticker }) => {
           })}
 
           {/* Grid lines */}
-          {dates.map((date, dateIndex) => (
+          {dates.map((_date, dateIndex) => (
             <line
               key={`grid-h-${dateIndex}`}
               x1={100}
@@ -452,90 +452,94 @@ const PunchcardChart: React.FC<PunchcardChartProps> = ({ trades, ticker }) => {
       </div>
 
       {/* Tooltip */}
-      {tooltip.visible && tooltip.data && (
-        <div
-          className="modern-tooltip punchcard-tooltip"
-          style={{
-            position: 'fixed',
-            left: `${tooltip.x + 15}px`,
-            top: `${tooltip.y}px`,
-            transform: 'translateY(-50%)',
-            pointerEvents: 'auto',
-            zIndex: 9999
-          }}
-          onMouseEnter={() => setTooltip(prev => ({ ...prev, visible: true }))}
-          onMouseLeave={handleCircleMouseLeave}
-        >
-          <div className="tooltip-header">
-            <span className="tooltip-date">{formatDate(tooltip.data.dateObj)}</span>
-            <span className="tooltip-time">{formatTimeSlot(tooltip.data.timeSlot)}</span>
-          </div>
-          <div className="tooltip-body">
-            <div className="tooltip-row">
-              <span className="tooltip-label">Total Volume</span>
-              <span className="tooltip-value">{tooltip.data.totalVolume.toLocaleString()}</span>
+      {tooltip.visible && tooltip.data && (() => {
+        const data = tooltip.data; // Store in local variable to help TypeScript
+        return (
+          <div
+            className="modern-tooltip punchcard-tooltip"
+            style={{
+              position: 'fixed',
+              left: `${tooltip.x + 15}px`,
+              top: `${tooltip.y}px`,
+              transform: 'translateY(-50%)',
+              pointerEvents: 'auto',
+              zIndex: 9999
+            }}
+            onMouseEnter={() => setTooltip(prev => ({ ...prev, visible: true }))}
+            onMouseLeave={handleCircleMouseLeave}
+          >
+            <div className="tooltip-header">
+              <span className="tooltip-date">{formatDate(data.dateObj)}</span>
+              <span className="tooltip-time">{formatTimeSlot(data.timeSlot)}</span>
             </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Call Volume</span>
-              <span className="tooltip-value" style={{ color: '#66bb6a' }}>
-                {tooltip.data.callVolume.toLocaleString()}
-              </span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Put Volume</span>
-              <span className="tooltip-value" style={{ color: '#ef5350' }}>
-                {tooltip.data.putVolume.toLocaleString()}
-              </span>
-            </div>
-            <div className="tooltip-row">
-              <span className="tooltip-label">Trades</span>
-              <span className="tooltip-value">{tooltip.data.trades.length}</span>
-            </div>
-            {tooltip.data.trades.length > 0 && (
-              <div className="tooltip-trades">
-                <div className="tooltip-label" style={{ marginTop: '12px', marginBottom: '8px', fontWeight: 'bold', fontSize: '0.85rem', borderTop: '1px solid rgba(255, 255, 255, 0.2)', paddingTop: '8px' }}>
-                  TRADE DETAILS
-                </div>
-                {tooltip.data.trades.slice(0, 10).map((trade, idx) => {
-                  const premiumValue = parsePremium(trade.premium);
-                  return (
-                    <div key={idx} className="tooltip-trade-item" style={{ 
-                      marginBottom: '8px', 
-                      paddingBottom: '8px',
-                      borderBottom: idx < Math.min(tooltip.data.trades.length, 10) - 1 ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ fontWeight: '600', color: trade.optionType === 'Call' ? '#66bb6a' : '#ef5350' }}>
-                          {trade.optionType} ${trade.strike}
-                        </span>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '0.75rem' }}>
-                        <div>
-                          <span style={{ color: '#aaa' }}>Vol:</span> <span style={{ color: '#fff' }}>{trade.volume.toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span style={{ color: '#aaa' }}>Premium:</span> <span style={{ color: '#fff' }}>{formatPremium(premiumValue)}</span>
-                        </div>
-                        <div>
-                          <span style={{ color: '#aaa' }}>Expiry:</span> <span style={{ color: '#fff' }}>{formatExpiryDate(trade.expiry)}</span>
-                        </div>
-                        <div>
-                          <span style={{ color: '#aaa' }}>Time:</span> <span style={{ color: '#fff', fontSize: '0.7rem' }}>{formatFullDateTime(trade.timestamp)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {tooltip.data.trades.length > 10 && (
-                  <div className="tooltip-trade-item" style={{ fontStyle: 'italic', color: '#888', marginTop: '8px', textAlign: 'center' }}>
-                    +{tooltip.data.trades.length - 10} more trades
-                  </div>
-                )}
+            <div className="tooltip-body">
+              <div className="tooltip-row">
+                <span className="tooltip-label">Total Volume</span>
+                <span className="tooltip-value">{data.totalVolume.toLocaleString()}</span>
               </div>
-            )}
+              <div className="tooltip-row">
+                <span className="tooltip-label">Call Volume</span>
+                <span className="tooltip-value" style={{ color: '#66bb6a' }}>
+                  {data.callVolume.toLocaleString()}
+                </span>
+              </div>
+              <div className="tooltip-row">
+                <span className="tooltip-label">Put Volume</span>
+                <span className="tooltip-value" style={{ color: '#ef5350' }}>
+                  {data.putVolume.toLocaleString()}
+                </span>
+              </div>
+              <div className="tooltip-row">
+                <span className="tooltip-label">Trades</span>
+                <span className="tooltip-value">{data.trades.length}</span>
+              </div>
+              {data.trades.length > 0 && (
+                <div className="tooltip-trades">
+                  <div className="tooltip-label" style={{ marginTop: '12px', marginBottom: '8px', fontWeight: 'bold', fontSize: '0.85rem', borderTop: '1px solid rgba(255, 255, 255, 0.2)', paddingTop: '8px' }}>
+                    TRADE DETAILS
+                  </div>
+                  {data.trades.slice(0, 10).map((trade, idx) => {
+                    const premiumValue = parsePremium(trade.premium);
+                    const tradesLength = data.trades.length;
+                    return (
+                      <div key={idx} className="tooltip-trade-item" style={{ 
+                        marginBottom: '8px', 
+                        paddingBottom: '8px',
+                        borderBottom: idx < Math.min(tradesLength, 10) - 1 ? '1px solid rgba(255, 255, 255, 0.1)' : 'none'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontWeight: '600', color: trade.optionType === 'Call' ? '#66bb6a' : '#ef5350' }}>
+                            {trade.optionType} ${trade.strike}
+                          </span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontSize: '0.75rem' }}>
+                          <div>
+                            <span style={{ color: '#aaa' }}>Vol:</span> <span style={{ color: '#fff' }}>{trade.volume.toLocaleString()}</span>
+                          </div>
+                          <div>
+                            <span style={{ color: '#aaa' }}>Premium:</span> <span style={{ color: '#fff' }}>{formatPremium(premiumValue)}</span>
+                          </div>
+                          <div>
+                            <span style={{ color: '#aaa' }}>Expiry:</span> <span style={{ color: '#fff' }}>{formatExpiryDate(trade.expiry)}</span>
+                          </div>
+                          <div>
+                            <span style={{ color: '#aaa' }}>Time:</span> <span style={{ color: '#fff', fontSize: '0.7rem' }}>{formatFullDateTime(trade.timestamp)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {data.trades.length > 10 && (
+                    <div className="tooltip-trade-item" style={{ fontStyle: 'italic', color: '#888', marginTop: '8px', textAlign: 'center' }}>
+                      +{data.trades.length - 10} more trades
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };
