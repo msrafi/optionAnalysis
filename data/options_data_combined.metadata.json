@@ -1,10 +1,10 @@
 {
-  "generatedAt": "2025-11-17T22:13:28.678Z",
+  "generatedAt": "2025-11-19T00:44:17.219Z",
   "generatedBy": "combineDataFiles.js",
   "sourceFiles": {
-    "count": 52,
-    "latest": "darkpool_data_2025-11-17_16-00.csv",
-    "latestModified": "2025-11-17T22:12:56.154Z",
+    "count": 53,
+    "latest": "darkpool_data_2025-11-18_16-00.csv",
+    "latestModified": "2025-11-19T00:43:36.554Z",
     "files": [
       {
         "filename": "options_data_2025-11-04_16-00.csv",
@@ -317,26 +317,32 @@
         "modifiedTime": "2025-11-17T22:12:56.154Z",
         "parsedTimestamp": "2025-11-17T21:00:00.000Z",
         "size": 31541
+      },
+      {
+        "filename": "darkpool_data_2025-11-18_16-00.csv",
+        "modifiedTime": "2025-11-19T00:43:36.554Z",
+        "parsedTimestamp": "2025-11-18T21:00:00.000Z",
+        "size": 41358
       }
     ]
   },
   "combinedFile": {
     "filename": "options_data_combined.csv",
-    "size": 395833,
+    "size": 409565,
     "records": {
-      "totalUnique": 3093,
-      "newRecordsAdded": 150,
+      "totalUnique": 3199,
+      "newRecordsAdded": 200,
       "expiredRemoved": 0,
-      "duplicatesRemoved": 63,
-      "existingRecordsKept": 3006
+      "duplicatesRemoved": 85,
+      "existingRecordsKept": 3084
     },
     "fileStats": [
       {
-        "filename": "darkpool_data_2025-11-17_16-00.csv",
-        "records": 150,
-        "duplicates": 63,
+        "filename": "darkpool_data_2025-11-18_16-00.csv",
+        "records": 200,
+        "duplicates": 85,
         "expired": 0,
-        "unique": 87
+        "unique": 115
       }
     ]
   },
