@@ -2,10 +2,12 @@ import { useState } from 'react';
 import OptionsDashboard from './components/OptionsDashboard';
 import DarkPoolDashboard from './components/DarkPoolDashboard';
 import OverallAnalysisDashboard from './components/OverallAnalysisDashboard';
+import YahooOptionsDashboard from './components/YahooOptionsDashboard';
+import MostActiveOptionsInsightDashboard from './components/MostActiveOptionsInsightDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
-type DashboardType = 'options' | 'darkpool' | 'psychology';
+type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights';
 
 function App() {
   const [activeDashboard, setActiveDashboard] = useState<DashboardType>('options');
@@ -21,6 +23,16 @@ function App() {
             />
           ) : activeDashboard === 'darkpool' ? (
             <DarkPoolDashboard 
+              activeDashboard={activeDashboard}
+              setActiveDashboard={setActiveDashboard}
+            />
+          ) : activeDashboard === 'yahoo' ? (
+            <YahooOptionsDashboard
+              activeDashboard={activeDashboard}
+              setActiveDashboard={setActiveDashboard}
+            />
+          ) : activeDashboard === 'activeInsights' ? (
+            <MostActiveOptionsInsightDashboard
               activeDashboard={activeDashboard}
               setActiveDashboard={setActiveDashboard}
             />

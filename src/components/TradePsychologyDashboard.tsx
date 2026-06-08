@@ -14,7 +14,7 @@ import {
   HourlyTradeData 
 } from '../utils/tradePsychology';
 
-type DashboardType = 'options' | 'darkpool' | 'psychology';
+type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights';
 
 interface OverallAnalysisDashboardProps {
   activeDashboard: DashboardType;

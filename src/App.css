@@ -442,6 +442,221 @@
   flex-wrap: wrap;
 }
 
+/* Yahoo options comparison dashboard */
+.yahoo-options-dashboard {
+  color: #ffffff;
+}
+
+.yahoo-controls {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+}
+
+.yahoo-symbols-panel,
+.yahoo-filter-panel,
+.yahoo-chart-card,
+.yahoo-table-section {
+  background: rgba(18, 26, 48, 0.75);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.yahoo-symbols-panel label,
+.yahoo-expiry-row label {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  color: #bcd5ff;
+}
+
+.yahoo-symbols-panel textarea,
+.yahoo-expiry-row select {
+  width: 100%;
+  background: rgba(12, 18, 34, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+  color: #e5edff;
+  padding: 0.65rem;
+  font-size: 0.9rem;
+}
+
+.yahoo-filter-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.yahoo-expiry-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.yahoo-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: #d1e3ff;
+  font-size: 0.9rem;
+}
+
+.yahoo-checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.yahoo-error {
+  margin: 0 1.5rem 0.75rem;
+  color: #ff9da2;
+  background: rgba(255, 75, 75, 0.12);
+  border: 1px solid rgba(255, 75, 75, 0.25);
+  border-radius: 8px;
+  padding: 0.7rem 0.9rem;
+}
+
+.yahoo-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 0 1.5rem 1rem;
+}
+
+.yahoo-chart-card h4 {
+  margin: 0 0 0.85rem;
+  color: #e0ebff;
+}
+
+.yahoo-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.yahoo-bar-row {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.yahoo-bar-label {
+  font-size: 0.78rem;
+  color: #bfd5ff;
+}
+
+.yahoo-bar-track {
+  height: 9px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  overflow: hidden;
+}
+
+.yahoo-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.yahoo-bar-fill.call {
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+}
+
+.yahoo-bar-fill.put {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.yahoo-bar-value {
+  font-size: 0.76rem;
+  color: #d7e6ff;
+}
+
+.yahoo-table-section {
+  margin: 0 1.5rem 1.5rem;
+}
+
+.yahoo-table-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  color: #d7e6ff;
+}
+
+.yahoo-table-wrapper {
+  overflow: auto;
+  max-height: 580px;
+}
+
+.yahoo-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+}
+
+.yahoo-table th,
+.yahoo-table td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 0.55rem 0.6rem;
+  text-align: left;
+  font-size: 0.82rem;
+}
+
+.yahoo-table th {
+  position: sticky;
+  top: 0;
+  background: rgba(15, 23, 42, 0.95);
+  color: #b8d2ff;
+  z-index: 1;
+}
+
+.yahoo-call {
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.yahoo-put {
+  color: #f87171;
+  font-weight: 700;
+}
+
+.yahoo-contract-link {
+  color: #93c5fd;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.yahoo-contract-link:hover {
+  color: #bfdbfe;
+  text-decoration: underline;
+}
+
+.yahoo-muted {
+  color: #9bb2d9;
+  font-size: 0.85rem;
+}
+
+.insight-direction {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #dbeafe;
+  margin: 0.35rem 0 0.5rem;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@media (max-width: 1100px) {
+  .yahoo-controls,
+  .yahoo-chart-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .trade-list-header h3 {
   color: white;
   margin: 0;

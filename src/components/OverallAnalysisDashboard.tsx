@@ -11,7 +11,7 @@ import { clearAllApplicationCaches } from '../utils/sessionStorageManager';
 import TickerWeeklyAnalysisComponent from './TickerWeeklyAnalysis';
 import { TickerWeeklyAnalysis, analyzeTickerWeeklySentiment } from '../utils/tradePsychology';
 
-type DashboardType = 'options' | 'darkpool' | 'psychology';
+type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights';
 
 type SortField = 'volume' | 'premium' | 'recent' | 'sentiment' | 'trades' | 'ticker';
 type SortDirection = 'asc' | 'desc';

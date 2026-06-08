@@ -88,6 +88,13 @@ export default defineConfig({
     open: true,
     hmr: {
       overlay: false
+    },
+    proxy: {
+      '/api/yahoo': {
+        target: 'http://localhost:8788',
+        changeOrigin: true,
+        secure: false
+      }
     }
   },
   build: {
