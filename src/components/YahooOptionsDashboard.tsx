@@ -6,7 +6,7 @@ import {
   YahooOptionContract
 } from '../utils/yahooOptions';
 
-type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights';
+type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights' | 'chainStructure';
 
 interface YahooOptionsDashboardProps {
   activeDashboard: DashboardType;
@@ -385,6 +385,12 @@ const YahooOptionsDashboard: React.FC<YahooOptionsDashboardProps> = ({ activeDas
               onClick={() => setActiveDashboard('activeInsights')}
             >
               Most Active Insight
+            </button>
+            <button
+              className={`nav-button ${activeDashboard === 'chainStructure' ? 'active' : ''}`}
+              onClick={() => setActiveDashboard('chainStructure')}
+            >
+              Chain Structure
             </button>
           </div>
         </div>

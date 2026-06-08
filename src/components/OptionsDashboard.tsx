@@ -25,8 +25,8 @@ import { clearAllApplicationCaches } from '../utils/sessionStorageManager';
 // We'll load the CSV data via fetch instead of import
 
 export interface OptionsDashboardProps {
-  activeDashboard: 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights';
-  setActiveDashboard: (dashboard: 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights') => void;
+  activeDashboard: 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights' | 'chainStructure';
+  setActiveDashboard: (dashboard: 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights' | 'chainStructure') => void;
 }
 
 type DateFilter = 'all' | 'last5days' | 'past3days' | 'past1day';
@@ -535,6 +535,12 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
               onClick={() => setActiveDashboard('activeInsights')}
             >
               Most Active Insight
+            </button>
+            <button
+              className={`nav-button ${activeDashboard === 'chainStructure' ? 'active' : ''}`}
+              onClick={() => setActiveDashboard('chainStructure')}
+            >
+              Chain Structure
             </button>
           </div>
           

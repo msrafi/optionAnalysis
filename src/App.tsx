@@ -4,13 +4,14 @@ import DarkPoolDashboard from './components/DarkPoolDashboard';
 import OverallAnalysisDashboard from './components/OverallAnalysisDashboard';
 import YahooOptionsDashboard from './components/YahooOptionsDashboard';
 import MostActiveOptionsInsightDashboard from './components/MostActiveOptionsInsightDashboard';
+import OptionChainStructureDashboard from './components/OptionChainStructureDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
-type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights';
+type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights' | 'chainStructure';
 
 function App() {
-  const [activeDashboard, setActiveDashboard] = useState<DashboardType>('options');
+  const [activeDashboard, setActiveDashboard] = useState<DashboardType>('chainStructure');
 
   return (
     <div className="app">
@@ -33,6 +34,11 @@ function App() {
             />
           ) : activeDashboard === 'activeInsights' ? (
             <MostActiveOptionsInsightDashboard
+              activeDashboard={activeDashboard}
+              setActiveDashboard={setActiveDashboard}
+            />
+          ) : activeDashboard === 'chainStructure' ? (
+            <OptionChainStructureDashboard
               activeDashboard={activeDashboard}
               setActiveDashboard={setActiveDashboard}
             />

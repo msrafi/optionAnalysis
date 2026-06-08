@@ -525,6 +525,10 @@
   padding: 0 1.5rem 1rem;
 }
 
+.chain-structure-grid {
+  grid-template-columns: minmax(260px, 30%) minmax(0, 70%);
+}
+
 .yahoo-chart-card h4 {
   margin: 0 0 0.85rem;
   color: #e0ebff;
@@ -636,6 +640,115 @@
 .yahoo-muted {
   color: #9bb2d9;
   font-size: 0.85rem;
+}
+
+.chain-move-bar-chart {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chain-move-bar-row {
+  display: grid;
+  grid-template-columns: 110px 1fr 80px;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chain-move-label {
+  font-size: 0.78rem;
+  color: #bcd5ff;
+}
+
+.chain-move-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+  overflow: hidden;
+}
+
+.chain-move-fill {
+  height: 100%;
+  border-radius: inherit;
+}
+
+.chain-move-fill.upside {
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+}
+
+.chain-move-fill.downside {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+}
+
+.chain-move-value {
+  text-align: right;
+  font-size: 0.78rem;
+  color: #dbeafe;
+  font-variant-numeric: tabular-nums;
+}
+
+.chain-candle-chart {
+  margin-top: 0.9rem;
+  padding: 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.chain-candle-title {
+  font-size: 0.8rem;
+  color: #bcd5ff;
+  margin-bottom: 0.45rem;
+}
+
+.chain-candle-range {
+  position: relative;
+  height: 54px;
+}
+
+.chain-candle-line {
+  position: absolute;
+  top: 20px;
+  left: 10%;
+  right: 10%;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ef4444, #93c5fd, #22c55e);
+}
+
+.chain-candle-marker {
+  position: absolute;
+  top: 6px;
+  transform: translateX(-50%);
+  width: 2px;
+  height: 28px;
+  background: rgba(219, 234, 254, 0.9);
+}
+
+.chain-candle-marker span {
+  position: absolute;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.74rem;
+  color: #dbeafe;
+  white-space: nowrap;
+}
+
+.chain-candle-marker.spot {
+  height: 34px;
+  top: 3px;
+  background: #93c5fd;
+}
+
+.chain-delta-note {
+  margin: -0.25rem 0 0.65rem;
+}
+
+.chain-delta-empty {
+  text-align: center;
+  color: #9bb2d9;
 }
 
 .insight-direction {

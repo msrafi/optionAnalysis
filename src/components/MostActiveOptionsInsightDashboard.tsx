@@ -2,12 +2,45 @@ import React, { useMemo, useState } from 'react';
 import { Activity, BarChart3, Loader2, RefreshCw, TrendingDown, TrendingUp } from 'lucide-react';
 import { fetchYahooMostActiveOptions, fetchYahooOptionChain, YahooMostActiveOptionRow } from '../utils/yahooOptions';
 
-type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights';
+type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights' | 'chainStructure';
 
 interface MostActiveOptionsInsightDashboardProps {
   activeDashboard: DashboardType;
   setActiveDashboard: (dashboard: DashboardType) => void;
 }
+
+const InsightBarList: React.FC<{
+  title: string;
+  items: Array<{ label: string; value: number; optionType: 'CALL' | 'PUT' }>;
+}> = ({ title, items }) => {
+  const max = Math.max(...items.map((item) => item.value), 0);
+  return (
+    <div className="yahoo-chart-card">
+      <h4>{title}</h4>
+      {items.length === 0 ? (
+        <p className="yahoo-muted">No chart data available.</p>
+      ) : (
+        <div className="yahoo-bar-list">
+          {items.map((item) => {
+            const width = max > 0 ? (item.value / max) * 100 : 0;
+            return (
+              <div key={item.label} className="yahoo-bar-row">
+                <div className="yahoo-bar-label">{item.label}</div>
+                <div className="yahoo-bar-track">
+                  <div
+                    className={`yahoo-bar-fill ${item.optionType === 'CALL' ? 'call' : 'put'}`}
+                    style={{ width: `${width}%` }}
+                  />
+                </div>
+                <div className="yahoo-bar-value">{item.value.toLocaleString()}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 function safeRatio(num: number, den: number): number {
   return den === 0 ? 0 : num / den;
@@ -130,6 +163,29 @@ const MostActiveOptionsInsightDashboard: React.FC<MostActiveOptionsInsightDashbo
     };
   }, [rows, underlyingPrice]);
 
+  const topVolumeChartItems = useMemo(
+    () =>
+      analysis.topByVolume.slice(0, 8).map((row) => ({
+        label: `${row.contractSymbol.slice(0, 15)}...`,
+        value: row.volume,
+        optionType: String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' as const : 'PUT' as const
+      })),
+    [analysis.topByVolume]
+  );
+
+  const topOiChartItems = useMemo(
+    () =>
+      [...analysis.topByVolume]
+        .sort((a, b) => b.openInterest - a.openInterest)
+        .slice(0, 8)
+        .map((row) => ({
+          label: `${row.contractSymbol.slice(0, 15)}...`,
+          value: row.openInterest,
+          optionType: String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' as const : 'PUT' as const
+        })),
+    [analysis.topByVolume]
+  );
+
   const runAnalysis = async () => {
     const normalized = symbol.trim().toUpperCase();
     if (!normalized) {
@@ -188,6 +244,7 @@ const MostActiveOptionsInsightDashboard: React.FC<MostActiveOptionsInsightDashbo
             <button className={`nav-button ${activeDashboard === 'psychology' ? 'active' : ''}`} onClick={() => setActiveDashboard('psychology')}>Overall Analysis</button>
             <button className={`nav-button ${activeDashboard === 'yahoo' ? 'active' : ''}`} onClick={() => setActiveDashboard('yahoo')}>Yahoo Options</button>
             <button className={`nav-button ${activeDashboard === 'activeInsights' ? 'active' : ''}`} onClick={() => setActiveDashboard('activeInsights')}>Most Active Insight</button>
+            <button className={`nav-button ${activeDashboard === 'chainStructure' ? 'active' : ''}`} onClick={() => setActiveDashboard('chainStructure')}>Chain Structure</button>
           </div>
         </div>
       </header>
@@ -239,6 +296,9 @@ const MostActiveOptionsInsightDashboard: React.FC<MostActiveOptionsInsightDashbo
               : 'Negative gamma proxy: risk of amplified directional swings near key strikes.'}
           </p>
         </div>
+
+        <InsightBarList title="Most Active Contracts by Volume" items={topVolumeChartItems} />
+        <InsightBarList title="Most Active Contracts by Open Interest" items={topOiChartItems} />
       </section>
 
       <section className="yahoo-table-section">
