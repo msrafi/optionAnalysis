@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { BarChart3, RefreshCw } from 'lucide-react';
+import { fetchYahooOptionChain } from '../utils/yahooOptions';
 
 type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights' | 'chainStructure' | 'chainStructureYahoo';
 
-interface OptionChainStructureDashboardProps {
+interface YahooChainStructureDashboardProps {
   activeDashboard: DashboardType;
   setActiveDashboard: (dashboard: DashboardType) => void;
 }
@@ -69,109 +70,111 @@ function estimateOptionDelta(
   return optionType === 'CALL' ? callDelta : callDelta - 1;
 }
 
-function toNum(input: string): number {
-  const clean = input
-    .replace(/[$,%]/g, '')
-    .replace(/,/g, '')
-    .trim();
-  const n = Number(clean);
-  return Number.isFinite(n) ? n : 0;
+function normalizeIvToPercent(iv: number): number {
+  if (!Number.isFinite(iv) || iv <= 0) return 0;
+  return iv <= 3 ? iv * 100 : iv;
 }
 
-function splitLine(line: string, delimiter: string): string[] {
-  if (delimiter === '\t') {
-    return line.split('\t');
-  }
-  const out: string[] = [];
-  let current = '';
-  let inQuotes = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (c === '"') inQuotes = !inQuotes;
-    else if (c === ',' && !inQuotes) {
-      out.push(current);
-      current = '';
-    } else current += c;
-  }
-  out.push(current);
-  return out;
-}
-
-function findClosestIndex(indices: number[], pivot: number, preferLeft: boolean): number {
-  if (indices.length === 0) return -1;
-  const filtered = preferLeft ? indices.filter((i) => i < pivot) : indices.filter((i) => i > pivot);
-  if (filtered.length === 0) return -1;
-  return preferLeft ? Math.max(...filtered) : Math.min(...filtered);
-}
-
-function parseChainCsv(rawInput: string): ParsedChainData {
-  const text = rawInput.trim();
-  if (!text) return { rows: [], spotPrice: null };
-
-  const spotMatch = text.match(/([A-Z]{1,6})\s*:\s*([0-9]+(?:\.[0-9]+)?)/);
-  const spotPrice = spotMatch ? toNum(spotMatch[2]) : null;
-
-  const lines = text
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0);
-
-  if (lines.length < 2) return { rows: [], spotPrice };
-
-  const delimiter = lines[0].includes('\t') ? '\t' : ',';
-  const header = splitLine(lines[0], delimiter).map((h) => h.toLowerCase().replace(/[^a-z]/g, ''));
-
-  const strikeIndex = header.findIndex((h) => h.includes('strike'));
-  if (strikeIndex === -1) return { rows: [], spotPrice };
-
-  const volumeIdxs = header.map((h, i) => (h.includes('volume') ? i : -1)).filter((i) => i >= 0);
-  const oiIdxs = header.map((h, i) => (h.includes('openint') || h.includes('openinterest') ? i : -1)).filter((i) => i >= 0);
-  const ivIdxs = header.map((h, i) => (h.includes('implvol') || h.includes('impliedvolatility') || h === 'iv' ? i : -1)).filter((i) => i >= 0);
-  const lastIdxs = header.map((h, i) => (h === 'last' || h.includes('lastprice') ? i : -1)).filter((i) => i >= 0);
-
-  const callVolumeIndex = findClosestIndex(volumeIdxs, strikeIndex, true);
-  const putVolumeIndex = findClosestIndex(volumeIdxs, strikeIndex, false);
-  const callOiIndex = findClosestIndex(oiIdxs, strikeIndex, true);
-  const putOiIndex = findClosestIndex(oiIdxs, strikeIndex, false);
-  const callIvIndex = findClosestIndex(ivIdxs, strikeIndex, true);
-  const putIvIndex = findClosestIndex(ivIdxs, strikeIndex, false);
-  const callLastIndex = findClosestIndex(lastIdxs, strikeIndex, true);
-  const putLastIndex = findClosestIndex(lastIdxs, strikeIndex, false);
-
-  const rows: ChainRow[] = [];
-  lines.slice(1).forEach((line) => {
-    const cells = splitLine(line, delimiter);
-    const strike = toNum(cells[strikeIndex] || '');
-    if (strike <= 0) return;
-    rows.push({
+function buildChainFromYahoo(
+  contracts: Array<{
+    optionType: 'Call' | 'Put';
+    strike: number;
+    volume: number;
+    openInterest: number;
+    impliedVolatility: number;
+    lastPrice: number;
+  }>,
+  underlyingPrice: number | null
+): ParsedChainData {
+  const byStrike = new Map<number, ChainRow>();
+  contracts.forEach((contract) => {
+    if (!Number.isFinite(contract.strike) || contract.strike <= 0) return;
+    const strike = contract.strike;
+    const row = byStrike.get(strike) || {
       strike,
-      callVolume: callVolumeIndex >= 0 ? toNum(cells[callVolumeIndex] || '') : 0,
-      callOi: callOiIndex >= 0 ? toNum(cells[callOiIndex] || '') : 0,
-      callIv: callIvIndex >= 0 ? toNum(cells[callIvIndex] || '') : 0,
-      putVolume: putVolumeIndex >= 0 ? toNum(cells[putVolumeIndex] || '') : 0,
-      putOi: putOiIndex >= 0 ? toNum(cells[putOiIndex] || '') : 0,
-      putIv: putIvIndex >= 0 ? toNum(cells[putIvIndex] || '') : 0,
-      callLast: callLastIndex >= 0 ? toNum(cells[callLastIndex] || '') : 0,
-      putLast: putLastIndex >= 0 ? toNum(cells[putLastIndex] || '') : 0
-    });
+      callVolume: 0,
+      callOi: 0,
+      callIv: 0,
+      putVolume: 0,
+      putOi: 0,
+      putIv: 0,
+      callLast: 0,
+      putLast: 0
+    };
+    if (contract.optionType === 'Call') {
+      row.callVolume = contract.volume || 0;
+      row.callOi = contract.openInterest || 0;
+      row.callIv = normalizeIvToPercent(contract.impliedVolatility || 0);
+      row.callLast = contract.lastPrice || 0;
+    } else {
+      row.putVolume = contract.volume || 0;
+      row.putOi = contract.openInterest || 0;
+      row.putIv = normalizeIvToPercent(contract.impliedVolatility || 0);
+      row.putLast = contract.lastPrice || 0;
+    }
+    byStrike.set(strike, row);
   });
 
-  rows.sort((a, b) => a.strike - b.strike);
-  return { rows, spotPrice };
+  const rows = [...byStrike.values()].sort((a, b) => a.strike - b.strike);
+  return { rows, spotPrice: underlyingPrice };
 }
 
-const OptionChainStructureDashboard: React.FC<OptionChainStructureDashboardProps> = ({
+function daysUntilExpiry(expirySeconds: number): number {
+  const now = Date.now();
+  const target = expirySeconds * 1000;
+  return Math.max(1, Math.ceil((target - now) / (24 * 60 * 60 * 1000)));
+}
+
+function estimateSpotFromContracts(
+  contracts: Array<{
+    strike: number;
+    volume: number;
+    openInterest: number;
+  }>
+): number | null {
+  if (!contracts.length) return null;
+  const weighted = contracts
+    .map((contract) => {
+      const strike = contract.strike;
+      if (!Number.isFinite(strike) || strike <= 0) return null;
+      const weight = Math.max(1, (contract.openInterest || 0) + (contract.volume || 0));
+      return { strike, weight };
+    })
+    .filter((row): row is { strike: number; weight: number } => Boolean(row));
+
+  if (!weighted.length) return null;
+  const totalWeight = weighted.reduce((sum, row) => sum + row.weight, 0);
+  if (totalWeight <= 0) return null;
+  return weighted.reduce((sum, row) => sum + row.strike * row.weight, 0) / totalWeight;
+}
+
+function toExpiryLabel(expirySeconds: number): string {
+  return new Date(expirySeconds * 1000).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+    timeZone: 'UTC'
+  });
+}
+
+const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> = ({
   activeDashboard,
   setActiveDashboard
 }) => {
-  const [csvInput, setCsvInput] = useState('');
+  const [symbol, setSymbol] = useState('NVDA');
   const [daysToExpiry, setDaysToExpiry] = useState(7);
   const [spotOverride, setSpotOverride] = useState('');
   const [parsed, setParsed] = useState<ParsedChainData>({ rows: [], spotPrice: null });
+  const [availableExpiries, setAvailableExpiries] = useState<number[]>([]);
+  const [selectedExpiry, setSelectedExpiry] = useState<number | null>(null);
+  const [loadingExpiries, setLoadingExpiries] = useState(false);
+  const [loadingChain, setLoadingChain] = useState(false);
+  const [error, setError] = useState('');
+  const selectedExpiryDays = selectedExpiry ? daysUntilExpiry(selectedExpiry) : null;
 
   const effectiveSpot = useMemo(() => {
-    const overrideNum = toNum(spotOverride);
-    if (overrideNum > 0) return overrideNum;
+    const overrideNum = Number(spotOverride);
+    if (Number.isFinite(overrideNum) && overrideNum > 0) return overrideNum;
     return parsed.spotPrice || null;
   }, [spotOverride, parsed.spotPrice]);
 
@@ -185,7 +188,7 @@ const OptionChainStructureDashboard: React.FC<OptionChainStructureDashboardProps
         expectedMovePct: 0,
         direction: 'Neutral',
         confidence: 50,
-        suggestion: 'Paste chain CSV to generate signal.'
+        suggestion: 'Load a Yahoo option chain to generate signal.'
       };
     }
 
@@ -237,10 +240,10 @@ const OptionChainStructureDashboard: React.FC<OptionChainStructureDashboardProps
   const maxOi = Math.max(1, ...visibleRows.map((r) => Math.max(r.callOi, r.putOi)));
   const maxVol = Math.max(1, ...visibleRows.map((r) => Math.max(r.callVolume, r.putVolume)));
 
-  const parseNow = () => setParsed(parseChainCsv(csvInput));
   const moveBarMax = useMemo(() => Math.max(1, stats.expectedMove), [stats.expectedMove]);
   const downTarget = effectiveSpot ? Math.max(0, effectiveSpot - stats.expectedMove) : 0;
   const upTarget = effectiveSpot ? effectiveSpot + stats.expectedMove : 0;
+
   const deltaPresets = useMemo(() => {
     if (!effectiveSpot || parsed.rows.length === 0) return [];
     const spot = effectiveSpot;
@@ -255,8 +258,6 @@ const OptionChainStructureDashboard: React.FC<OptionChainStructureDashboardProps
       const putDelta = estimateOptionDelta(spot, r.strike, putIv, daysToExpiry, 'PUT');
       return {
         ...r,
-        callIv,
-        putIv,
         callDelta,
         putDelta,
         callLiq: r.callVolume + r.callOi * 0.5,
@@ -284,7 +285,6 @@ const OptionChainStructureDashboard: React.FC<OptionChainStructureDashboardProps
           liq: side === 'CALL' ? r.callLiq : r.putLiq
         }))
         .filter((x) => Math.abs(x.delta) >= 0.05 && Math.abs(x.delta) <= 0.95);
-
       if (candidates.length === 0) return null;
       candidates.sort((a, b) => {
         const deltaDiff = Math.abs(Math.abs(a.delta) - targetAbsDelta) - Math.abs(Math.abs(b.delta) - targetAbsDelta);
@@ -305,22 +305,15 @@ const OptionChainStructureDashboard: React.FC<OptionChainStructureDashboardProps
           (strike) => side === 'CALL' ? strike >= spot * 0.9 : strike <= spot * 1.1
         );
         if (!picked) {
-          return {
-            preset,
-            side,
-            strike: '-',
-            estDelta: '-',
-            note: 'Not enough contracts to estimate a strike.'
-          };
+          return { preset, side, strike: '-', estDelta: '-', note: 'Not enough contracts to estimate a strike.' };
         }
         used.add(picked.row.strike);
-        const confidenceNote = side === 'CALL' ? 'bullish participation' : 'bearish participation';
         return {
           preset,
           side,
           strike: picked.row.strike.toFixed(2),
           estDelta: Math.abs(picked.delta).toFixed(2),
-          note: `Closest to ${target.toFixed(2)} delta with better liquidity for ${confidenceNote}.`
+          note: `Closest to ${target.toFixed(2)} delta with better liquidity.`
         };
       });
     }
@@ -347,11 +340,76 @@ const OptionChainStructureDashboard: React.FC<OptionChainStructureDashboardProps
     });
   }, [daysToExpiry, effectiveSpot, parsed.rows, stats.direction]);
 
+  const loadExpiries = async () => {
+    const ticker = symbol.trim().toUpperCase();
+    if (!ticker) {
+      setError('Enter a symbol first.');
+      return;
+    }
+    setLoadingExpiries(true);
+    setError('');
+    try {
+      const chain = await fetchYahooOptionChain(ticker);
+      const expiries = chain.expirations || [];
+      const detectedSpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
+      setAvailableExpiries(expiries);
+      const first = expiries[0] ?? null;
+      setSelectedExpiry(first);
+      if (first) {
+        setDaysToExpiry(daysUntilExpiry(first));
+      }
+      if ((!spotOverride || Number(spotOverride) <= 0) && detectedSpot && detectedSpot > 0) {
+        setSpotOverride(detectedSpot.toFixed(2));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load expiries.');
+    } finally {
+      setLoadingExpiries(false);
+    }
+  };
+
+  const loadChain = async () => {
+    const ticker = symbol.trim().toUpperCase();
+    if (!ticker) {
+      setError('Enter a symbol first.');
+      return;
+    }
+    setLoadingChain(true);
+    setError('');
+    try {
+      const chain = await fetchYahooOptionChain(ticker, selectedExpiry || undefined);
+      const detectedSpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
+      const normalized = buildChainFromYahoo(chain.contracts, detectedSpot);
+      setParsed(normalized);
+      if ((!spotOverride || Number(spotOverride) <= 0) && detectedSpot && detectedSpot > 0) {
+        setSpotOverride(detectedSpot.toFixed(2));
+      }
+      if (selectedExpiry) {
+        setDaysToExpiry(daysUntilExpiry(selectedExpiry));
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load Yahoo chain.');
+    } finally {
+      setLoadingChain(false);
+    }
+  };
+
+  const handleSymbolChange = (nextRawSymbol: string) => {
+    const nextSymbol = nextRawSymbol.toUpperCase();
+    setSymbol(nextSymbol);
+    setAvailableExpiries([]);
+    setSelectedExpiry(null);
+    setParsed({ rows: [], spotPrice: null });
+    setSpotOverride('');
+    setDaysToExpiry(7);
+    setError('');
+  };
+
   return (
     <div className="options-dashboard yahoo-options-dashboard">
       <header className="dashboard-header">
         <div className="header-left">
-          <h1>Option Chain Structure Dashboard</h1>
+          <h1>Chain Structure (Yahoo) Dashboard</h1>
           <div className="header-stats">
             <span className="header-stat">{parsed.rows.length} strikes parsed</span>
             {effectiveSpot && <span className="header-stat">Spot: ${effectiveSpot.toFixed(2)}</span>}
@@ -373,26 +431,72 @@ const OptionChainStructureDashboard: React.FC<OptionChainStructureDashboardProps
       </header>
 
       <section className="yahoo-controls">
-        <div className="yahoo-symbols-panel">
-          <label htmlFor="chain-csv">Paste Chain CSV / tabular values</label>
-          <textarea
-            id="chain-csv"
-            rows={8}
-            value={csvInput}
-            onChange={(e) => setCsvInput(e.target.value)}
-            placeholder="Paste copied option chain table here..."
-          />
+        <div className="yahoo-symbols-panel chain-flow-panel">
+          <h4 className="chain-flow-title">Input Flow</h4>
+          <div className="chain-flow-grid">
+            <div className="chain-flow-field">
+              <label htmlFor="chain-symbol">1) Symbol</label>
+              <input
+                id="chain-symbol"
+                className="search-input"
+                placeholder="e.g. NVDA"
+                value={symbol}
+                onChange={(e) => handleSymbolChange(e.target.value)}
+              />
+            </div>
+            <div className="chain-flow-field">
+              <label htmlFor="spot-override-yahoo">Spot Price</label>
+              <input id="spot-override-yahoo" value={spotOverride} onChange={(e) => setSpotOverride(e.target.value)} className="search-input" />
+            </div>
+
+            <div className="chain-flow-field">
+              <label>2) Load Expiries</label>
+              <button className="refresh-button-compact" onClick={loadExpiries} disabled={loadingExpiries}>
+                <RefreshCw className={`refresh-icon ${loadingExpiries ? 'spinning' : ''}`} />
+                {loadingExpiries ? 'Loading expiries...' : 'Load Expiries'}
+              </button>
+            </div>
+            <div className="chain-flow-field">
+              <label htmlFor="chain-expiry">Expiry</label>
+              <select
+                id="chain-expiry"
+                className="history-select"
+                value={selectedExpiry ?? ''}
+                onChange={(e) => {
+                  const next = e.target.value ? Number(e.target.value) : null;
+                  setSelectedExpiry(next);
+                  if (next) setDaysToExpiry(daysUntilExpiry(next));
+                }}
+              >
+                <option value="">Select expiry</option>
+                {availableExpiries.map((expiry) => (
+                  <option key={expiry} value={expiry}>
+                    {toExpiryLabel(expiry)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="chain-flow-days" role="status">
+              3) Days to Expiry: <strong>{selectedExpiryDays ?? '-'}</strong>
+            </div>
+
+            <div className="chain-flow-submit">
+              <button className="refresh-button-compact" onClick={loadChain} disabled={loadingChain}>
+                <RefreshCw className={`refresh-icon ${loadingChain ? 'spinning' : ''}`} />
+                {loadingChain ? 'Loading chain...' : 'Build From Yahoo'}
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="yahoo-filter-panel">
-          <label htmlFor="spot-override">Spot Price (optional override)</label>
-          <input id="spot-override" value={spotOverride} onChange={(e) => setSpotOverride(e.target.value)} className="search-input" />
-          <label htmlFor="dte-input">Days to Expiry (for expected move)</label>
-          <input id="dte-input" type="number" min={1} value={daysToExpiry} onChange={(e) => setDaysToExpiry(Number(e.target.value) || 7)} className="search-input" />
-          <button className="refresh-button-compact" onClick={parseNow}>
-            <RefreshCw className="refresh-icon" />
-            Parse & Build Dashboard
-          </button>
+        <div className="yahoo-filter-panel chain-decision-panel">
+          <h4>Decision Snapshot</h4>
+          <p className="yahoo-muted">Detected spot from Yahoo: <strong>{parsed.spotPrice ? `$${parsed.spotPrice.toFixed(2)}` : '-'}</strong></p>
+          <p className="yahoo-muted">Expected Move: <strong>±${stats.expectedMove.toFixed(2)}</strong> ({stats.expectedMovePct.toFixed(2)}%)</p>
+          <p className="yahoo-muted">Bias: <strong>{stats.direction}</strong> | Confidence: <strong>{stats.confidence.toFixed(0)}%</strong></p>
+          <p className="yahoo-muted">Call Wall: <strong>{stats.callWall || '-'}</strong> | Put Wall: <strong>{stats.putWall || '-'}</strong></p>
           <p className="yahoo-muted">{stats.suggestion}</p>
+          {error && <p className="chain-inline-error">{error}</p>}
         </div>
       </section>
 
@@ -412,20 +516,14 @@ const OptionChainStructureDashboard: React.FC<OptionChainStructureDashboardProps
                 <div className="chain-move-bar-row">
                   <span className="chain-move-label">Downside Move</span>
                   <div className="chain-move-track">
-                    <div
-                      className="chain-move-fill downside"
-                      style={{ width: `${(stats.expectedMove / moveBarMax) * 100}%` }}
-                    />
+                    <div className="chain-move-fill downside" style={{ width: `${(stats.expectedMove / moveBarMax) * 100}%` }} />
                   </div>
                   <span className="chain-move-value">-${stats.expectedMove.toFixed(2)}</span>
                 </div>
                 <div className="chain-move-bar-row">
                   <span className="chain-move-label">Upside Move</span>
                   <div className="chain-move-track">
-                    <div
-                      className="chain-move-fill upside"
-                      style={{ width: `${(stats.expectedMove / moveBarMax) * 100}%` }}
-                    />
+                    <div className="chain-move-fill upside" style={{ width: `${(stats.expectedMove / moveBarMax) * 100}%` }} />
                   </div>
                   <span className="chain-move-value">+{stats.expectedMove.toFixed(2)}</span>
                 </div>
@@ -507,7 +605,7 @@ const OptionChainStructureDashboard: React.FC<OptionChainStructureDashboardProps
             <tbody>
               {deltaPresets.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="chain-delta-empty">Parse chain data and set spot to generate delta presets.</td>
+                  <td colSpan={5} className="chain-delta-empty">Load Yahoo chain data and set spot to generate delta presets.</td>
                 </tr>
               ) : (
                 deltaPresets.map((row) => (
@@ -559,4 +657,4 @@ const OptionChainStructureDashboard: React.FC<OptionChainStructureDashboardProps
   );
 };
 
-export default OptionChainStructureDashboard;
+export default YahooChainStructureDashboard;

@@ -354,6 +354,42 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
+.history-select {
+  width: 100%;
+  padding: 0.75rem 2.1rem 0.75rem 0.85rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(79, 195, 247, 0.3);
+  border-radius: 10px;
+  color: #e5edff;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #9ec5ff 50%),
+    linear-gradient(135deg, #9ec5ff 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% - 3px),
+    calc(100% - 11px) calc(50% - 3px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+.history-select:focus {
+  outline: none;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(79, 195, 247, 0.6);
+  box-shadow: 0 0 0 3px rgba(79, 195, 247, 0.15),
+              inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.history-select option {
+  background: #0f172a;
+  color: #e5edff;
+}
+
 .clear-search {
   position: absolute;
   right: 0.75rem;
@@ -487,6 +523,57 @@
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+}
+
+.chain-flow-panel,
+.chain-decision-panel {
+  min-height: 100%;
+}
+
+.chain-flow-title {
+  margin: 0 0 0.75rem;
+  color: #e0ebff;
+}
+
+.chain-flow-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 0.8rem;
+}
+
+.chain-flow-field label {
+  display: block;
+  font-size: 0.86rem;
+  margin-bottom: 0.45rem;
+  color: #bcd5ff;
+}
+
+.chain-flow-days {
+  grid-column: 1 / -1;
+  font-size: 0.9rem;
+  color: #cfe2ff;
+  background: rgba(12, 18, 34, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+}
+
+.chain-flow-submit {
+  grid-column: 1 / -1;
+}
+
+.chain-flow-submit .refresh-button-compact {
+  width: 100%;
+  justify-content: center;
+}
+
+.chain-inline-error {
+  margin: 0;
+  color: #ff9da2;
+  background: rgba(255, 75, 75, 0.12);
+  border: 1px solid rgba(255, 75, 75, 0.25);
+  border-radius: 8px;
+  padding: 0.65rem 0.8rem;
 }
 
 .yahoo-expiry-row {
@@ -766,6 +853,10 @@
 @media (max-width: 1100px) {
   .yahoo-controls,
   .yahoo-chart-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chain-flow-grid {
     grid-template-columns: 1fr;
   }
 }
