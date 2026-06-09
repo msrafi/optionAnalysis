@@ -101,9 +101,14 @@ export default defineConfig({
     // Optimize build for better performance
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          utils: ['lucide-react']
+        manualChunks(id: string) {
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'vendor'
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'utils'
+          }
+          return undefined
         },
         // Use hash for cache busting (Vite's hash changes when content changes)
         entryFileNames: `assets/[name]-[hash].js`,
