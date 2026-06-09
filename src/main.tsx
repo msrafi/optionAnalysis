@@ -20,7 +20,7 @@ if ('serviceWorker' in navigator) {
             newWorker?.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                 // New service worker available, prompt user to reload
-                console.log('🔄 New service worker available. Please reload the page.');
+                console.log('🔄 New service worker available. Please reload the page.!');
               }
             });
           });
