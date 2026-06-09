@@ -1,17 +1,12 @@
 [
   {
-    "name": "darkpool_data_2025-11-17_16-00.csv",
-    "size": 31541,
-    "timestamp": "2025-11-17T21:00:00.000Z"
+    "name": "darkpool_data_2025-11-21_16-00.csv",
+    "size": 95875,
+    "timestamp": "2025-11-21T21:00:00.000Z"
   },
   {
-    "name": "darkpool_data_2025-11-14_16-00.csv",
-    "size": 49127,
-    "timestamp": "2025-11-14T21:00:00.000Z"
-  },
-  {
-    "name": "darkpool_data_2025-11-13_16-00.csv",
-    "size": 50059,
-    "timestamp": "2025-11-13T21:00:00.000Z"
+    "name": "darkpool_data_2025-11-19_16-00.csv",
+    "size": 42082,
+    "timestamp": "2025-11-19T21:00:00.000Z"
   }
 ]
