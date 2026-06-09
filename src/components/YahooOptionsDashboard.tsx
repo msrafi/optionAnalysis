@@ -6,7 +6,7 @@ import {
   YahooOptionContract
 } from '../utils/yahooOptions';
 
-type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights' | 'chainStructure';
+type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights' | 'chainStructure' | 'chainStructureYahoo';
 
 interface YahooOptionsDashboardProps {
   activeDashboard: DashboardType;
@@ -357,24 +357,6 @@ const YahooOptionsDashboard: React.FC<YahooOptionsDashboardProps> = ({ activeDas
         <div className="header-right">
           <div className="nav-buttons">
             <button
-              className={`nav-button ${activeDashboard === 'options' ? 'active' : ''}`}
-              onClick={() => setActiveDashboard('options')}
-            >
-              Options Analysis
-            </button>
-            <button
-              className={`nav-button ${activeDashboard === 'darkpool' ? 'active' : ''}`}
-              onClick={() => setActiveDashboard('darkpool')}
-            >
-              Dark Pool Analysis
-            </button>
-            <button
-              className={`nav-button ${activeDashboard === 'psychology' ? 'active' : ''}`}
-              onClick={() => setActiveDashboard('psychology')}
-            >
-              Overall Analysis
-            </button>
-            <button
               className={`nav-button ${activeDashboard === 'yahoo' ? 'active' : ''}`}
               onClick={() => setActiveDashboard('yahoo')}
             >
@@ -384,13 +366,13 @@ const YahooOptionsDashboard: React.FC<YahooOptionsDashboardProps> = ({ activeDas
               className={`nav-button ${activeDashboard === 'activeInsights' ? 'active' : ''}`}
               onClick={() => setActiveDashboard('activeInsights')}
             >
-              Most Active Insight
+              Most Active Options
             </button>
             <button
-              className={`nav-button ${activeDashboard === 'chainStructure' ? 'active' : ''}`}
-              onClick={() => setActiveDashboard('chainStructure')}
+              className={`nav-button ${activeDashboard === 'chainStructureYahoo' ? 'active' : ''}`}
+              onClick={() => setActiveDashboard('chainStructureYahoo')}
             >
-              Chain Structure
+              Chain Structure (Yahoo)
             </button>
           </div>
         </div>

@@ -25,8 +25,8 @@ import { clearAllApplicationCaches } from '../utils/sessionStorageManager';
 // We'll load the CSV data via fetch instead of import
 
 export interface OptionsDashboardProps {
-  activeDashboard: 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights' | 'chainStructure';
-  setActiveDashboard: (dashboard: 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights' | 'chainStructure') => void;
+  activeDashboard: 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights' | 'chainStructure' | 'chainStructureYahoo';
+  setActiveDashboard: (dashboard: 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights' | 'chainStructure' | 'chainStructureYahoo') => void;
 }
 
 type DateFilter = 'all' | 'last5days' | 'past3days' | 'past1day';
@@ -506,24 +506,6 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
           )}
           
           <div className="nav-buttons">
-            <button 
-              className={`nav-button ${activeDashboard === 'options' ? 'active' : ''}`}
-              onClick={() => setActiveDashboard('options')}
-            >
-              Options Analysis
-            </button>
-            <button 
-              className={`nav-button ${activeDashboard === 'darkpool' ? 'active' : ''}`}
-              onClick={() => setActiveDashboard('darkpool')}
-            >
-              Dark Pool Analysis
-            </button>
-            <button 
-              className={`nav-button ${activeDashboard === 'psychology' ? 'active' : ''}`}
-              onClick={() => setActiveDashboard('psychology')}
-            >
-              Overall Analysis
-            </button>
             <button
               className={`nav-button ${activeDashboard === 'yahoo' ? 'active' : ''}`}
               onClick={() => setActiveDashboard('yahoo')}
@@ -534,13 +516,13 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
               className={`nav-button ${activeDashboard === 'activeInsights' ? 'active' : ''}`}
               onClick={() => setActiveDashboard('activeInsights')}
             >
-              Most Active Insight
+              Most Active Options
             </button>
             <button
-              className={`nav-button ${activeDashboard === 'chainStructure' ? 'active' : ''}`}
-              onClick={() => setActiveDashboard('chainStructure')}
+              className={`nav-button ${activeDashboard === 'chainStructureYahoo' ? 'active' : ''}`}
+              onClick={() => setActiveDashboard('chainStructureYahoo')}
             >
-              Chain Structure
+              Chain Structure (Yahoo)
             </button>
           </div>
           
