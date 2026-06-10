@@ -1,13 +1,29 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BarChart3, RefreshCw, X } from 'lucide-react';
+import { BarChart3, RefreshCw, X, ExternalLink } from 'lucide-react';
 import { fetchYahooMostActiveOptions, fetchYahooOptionChain, YahooMostActiveOptionRow } from '../utils/yahooOptions';
-import TradingViewChart from './TradingViewChart';
 
 type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'chainStructure' | 'chainStructureYahoo';
 
 interface YahooChainStructureDashboardProps {
   activeDashboard: DashboardType;
   setActiveDashboard: (dashboard: DashboardType) => void;
+}
+
+function buildTradingViewOptionUrl(contractSymbol: string): string {
+  // Yahoo contract symbols are typically OCC-formatted:
+  // ROOT + YYMMDD + C/P + STRIKE(8 digits, strike * 1000)
+  // Example: MU260522C00710000 -> OPRA:MU260522C710.0
+  const match = contractSymbol.match(/^([A-Z.]+)(\d{6})([CP])(\d{8})$/);
+  let opraSymbol = contractSymbol;
+
+  if (match) {
+    const [, root, datePart, cp, strikeRaw] = match;
+    const strike = (parseInt(strikeRaw, 10) / 1000).toFixed(1);
+    opraSymbol = `${root}${datePart}${cp}${strike}`;
+  }
+
+  const encoded = encodeURIComponent(`OPRA:${opraSymbol}`);
+  return `https://www.tradingview.com/chart/w5Dqfeyt/?symbol=${encoded}`;
 }
 
 interface ChainRow {
@@ -1055,18 +1071,25 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               <button
                 className="contract-chart-close"
                 onClick={() => setSelectedContractSymbol(null)}
-                title="Close chart"
+                title="Close"
               >
                 <X size={16} />
               </button>
             </div>
-            <TradingViewChart
-              key={selectedContractSymbol}
-              symbol={selectedContractSymbol}
-              height={420}
-              interval="D"
-              theme="dark"
-            />
+            <div className="contract-chart-link-wrapper">
+              <p className="contract-chart-info">
+                TradingView doesn't support embedded charts for individual option contracts.
+              </p>
+              <a
+                href={buildTradingViewOptionUrl(selectedContractSymbol)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="contract-chart-external-btn"
+              >
+                <ExternalLink size={18} />
+                Open {selectedContractSymbol} in TradingView
+              </a>
+            </div>
           </div>
         </section>
       )}

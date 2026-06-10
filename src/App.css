@@ -1236,6 +1236,49 @@
   background: rgba(248, 113, 113, 0.1);
 }
 
+.contract-chart-link-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  gap: 1.5rem;
+}
+
+.contract-chart-info {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  text-align: center;
+  margin: 0;
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+.contract-chart-external-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.15s;
+  cursor: pointer;
+}
+
+.contract-chart-external-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.contract-chart-external-btn:active {
+  transform: translateY(0);
+}
+
 .yahoo-contract-link {
   color: #93c5fd;
   text-decoration: none;
