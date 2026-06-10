@@ -349,11 +349,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   }, [daysToExpiry, effectiveSpot, parsed.rows]);
 
   const visibleRows = useMemo(() => {
-    if (parsed.rows.length <= 30) return parsed.rows;
+    if (parsed.rows.length <= 100) return parsed.rows;
     const spot = effectiveSpot ?? parsed.rows[Math.floor(parsed.rows.length / 2)].strike;
     return [...parsed.rows]
       .sort((a, b) => Math.abs(a.strike - spot) - Math.abs(b.strike - spot))
-      .slice(0, 30)
+      .slice(0, 100)
       .sort((a, b) => a.strike - b.strike);
   }, [parsed.rows, effectiveSpot]);
 
