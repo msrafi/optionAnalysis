@@ -461,7 +461,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   }, [daysToExpiry, effectiveSpot, parsed.rows, stats.direction]);
 
   const [butterflySide, setButterflySide] = useState<'BOTH' | 'CALL' | 'PUT'>('BOTH');
-  const butterflyWidths = [5, 10, 15, 20, 25, 30];
+  const butterflyWidths = [5, 10, 15, 20, 25, 30, 40, 50];
   const butterflyModel = useMemo(() => {
     if (parsed.rows.length < 3) {
       return {
@@ -480,7 +480,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     const middlePrice = effectiveSpot ?? parsed.spotPrice ?? parsed.rows[Math.floor(parsed.rows.length / 2)].strike;
     const centerRow = nearestByStrike(middlePrice);
     const centerIndex = parsed.rows.findIndex((r) => r.strike === centerRow.strike);
-    const windowRows = parsed.rows.slice(Math.max(0, centerIndex - 12), Math.min(parsed.rows.length, centerIndex + 13));
+    const windowRows = parsed.rows.slice(Math.max(0, centerIndex - 50), Math.min(parsed.rows.length, centerIndex + 51));
 
     const buildOpportunity = (middleStrike: number, width: number, optionSide: 'CALL' | 'PUT'): ButterflyOpportunity | null => {
       const middleRow = nearestByStrike(middleStrike);
