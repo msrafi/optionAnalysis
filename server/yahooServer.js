@@ -15,19 +15,7 @@ dotenv.config();
 // Railway sets PORT; fall back to YAHOO_API_PORT for local dev
 const PORT = parseInt(process.env.PORT || process.env.YAHOO_API_PORT || '8788', 10);
 console.log(`[startup] PORT=${PORT}, NODE_ENV=${process.env.NODE_ENV}, node=${process.version}`);
-
-// Configure yahoo-finance2
-yahooFinance.setGlobalConfig({
-  validation: {
-    logErrors: true,
-    logOptionsErrors: true
-  },
-  queue: {
-    timeout: 30000 // 30 second timeout
-  }
-});
-
-console.log('[startup] yahoo-finance2 configured OK');
+console.log('[startup] yahoo-finance2 imported OK');
 
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
