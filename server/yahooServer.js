@@ -14,7 +14,16 @@ dotenv.config();
 
 // Railway sets PORT; fall back to YAHOO_API_PORT for local dev
 const PORT = parseInt(process.env.PORT || process.env.YAHOO_API_PORT || '8788', 10);
-const yahooFinance = new YahooFinance();
+console.log(`[startup] PORT=${PORT}, NODE_ENV=${process.env.NODE_ENV}, node=${process.version}`);
+
+let yahooFinance;
+try {
+  yahooFinance = new YahooFinance();
+  console.log('[startup] yahoo-finance2 initialized OK');
+} catch (e) {
+  console.error('[startup] yahoo-finance2 FAILED:', e);
+  process.exit(1);
+}
 
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -166,4 +175,7 @@ app.get('/api/yahoo/most-active', async (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`📈 Yahoo options API listening on http://0.0.0.0:${PORT}`);
+}).on('error', (err) => {
+  console.error('[startup] Failed to bind port:', err);
+  process.exit(1);
 });
