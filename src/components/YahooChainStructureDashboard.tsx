@@ -359,8 +359,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
 
   const maxOi = Math.max(1, ...visibleRows.map((r) => Math.max(r.callOi, r.putOi)));
   const maxVol = Math.max(1, ...visibleRows.map((r) => Math.max(r.callVolume, r.putVolume)));
-
-  const moveBarMax = useMemo(() => Math.max(1, stats.expectedMove), [stats.expectedMove]);
   const downTarget = effectiveSpot ? Math.max(0, effectiveSpot - stats.expectedMove) : 0;
   const upTarget = effectiveSpot ? effectiveSpot + stats.expectedMove : 0;
 
@@ -870,88 +868,137 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             </div>
           </div>
         </div>
-        <div className="yahoo-filter-panel chain-decision-panel">
-          <h4>Decision Snapshot & Trade Tuning</h4>
-          <p className="yahoo-muted">Detected spot from Yahoo: <strong>{parsed.spotPrice ? `$${parsed.spotPrice.toFixed(2)}` : '-'}</strong></p>
-          <p className="yahoo-muted">Expected Move: <strong>±${stats.expectedMove.toFixed(2)}</strong> ({stats.expectedMovePct.toFixed(2)}%)</p>
+        <div className="decision-snapshot-modern">
+          {/* Header with Direction and Confidence */}
+          <div className="decision-header">
+            <div className="decision-direction">
+              <div className={`direction-badge ${stats.direction.toLowerCase()}`}>
+                <span className="direction-icon">{stats.direction === 'UP' ? '📈' : stats.direction === 'DOWN' ? '📉' : '↔️'}</span>
+                <span className="direction-text">{stats.direction === 'UP' ? 'BULLISH' : stats.direction === 'DOWN' ? 'BEARISH' : 'NEUTRAL'}</span>
+              </div>
+            </div>
+            <div className="decision-confidence">
+              <div className="confidence-label">Confidence</div>
+              <div className="confidence-value">{stats.confidence.toFixed(0)}%</div>
+              <div className="confidence-gauge">
+                <div className="confidence-gauge-fill" style={{ width: `${stats.confidence}%` }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Key Metrics Grid */}
+          <div className="decision-metrics-grid">
+            <div className="metric-card">
+              <div className="metric-label">SPOT PRICE</div>
+              <div className="metric-value">${effectiveSpot?.toFixed(2) || '-'}</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-label">EXPECTED MOVE</div>
+              <div className="metric-value">±${stats.expectedMove.toFixed(2)}</div>
+              <div className="metric-subtext">({stats.expectedMovePct.toFixed(2)}%)</div>
+            </div>
+            <div className="metric-card">
+              <div className="metric-label">RANGE</div>
+              <div className="metric-value">
+                <span className="range-down">${downTarget.toFixed(2)}</span>
+                <span style={{ margin: '0 0.5rem', color: '#64748b' }}>–</span>
+                <span className="range-up">${upTarget.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Expected Move Slider */}
           {effectiveSpot && (
-            <p className="yahoo-muted">
-              Down: ${(effectiveSpot - stats.expectedMove).toFixed(2)} | Spot: ${effectiveSpot.toFixed(2)} | Up: ${(effectiveSpot + stats.expectedMove).toFixed(2)}
-            </p>
-          )}
-          <p className="yahoo-muted">Bias: <strong>{stats.direction}</strong> | Confidence: <strong>{stats.confidence.toFixed(0)}%</strong></p>
-          <p className="yahoo-muted">Call Wall: <strong>{stats.callWall || '-'}</strong> | Put Wall: <strong>{stats.putWall || '-'}</strong></p>
-          <p className="yahoo-muted">{stats.suggestion}</p>
-          {error && <p className="chain-inline-error">{error}</p>}
-          
-          {effectiveSpot ? (
-            <>
-              <div className="chain-move-bar-chart" style={{ marginTop: '1rem' }}>
-                <div className="chain-move-bar-row">
-                  <span className="chain-move-label">Downside Move</span>
-                  <div className="chain-move-track">
-                    <div className="chain-move-fill downside" style={{ width: `${(stats.expectedMove / moveBarMax) * 100}%` }} />
-                  </div>
-                  <span className="chain-move-value">-${stats.expectedMove.toFixed(2)}</span>
+            <div className="decision-slider">
+              <div className="slider-labels">
+                <div className="slider-label downside">
+                  <div>DOWNSIDE</div>
+                  <div className="slider-label-value">${downTarget.toFixed(2)}</div>
+                  <div className="slider-label-pct">-{stats.expectedMovePct.toFixed(2)}%</div>
                 </div>
-                <div className="chain-move-bar-row">
-                  <span className="chain-move-label">Upside Move</span>
-                  <div className="chain-move-track">
-                    <div className="chain-move-fill upside" style={{ width: `${(stats.expectedMove / moveBarMax) * 100}%` }} />
-                  </div>
-                  <span className="chain-move-value">+${stats.expectedMove.toFixed(2)}</span>
+                <div className="slider-label spot">
+                  <div>SPOT</div>
+                  <div className="slider-label-value">${effectiveSpot.toFixed(2)}</div>
+                </div>
+                <div className="slider-label upside">
+                  <div>UPSIDE</div>
+                  <div className="slider-label-value">${upTarget.toFixed(2)}</div>
+                  <div className="slider-label-pct">+{stats.expectedMovePct.toFixed(2)}%</div>
                 </div>
               </div>
-
-              <div className="chain-candle-chart">
-                <div className="chain-candle-title">Expected Move Candle</div>
-                <div className="chain-candle-range">
-                  <div className="chain-candle-line" />
-                  <div className="chain-candle-marker downside" style={{ left: '10%' }}>
-                    <span>${downTarget.toFixed(2)}</span>
-                  </div>
-                  <div className="chain-candle-marker spot" style={{ left: '50%' }}>
-                    <span>${effectiveSpot.toFixed(2)}</span>
-                  </div>
-                  <div className="chain-candle-marker upside" style={{ left: '90%' }}>
-                    <span>${upTarget.toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-            </>
-          ) : null}
-
-          {deltaPresets.length > 0 && (
-            <div style={{ marginTop: '1rem' }}>
-              <p className="yahoo-muted" style={{ marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>
-                Delta-based Strike Presets (estimated deltas for tuning strike aggressiveness)
-              </p>
-              <div className="yahoo-table-wrapper">
-                <table className="yahoo-table" style={{ fontSize: '0.85rem' }}>
-                  <thead>
-                    <tr>
-                      <th>Preset</th>
-                      <th>Side</th>
-                      <th>Strike</th>
-                      <th>Est. Delta</th>
-                      <th>Rationale</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {deltaPresets.map((row) => (
-                      <tr key={`${row.preset}-${row.side}`}>
-                        <td>{row.preset}</td>
-                        <td>{row.side}</td>
-                        <td>{row.strike}</td>
-                        <td>{row.estDelta}</td>
-                        <td>{row.note}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="slider-track">
+                <div className="slider-fill slider-fill-down" style={{ width: '50%' }} />
+                <div className="slider-fill slider-fill-up" style={{ width: '50%' }} />
+                <div className="slider-thumb" style={{ left: '50%' }} />
               </div>
             </div>
           )}
+
+          {/* Trade Idea Card */}
+          <div className="trade-idea-card">
+            <div className="trade-idea-header">
+              <span className="trade-idea-icon">🎯</span>
+              <span className="trade-idea-title">Trade Idea</span>
+            </div>
+            <div className="trade-idea-body">
+              <div className="trade-idea-main">{stats.suggestion}</div>
+              <div className="trade-idea-details">
+                <div className="trade-idea-detail">
+                  <span className="trade-idea-detail-label">TARGET</span>
+                  <span className="trade-idea-detail-value upside">${upTarget.toFixed(2)}</span>
+                  <span className="trade-idea-detail-sub">(+{stats.expectedMovePct.toFixed(2)}%)</span>
+                </div>
+                <div className="trade-idea-detail">
+                  <span className="trade-idea-detail-label">RISK</span>
+                  <span className="trade-idea-detail-value downside">Below ${downTarget.toFixed(2)}</span>
+                </div>
+                <div className="trade-idea-detail">
+                  <span className="trade-idea-detail-label">R:R</span>
+                  <span className="trade-idea-detail-value">1 : 1</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Delta Presets */}
+          {deltaPresets.length > 0 && (
+            <div className="decision-presets">
+              <div className="presets-header">
+                <span>RECOMMENDED STRIKE PRESETS</span>
+                <span className="presets-note">Higher Delta = More Aggressive</span>
+              </div>
+              <div className="presets-table">
+                {deltaPresets.map((row) => (
+                  <div key={`${row.preset}-${row.side}`} className="preset-row">
+                    <div className="preset-icon">
+                      {row.preset === 'Aggressive' ? '🚀' : row.preset === 'Balanced' ? '⚖️' : '🛡️'}
+                    </div>
+                    <div className="preset-info">
+                      <div className="preset-name">{row.preset}</div>
+                      <div className="preset-rationale">{row.note}</div>
+                    </div>
+                    <div className="preset-side">
+                      <span className={`preset-side-badge ${row.side.toLowerCase()}`}>{row.side}</span>
+                    </div>
+                    <div className="preset-strike">{row.strike}</div>
+                    <div className="preset-delta">{row.estDelta}</div>
+                    <div className="preset-suitability">
+                      <div className="suitability-bars">
+                        <div className={`suitability-bar ${row.preset === 'Aggressive' ? 'high' : row.preset === 'Balanced' ? 'medium' : 'low'}`} />
+                        <div className={`suitability-bar ${row.preset === 'Aggressive' ? 'high' : row.preset === 'Balanced' ? 'medium' : ''}`} />
+                        <div className={`suitability-bar ${row.preset === 'Aggressive' ? 'high' : ''}`} />
+                      </div>
+                      <div className="suitability-text">
+                        {row.preset === 'Aggressive' ? 'Higher reward\nHigher risk' : row.preset === 'Balanced' ? 'Balanced risk/reward' : 'Lower risk\nHigher probability'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {error && <p className="chain-inline-error">{error}</p>}
         </div>
       </section>
 
