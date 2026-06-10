@@ -955,9 +955,10 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         </div>
       </section>
 
-      <section className="yahoo-chart-grid chain-structure-grid">
-        <div className="yahoo-chart-card">
-          <h4>
+      <section className="yahoo-table-section" style={{ gridColumn: '1 / -1' }}>
+        <div className="yahoo-table-title">
+          <BarChart3 size={18} />
+          <h3>
             Volume/OI Heatmap (by strike)
             {autoRefreshActive && !previousParsed && (
               <span style={{ marginLeft: '12px', fontSize: '0.85em', color: '#94a3b8', fontWeight: 400 }}>
@@ -969,8 +970,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                 🔥 Top movers highlighted
               </span>
             )}
-          </h4>
-          <div className="yahoo-table-wrapper">
+          </h3>
+        </div>
+        <div className="yahoo-table-wrapper">
             <table className="yahoo-table">
               <thead>
                 <tr>
@@ -1080,7 +1082,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               </tbody>
             </table>
           </div>
-        </div>
       </section>
 
       <section className="yahoo-table-section">
