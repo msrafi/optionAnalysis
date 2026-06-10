@@ -630,8 +630,8 @@
   min-width: 120px;
   height: 10px;
   border-radius: 999px;
-  border: 1px solid rgba(34, 197, 94, 0.35);
-  background: linear-gradient(90deg, rgb(2, 4, 8) 0%, rgb(8, 34, 22) 50%, rgb(34, 197, 94) 100%);
+  border: 1px solid rgba(148, 10, 230, 0.35);
+  background: linear-gradient(90deg, rgb(20, 30, 120) 0%, rgb(84, 20, 175) 50%, rgb(148, 10, 230) 100%);
 }
 
 .butterfly-workspace {
@@ -820,6 +820,33 @@
   gap: 0.55rem;
 }
 
+.yahoo-bar-row--clickable {
+  cursor: pointer;
+  border-radius: 5px;
+  padding: 2px 4px;
+  transition: background 0.15s ease;
+}
+
+.yahoo-bar-row--clickable:hover {
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.yahoo-bar-row--selected {
+  background: rgba(96, 165, 250, 0.14) !important;
+  outline: 1px solid rgba(96, 165, 250, 0.35);
+}
+
+.yahoo-bar-chart-icon {
+  font-size: 0.8rem;
+  margin-right: 0.25rem;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.yahoo-bar-row--clickable:hover .yahoo-bar-chart-icon {
+  opacity: 1;
+}
+
 .yahoo-bar-label {
   font-size: 0.78rem;
   color: #bfd5ff;
@@ -897,6 +924,81 @@
 .yahoo-put {
   color: #f87171;
   font-weight: 700;
+}
+
+.most-active-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.most-active-row:hover {
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.most-active-row--selected {
+  background: rgba(96, 165, 250, 0.14) !important;
+  outline: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.most-active-contract-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'JetBrains Mono', monospace, sans-serif;
+  font-size: 0.78rem;
+  color: #93c5fd;
+}
+
+.most-active-chart-icon {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.most-active-row:hover .most-active-chart-icon {
+  opacity: 1;
+}
+
+.contract-chart-panel {
+  margin-top: 1rem;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(10, 18, 36, 0.9);
+}
+
+.contract-chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 1rem;
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom: 1px solid rgba(96, 165, 250, 0.2);
+}
+
+.contract-chart-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #93c5fd;
+  font-family: 'JetBrains Mono', monospace, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.contract-chart-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.contract-chart-close:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.1);
 }
 
 .yahoo-contract-link {

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BarChart3, RefreshCw } from 'lucide-react';
+import { BarChart3, RefreshCw, X } from 'lucide-react';
 import { fetchYahooMostActiveOptions, fetchYahooOptionChain, YahooMostActiveOptionRow } from '../utils/yahooOptions';
+import TradingViewChart from './TradingViewChart';
 
 type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'chainStructure' | 'chainStructureYahoo';
 
@@ -61,8 +62,10 @@ interface SelectedButterflyCell {
 
 const InsightBarList: React.FC<{
   title: string;
-  items: Array<{ label: string; value: number; optionType: 'CALL' | 'PUT' }>;
-}> = ({ title, items }) => {
+  items: Array<{ label: string; value: number; optionType: 'CALL' | 'PUT'; contractSymbol: string }>;
+  selectedSymbol: string | null;
+  onSelect: (symbol: string | null) => void;
+}> = ({ title, items, selectedSymbol, onSelect }) => {
   const max = Math.max(...items.map((item) => item.value), 0);
   return (
     <div className="yahoo-chart-card">
@@ -73,9 +76,18 @@ const InsightBarList: React.FC<{
         <div className="yahoo-bar-list">
           {items.map((item) => {
             const width = max > 0 ? (item.value / max) * 100 : 0;
+            const isSelected = selectedSymbol === item.contractSymbol;
             return (
-              <div key={item.label} className="yahoo-bar-row">
-                <div className="yahoo-bar-label">{item.label}</div>
+              <div
+                key={item.label}
+                className={`yahoo-bar-row yahoo-bar-row--clickable${isSelected ? ' yahoo-bar-row--selected' : ''}`}
+                onClick={() => onSelect(isSelected ? null : item.contractSymbol)}
+                title={`Click to view chart: ${item.contractSymbol}`}
+              >
+                <div className="yahoo-bar-label">
+                  <span className="yahoo-bar-chart-icon">📈</span>
+                  {item.label}
+                </div>
                 <div className="yahoo-bar-track">
                   <div
                     className={`yahoo-bar-fill ${item.optionType === 'CALL' ? 'call' : 'put'}`}
@@ -229,6 +241,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [loadingChain, setLoadingChain] = useState(false);
   const [error, setError] = useState('');
   const [mostActiveRows, setMostActiveRows] = useState<YahooMostActiveOptionRow[]>([]);
+  const [selectedContractSymbol, setSelectedContractSymbol] = useState<string | null>(null);
   const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
   const selectedExpiryDays = selectedExpiry ? daysUntilExpiry(selectedExpiry) : null;
 
@@ -241,7 +254,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       mostActiveTopByVolume.slice(0, 8).map((row) => ({
         label: `${row.contractSymbol.slice(0, 14)}...`,
         value: row.volume,
-        optionType: String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' as const : 'PUT' as const
+        optionType: String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' as const : 'PUT' as const,
+        contractSymbol: row.contractSymbol,
       })),
     [mostActiveTopByVolume]
   );
@@ -253,7 +267,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         .map((row) => ({
           label: `${row.contractSymbol.slice(0, 14)}...`,
           value: row.openInterest,
-          optionType: String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' as const : 'PUT' as const
+          optionType: String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' as const : 'PUT' as const,
+          contractSymbol: row.contractSymbol,
         })),
     [mostActiveTopByVolume]
   );
@@ -637,6 +652,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     setSpotOverride('');
     setDaysToExpiry(7);
     setSelectedButterflyCell(null);
+    setSelectedContractSymbol(null);
     setError('');
   };
 
@@ -899,9 +915,10 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                       const isSelected = selectedButterflyCell?.middleStrike === row.middleStrike && selectedButterflyCell?.width === width;
                       const heatScore = row.heatScores[width];
                       const intensity = heatScore != null ? Math.max(0, Math.min(1, heatScore)) : 0;
-                      const r = Math.round(2 + (34 - 2) * intensity);
-                      const g = Math.round(4 + (197 - 4) * intensity);
-                      const b = Math.round(8 + (94 - 8) * intensity);
+                      // Blue (far from 10%) → Violet/Purple (close to 10%)
+                      const r = Math.round(20 + (148 - 20) * intensity);
+                      const g = Math.round(30 + (10 - 30) * intensity);
+                      const b = Math.round(120 + (230 - 120) * intensity);
                       const bg = val == null
                         ? 'rgba(30,41,59,0.45)'
                         : `rgb(${r}, ${g}, ${b})`;
@@ -911,9 +928,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                           className={`butterfly-cell ${isSelected ? 'selected' : ''}`}
                           style={{
                             background: bg,
-                            borderColor: `rgba(34, 197, 94, ${0.15 + intensity * 0.7})`,
-                            boxShadow: intensity > 0.75 ? `0 0 ${2 + intensity * 8}px rgba(34, 197, 94, ${0.15 + intensity * 0.25})` : 'none',
-                            color: intensity > 0.35 ? '#f4fff8' : '#cfe3ff'
+                            borderColor: `rgba(148, 10, 230, ${0.1 + intensity * 0.7})`,
+                            boxShadow: intensity > 0.7 ? `0 0 ${2 + intensity * 8}px rgba(148, 10, 230, ${0.2 + intensity * 0.3})` : 'none',
+                            color: intensity > 0.35 ? '#f4f0ff' : '#a5b8e8'
                           }}
                           disabled={val == null}
                           onClick={() => setSelectedButterflyCell({ middleStrike: row.middleStrike, width })}
@@ -1016,9 +1033,43 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       </section>
 
       <section className="yahoo-chart-grid">
-        <InsightBarList title="Most Active Contracts by Volume" items={mostActiveVolumeItems} />
-        <InsightBarList title="Most Active Contracts by Open Interest" items={mostActiveOiItems} />
+        <InsightBarList
+          title="Most Active Contracts by Volume"
+          items={mostActiveVolumeItems}
+          selectedSymbol={selectedContractSymbol}
+          onSelect={setSelectedContractSymbol}
+        />
+        <InsightBarList
+          title="Most Active Contracts by Open Interest"
+          items={mostActiveOiItems}
+          selectedSymbol={selectedContractSymbol}
+          onSelect={setSelectedContractSymbol}
+        />
       </section>
+
+      {selectedContractSymbol && (
+        <section className="yahoo-table-section">
+          <div className="contract-chart-panel">
+            <div className="contract-chart-header">
+              <span className="contract-chart-title">📈 {selectedContractSymbol}</span>
+              <button
+                className="contract-chart-close"
+                onClick={() => setSelectedContractSymbol(null)}
+                title="Close chart"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <TradingViewChart
+              key={selectedContractSymbol}
+              symbol={selectedContractSymbol}
+              height={420}
+              interval="D"
+              theme="dark"
+            />
+          </div>
+        </section>
+      )}
 
       <section className="yahoo-table-section">
         <div className="yahoo-table-title">
@@ -1045,24 +1096,36 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   <td colSpan={8} className="chain-delta-empty">Load chain data to populate most active contracts.</td>
                 </tr>
               ) : (
-                mostActiveTopByVolume.map((row) => (
-                  <tr key={row.contractSymbol}>
-                    <td>{row.contractSymbol}</td>
-                    <td className={String(row.optionType).toUpperCase() === 'CALL' ? 'yahoo-call' : 'yahoo-put'}>
-                      {String(row.optionType).toUpperCase()}
-                    </td>
-                    <td>{row.strike.toFixed(2)}</td>
-                    <td>{new Date(row.expiration * 1000).toLocaleDateString()}</td>
-                    <td>{row.volume.toLocaleString()}</td>
-                    <td>{row.openInterest.toLocaleString()}</td>
-                    <td>{(row.impliedVolatility > 3 ? row.impliedVolatility : row.impliedVolatility * 100).toFixed(2)}%</td>
-                    <td>{row.price.toFixed(2)}</td>
-                  </tr>
-                ))
+                mostActiveTopByVolume.map((row) => {
+                  const isSelected = selectedContractSymbol === row.contractSymbol;
+                  return (
+                    <tr
+                      key={row.contractSymbol}
+                      className={`most-active-row${isSelected ? ' most-active-row--selected' : ''}`}
+                      onClick={() => setSelectedContractSymbol(isSelected ? null : row.contractSymbol)}
+                      title="Click to view TradingView chart"
+                    >
+                      <td className="most-active-contract-cell">
+                        <span className="most-active-chart-icon">📈</span>
+                        {row.contractSymbol}
+                      </td>
+                      <td className={String(row.optionType).toUpperCase() === 'CALL' ? 'yahoo-call' : 'yahoo-put'}>
+                        {String(row.optionType).toUpperCase()}
+                      </td>
+                      <td>{row.strike.toFixed(2)}</td>
+                      <td>{new Date(row.expiration * 1000).toLocaleDateString()}</td>
+                      <td>{row.volume.toLocaleString()}</td>
+                      <td>{row.openInterest.toLocaleString()}</td>
+                      <td>{(row.impliedVolatility > 3 ? row.impliedVolatility : row.impliedVolatility * 100).toFixed(2)}%</td>
+                      <td>{row.price.toFixed(2)}</td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
+
       </section>
     </div>
   );
