@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart3, RefreshCw } from 'lucide-react';
-import { fetchYahooOptionChain } from '../utils/yahooOptions';
+import { fetchYahooMostActiveOptions, fetchYahooOptionChain, YahooMostActiveOptionRow } from '../utils/yahooOptions';
 
-type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'activeInsights' | 'chainStructure' | 'chainStructureYahoo';
+type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'chainStructure' | 'chainStructureYahoo';
 
 interface YahooChainStructureDashboardProps {
   activeDashboard: DashboardType;
@@ -58,6 +58,39 @@ interface SelectedButterflyCell {
   middleStrike: number;
   width: number;
 }
+
+const InsightBarList: React.FC<{
+  title: string;
+  items: Array<{ label: string; value: number; optionType: 'CALL' | 'PUT' }>;
+}> = ({ title, items }) => {
+  const max = Math.max(...items.map((item) => item.value), 0);
+  return (
+    <div className="yahoo-chart-card">
+      <h4>{title}</h4>
+      {items.length === 0 ? (
+        <p className="yahoo-muted">No chart data available.</p>
+      ) : (
+        <div className="yahoo-bar-list">
+          {items.map((item) => {
+            const width = max > 0 ? (item.value / max) * 100 : 0;
+            return (
+              <div key={item.label} className="yahoo-bar-row">
+                <div className="yahoo-bar-label">{item.label}</div>
+                <div className="yahoo-bar-track">
+                  <div
+                    className={`yahoo-bar-fill ${item.optionType === 'CALL' ? 'call' : 'put'}`}
+                    style={{ width: `${width}%` }}
+                  />
+                </div>
+                <div className="yahoo-bar-value">{item.value.toLocaleString()}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 function safeRatio(num: number, den: number): number {
   return den === 0 ? 0 : num / den;
@@ -195,8 +228,35 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [loadingExpiries, setLoadingExpiries] = useState(false);
   const [loadingChain, setLoadingChain] = useState(false);
   const [error, setError] = useState('');
+  const [mostActiveRows, setMostActiveRows] = useState<YahooMostActiveOptionRow[]>([]);
   const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
   const selectedExpiryDays = selectedExpiry ? daysUntilExpiry(selectedExpiry) : null;
+
+  const mostActiveTopByVolume = useMemo(
+    () => [...mostActiveRows].sort((a, b) => b.volume - a.volume).slice(0, 15),
+    [mostActiveRows]
+  );
+  const mostActiveVolumeItems = useMemo(
+    () =>
+      mostActiveTopByVolume.slice(0, 8).map((row) => ({
+        label: `${row.contractSymbol.slice(0, 14)}...`,
+        value: row.volume,
+        optionType: String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' as const : 'PUT' as const
+      })),
+    [mostActiveTopByVolume]
+  );
+  const mostActiveOiItems = useMemo(
+    () =>
+      [...mostActiveTopByVolume]
+        .sort((a, b) => b.openInterest - a.openInterest)
+        .slice(0, 8)
+        .map((row) => ({
+          label: `${row.contractSymbol.slice(0, 14)}...`,
+          value: row.openInterest,
+          optionType: String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' as const : 'PUT' as const
+        })),
+    [mostActiveTopByVolume]
+  );
 
   const effectiveSpot = useMemo(() => {
     const overrideNum = Number(spotOverride);
@@ -538,10 +598,22 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     setLoadingChain(true);
     setError('');
     try {
-      const chain = await fetchYahooOptionChain(ticker, selectedExpiry || undefined);
+      const [chainResult, mostActiveResult] = await Promise.allSettled([
+        fetchYahooOptionChain(ticker, selectedExpiry || undefined),
+        fetchYahooMostActiveOptions(ticker)
+      ]);
+      if (chainResult.status !== 'fulfilled') {
+        throw chainResult.reason;
+      }
+      const chain = chainResult.value;
       const detectedSpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
       const normalized = buildChainFromYahoo(chain.contracts, detectedSpot);
       setParsed(normalized);
+      if (mostActiveResult.status === 'fulfilled') {
+        setMostActiveRows(mostActiveResult.value);
+      } else {
+        setMostActiveRows([]);
+      }
       if ((!spotOverride || Number(spotOverride) <= 0) && detectedSpot && detectedSpot > 0) {
         setSpotOverride(detectedSpot.toFixed(2));
       }
@@ -561,6 +633,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     setAvailableExpiries([]);
     setSelectedExpiry(null);
     setParsed({ rows: [], spotPrice: null });
+    setMostActiveRows([]);
     setSpotOverride('');
     setDaysToExpiry(7);
     setSelectedButterflyCell(null);
@@ -582,7 +655,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         <div className="header-right">
           <div className="nav-buttons">
             <button className={`nav-button ${activeDashboard === 'yahoo' ? 'active' : ''}`} onClick={() => setActiveDashboard('yahoo')}>Yahoo Options</button>
-            <button className={`nav-button ${activeDashboard === 'activeInsights' ? 'active' : ''}`} onClick={() => setActiveDashboard('activeInsights')}>Most Active Options</button>
             <button className={`nav-button ${activeDashboard === 'chainStructureYahoo' ? 'active' : ''}`} onClick={() => setActiveDashboard('chainStructureYahoo')}>Chain Structure (Yahoo)</button>
           </div>
         </div>
@@ -923,6 +995,56 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   <td>{r.putVolume.toLocaleString()}</td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="yahoo-chart-grid">
+        <InsightBarList title="Most Active Contracts by Volume" items={mostActiveVolumeItems} />
+        <InsightBarList title="Most Active Contracts by Open Interest" items={mostActiveOiItems} />
+      </section>
+
+      <section className="yahoo-table-section">
+        <div className="yahoo-table-title">
+          <BarChart3 size={18} />
+          <h3>Most Active Contracts ({symbol.toUpperCase()})</h3>
+        </div>
+        <div className="yahoo-table-wrapper">
+          <table className="yahoo-table">
+            <thead>
+              <tr>
+                <th>Contract</th>
+                <th>Type</th>
+                <th>Strike</th>
+                <th>Expiry</th>
+                <th>Volume</th>
+                <th>Open Interest</th>
+                <th>IV</th>
+                <th>Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mostActiveTopByVolume.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="chain-delta-empty">Load chain data to populate most active contracts.</td>
+                </tr>
+              ) : (
+                mostActiveTopByVolume.map((row) => (
+                  <tr key={row.contractSymbol}>
+                    <td>{row.contractSymbol}</td>
+                    <td className={String(row.optionType).toUpperCase() === 'CALL' ? 'yahoo-call' : 'yahoo-put'}>
+                      {String(row.optionType).toUpperCase()}
+                    </td>
+                    <td>{row.strike.toFixed(2)}</td>
+                    <td>{new Date(row.expiration * 1000).toLocaleDateString()}</td>
+                    <td>{row.volume.toLocaleString()}</td>
+                    <td>{row.openInterest.toLocaleString()}</td>
+                    <td>{(row.impliedVolatility > 3 ? row.impliedVolatility : row.impliedVolatility * 100).toFixed(2)}%</td>
+                    <td>{row.price.toFixed(2)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
