@@ -871,29 +871,22 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
           </div>
         </div>
         <div className="yahoo-filter-panel chain-decision-panel">
-          <h4>Decision Snapshot</h4>
+          <h4>Decision Snapshot & Trade Tuning</h4>
           <p className="yahoo-muted">Detected spot from Yahoo: <strong>{parsed.spotPrice ? `$${parsed.spotPrice.toFixed(2)}` : '-'}</strong></p>
           <p className="yahoo-muted">Expected Move: <strong>±${stats.expectedMove.toFixed(2)}</strong> ({stats.expectedMovePct.toFixed(2)}%)</p>
-          <p className="yahoo-muted">Bias: <strong>{stats.direction}</strong> | Confidence: <strong>{stats.confidence.toFixed(0)}%</strong></p>
-          <p className="yahoo-muted">Call Wall: <strong>{stats.callWall || '-'}</strong> | Put Wall: <strong>{stats.putWall || '-'}</strong></p>
-          <p className="yahoo-muted">{stats.suggestion}</p>
-          {error && <p className="chain-inline-error">{error}</p>}
-        </div>
-      </section>
-
-      <section className="yahoo-chart-grid chain-structure-grid">
-        <div className="yahoo-chart-card">
-          <h4>Expected Move Bands</h4>
-          <p className="yahoo-muted">Expected Move: ±${stats.expectedMove.toFixed(2)} ({stats.expectedMovePct.toFixed(2)}%)</p>
           {effectiveSpot && (
             <p className="yahoo-muted">
               Down: ${(effectiveSpot - stats.expectedMove).toFixed(2)} | Spot: ${effectiveSpot.toFixed(2)} | Up: ${(effectiveSpot + stats.expectedMove).toFixed(2)}
             </p>
           )}
-          <p className="yahoo-muted">Call Wall: {stats.callWall || '-'} | Put Wall: {stats.putWall || '-'}</p>
+          <p className="yahoo-muted">Bias: <strong>{stats.direction}</strong> | Confidence: <strong>{stats.confidence.toFixed(0)}%</strong></p>
+          <p className="yahoo-muted">Call Wall: <strong>{stats.callWall || '-'}</strong> | Put Wall: <strong>{stats.putWall || '-'}</strong></p>
+          <p className="yahoo-muted">{stats.suggestion}</p>
+          {error && <p className="chain-inline-error">{error}</p>}
+          
           {effectiveSpot ? (
             <>
-              <div className="chain-move-bar-chart">
+              <div className="chain-move-bar-chart" style={{ marginTop: '1rem' }}>
                 <div className="chain-move-bar-row">
                   <span className="chain-move-label">Downside Move</span>
                   <div className="chain-move-track">
@@ -906,7 +899,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   <div className="chain-move-track">
                     <div className="chain-move-fill upside" style={{ width: `${(stats.expectedMove / moveBarMax) * 100}%` }} />
                   </div>
-                  <span className="chain-move-value">+{stats.expectedMove.toFixed(2)}</span>
+                  <span className="chain-move-value">+${stats.expectedMove.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -927,8 +920,42 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               </div>
             </>
           ) : null}
-        </div>
 
+          {deltaPresets.length > 0 && (
+            <div style={{ marginTop: '1rem' }}>
+              <p className="yahoo-muted" style={{ marginBottom: '0.5rem', fontSize: '0.85rem', color: '#94a3b8' }}>
+                Delta-based Strike Presets (estimated deltas for tuning strike aggressiveness)
+              </p>
+              <div className="yahoo-table-wrapper">
+                <table className="yahoo-table" style={{ fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr>
+                      <th>Preset</th>
+                      <th>Side</th>
+                      <th>Strike</th>
+                      <th>Est. Delta</th>
+                      <th>Rationale</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deltaPresets.map((row) => (
+                      <tr key={`${row.preset}-${row.side}`}>
+                        <td>{row.preset}</td>
+                        <td>{row.side}</td>
+                        <td>{row.strike}</td>
+                        <td>{row.estDelta}</td>
+                        <td>{row.note}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="yahoo-chart-grid chain-structure-grid">
         <div className="yahoo-chart-card">
           <h4>
             Volume/OI Heatmap (by strike)
@@ -1053,46 +1080,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               </tbody>
             </table>
           </div>
-        </div>
-      </section>
-
-      <section className="yahoo-table-section">
-        <div className="yahoo-table-title">
-          <BarChart3 size={18} />
-          <h3>Delta-based Trade Tuning</h3>
-        </div>
-        <p className="yahoo-muted chain-delta-note">
-          Estimated deltas use spot, IV, and DTE as a guide. Use these presets to tune strike aggressiveness.
-        </p>
-        <div className="yahoo-table-wrapper">
-          <table className="yahoo-table">
-            <thead>
-              <tr>
-                <th>Preset</th>
-                <th>Side</th>
-                <th>Suggested Strike</th>
-                <th>Estimated Delta</th>
-                <th>Rationale</th>
-              </tr>
-            </thead>
-            <tbody>
-              {deltaPresets.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="chain-delta-empty">Load Yahoo chain data and set spot to generate delta presets.</td>
-                </tr>
-              ) : (
-                deltaPresets.map((row) => (
-                  <tr key={`${row.preset}-${row.side}`}>
-                    <td>{row.preset}</td>
-                    <td>{row.side}</td>
-                    <td>{row.strike}</td>
-                    <td>{row.estDelta}</td>
-                    <td>{row.note}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
         </div>
       </section>
 
