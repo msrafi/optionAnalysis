@@ -150,9 +150,9 @@ export async function fetchYahooOptionChain(symbol: string, expiry?: number): Pr
   });
 
   if (!response.ok) {
-    if (response.status === 502 || response.status === 503 || response.status === 504) {
+    if (response.status === 404 || response.status === 502 || response.status === 503 || response.status === 504) {
       throw new Error(
-        `Yahoo API proxy is unavailable (${response.status}). Start it with "npm run yahoo-server" and retry.`
+        `Yahoo server is not running. Open a new terminal and run: npm run yahoo-server`
       );
     }
     throw new Error(`Yahoo request failed for ${symbol}: ${response.status} ${response.statusText}`);
@@ -199,9 +199,9 @@ export async function fetchYahooMostActiveOptions(symbol?: string): Promise<Yaho
   });
 
   if (!response.ok) {
-    if (response.status === 502 || response.status === 503 || response.status === 504) {
+    if (response.status === 404 || response.status === 502 || response.status === 503 || response.status === 504) {
       throw new Error(
-        `Yahoo API proxy is unavailable (${response.status}). Start it with "npm run yahoo-server" and retry.`
+        `Yahoo server is not running. Open a new terminal and run: npm run yahoo-server`
       );
     }
     throw new Error(`Failed to fetch Yahoo most active options: ${response.status} ${response.statusText}`);
