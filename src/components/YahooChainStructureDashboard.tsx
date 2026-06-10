@@ -818,6 +818,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                 placeholder="e.g. NVDA"
                 value={symbol}
                 onChange={(e) => handleSymbolChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && symbol.trim() && !loadingExpiries) {
+                    loadExpiries();
+                  }
+                }}
               />
             </div>
             <div className="chain-flow-field">
