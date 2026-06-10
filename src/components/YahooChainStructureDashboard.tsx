@@ -258,6 +258,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [loadingChain, setLoadingChain] = useState(false);
   const [error, setError] = useState('');
   const [autoRefreshActive, setAutoRefreshActive] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [mostActiveRows, setMostActiveRows] = useState<YahooMostActiveOptionRow[]>([]);
   const [selectedContractSymbol, setSelectedContractSymbol] = useState<string | null>(null);
   const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
@@ -660,6 +661,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         setDaysToExpiry(daysUntilExpiry(selectedExpiry));
       }
       
+      // Update last refresh time
+      setLastUpdateTime(new Date());
+      
       // Start auto-refresh on first load (not on subsequent refreshes)
       if (!isRefresh && !autoRefreshActive) {
         setAutoRefreshActive(true);
@@ -682,6 +686,54 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       return null;
     }
     return currentRow[field] - previousRow[field];
+  };
+
+  // Calculate total absolute change for a strike (across all fields)
+  const getTotalAbsoluteChange = (strike: number): number => {
+    const callVolDelta = Math.abs(getDelta(strike, 'callVolume') || 0);
+    const callOiDelta = Math.abs(getDelta(strike, 'callOi') || 0);
+    const putVolDelta = Math.abs(getDelta(strike, 'putVolume') || 0);
+    const putOiDelta = Math.abs(getDelta(strike, 'putOi') || 0);
+    return callVolDelta + callOiDelta + putVolDelta + putOiDelta;
+  };
+
+  // Identify top movers (strikes with most significant changes)
+  const topMovers = useMemo(() => {
+    if (!previousParsed || previousParsed.rows.length === 0) {
+      return { top3: [] as number[], maxChange: 0 };
+    }
+    
+    const strikesWithChanges = parsed.rows
+      .map(r => ({
+        strike: r.strike,
+        totalChange: getTotalAbsoluteChange(r.strike)
+      }))
+      .filter(s => s.totalChange > 0)
+      .sort((a, b) => b.totalChange - a.totalChange);
+    
+    return {
+      top3: strikesWithChanges.slice(0, 3).map(s => s.strike),
+      maxChange: strikesWithChanges[0]?.totalChange || 0
+    };
+  }, [parsed.rows, previousParsed]);
+
+  // Format last update time
+  const formatLastUpdate = (date: Date | null): string => {
+    if (!date) return '';
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffSecs = Math.floor(diffMs / 1000);
+    const diffMins = Math.floor(diffSecs / 60);
+    
+    if (diffMins < 1) return 'just now';
+    if (diffMins === 1) return '1 min ago';
+    if (diffMins < 60) return `${diffMins} mins ago`;
+    
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
   };
 
   // Auto-refresh every 5 minutes after initial 5-minute wait
@@ -721,6 +773,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     setSelectedContractSymbol(null);
     setError('');
     setAutoRefreshActive(false);
+    setLastUpdateTime(null);
   };
 
   return (
@@ -736,6 +789,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             {autoRefreshActive && (
               <span className="header-stat" style={{ color: '#4ade80' }}>
                 🔄 Auto-refresh: ON (every 5min)
+              </span>
+            )}
+            {lastUpdateTime && (
+              <span className="header-stat" style={{ color: '#94a3b8' }}>
+                ⏱️ Last updated: {formatLastUpdate(lastUpdateTime)}
               </span>
             )}
           </div>
@@ -874,6 +932,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                 • Changes will appear after first refresh (5min)
               </span>
             )}
+            {topMovers.top3.length > 0 && (
+              <span style={{ marginLeft: '12px', fontSize: '0.85em', color: '#fbbf24', fontWeight: 500 }}>
+                🔥 Top movers highlighted
+              </span>
+            )}
           </h4>
           <div className="yahoo-table-wrapper">
             <table className="yahoo-table">
@@ -899,9 +962,34 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   const putVolDelta = getDelta(r.strike, 'putVolume');
                   const putOiDelta = getDelta(r.strike, 'putOi');
                   
+                  // Check if this strike is a top mover
+                  const isTopMover = topMovers.top3.includes(r.strike);
+                  const moverRank = topMovers.top3.indexOf(r.strike) + 1;
+                  
                   return (
-                    <tr key={`hm-${r.strike}`}>
-                      <td>{r.strike}</td>
+                    <tr 
+                      key={`hm-${r.strike}`}
+                      style={{
+                        background: isTopMover ? 'rgba(251, 191, 36, 0.08)' : undefined,
+                        borderLeft: isTopMover ? '3px solid #fbbf24' : undefined
+                      }}
+                    >
+                      <td style={{ fontWeight: isTopMover ? 600 : undefined }}>
+                        {isTopMover && (
+                          <span style={{ 
+                            marginRight: '6px',
+                            padding: '2px 6px',
+                            background: moverRank === 1 ? '#fbbf24' : moverRank === 2 ? '#f59e0b' : '#d97706',
+                            color: '#000',
+                            borderRadius: '4px',
+                            fontSize: '0.75em',
+                            fontWeight: 700
+                          }}>
+                            🔥 #{moverRank}
+                          </span>
+                        )}
+                        {r.strike}
+                      </td>
                       <td style={{ background: `rgba(34,197,94,${0.1 + cv * 0.7})` }}>
                         {r.callVolume.toLocaleString()}
                         {callVolDelta !== null && callVolDelta !== 0 && (
