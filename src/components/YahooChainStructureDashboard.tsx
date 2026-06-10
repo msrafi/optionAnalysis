@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart3, RefreshCw } from 'lucide-react';
 import { fetchYahooOptionChain } from '../utils/yahooOptions';
 
@@ -32,6 +32,31 @@ interface DeltaPresetRow {
   strike: string;
   estDelta: string;
   note: string;
+}
+
+interface ButterflyOpportunity {
+  optionSide: 'CALL' | 'PUT';
+  width: number;
+  lowerStrike: number;
+  middleStrike: number;
+  upperStrike: number;
+  wingWidth: number;
+  debit: number;
+  maxProfit: number;
+  breakevenLow: number;
+  breakevenHigh: number;
+  score: number;
+}
+
+interface ButterflyHeatmapRow {
+  middleStrike: number;
+  values: Record<number, number | null>;
+  heatScores: Record<number, number | null>;
+}
+
+interface SelectedButterflyCell {
+  middleStrike: number;
+  width: number;
 }
 
 function safeRatio(num: number, den: number): number {
@@ -170,6 +195,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [loadingExpiries, setLoadingExpiries] = useState(false);
   const [loadingChain, setLoadingChain] = useState(false);
   const [error, setError] = useState('');
+  const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
   const selectedExpiryDays = selectedExpiry ? daysUntilExpiry(selectedExpiry) : null;
 
   const effectiveSpot = useMemo(() => {
@@ -340,6 +366,141 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     });
   }, [daysToExpiry, effectiveSpot, parsed.rows, stats.direction]);
 
+  const [butterflySide, setButterflySide] = useState<'BOTH' | 'CALL' | 'PUT'>('BOTH');
+  const butterflyWidths = [5, 10, 15, 20, 25, 30];
+  const butterflyModel = useMemo(() => {
+    if (parsed.rows.length < 3) {
+      return {
+        middleStrikeUsed: null as number | null,
+        heatmapRows: [] as ButterflyHeatmapRow[],
+        opportunities: [] as ButterflyOpportunity[],
+        opportunityLookup: {} as Record<string, { call?: ButterflyOpportunity; put?: ButterflyOpportunity }>,
+        maxCellValue: 0
+      };
+    }
+
+    const nearestByStrike = (target: number) =>
+      parsed.rows.reduce((best, row) =>
+        Math.abs(row.strike - target) < Math.abs(best.strike - target) ? row : best, parsed.rows[0]);
+
+    const middlePrice = effectiveSpot ?? parsed.spotPrice ?? parsed.rows[Math.floor(parsed.rows.length / 2)].strike;
+    const centerRow = nearestByStrike(middlePrice);
+    const centerIndex = parsed.rows.findIndex((r) => r.strike === centerRow.strike);
+    const windowRows = parsed.rows.slice(Math.max(0, centerIndex - 12), Math.min(parsed.rows.length, centerIndex + 13));
+
+    const buildOpportunity = (middleStrike: number, width: number, optionSide: 'CALL' | 'PUT'): ButterflyOpportunity | null => {
+      const middleRow = nearestByStrike(middleStrike);
+      const lowerRow = nearestByStrike(middleRow.strike - width);
+      const upperRow = nearestByStrike(middleRow.strike + width);
+      if (!(lowerRow.strike < middleRow.strike && middleRow.strike < upperRow.strike)) return null;
+
+      const debit = optionSide === 'CALL'
+        ? Math.max(0, lowerRow.callLast + upperRow.callLast - 2 * middleRow.callLast)
+        : Math.max(0, lowerRow.putLast + upperRow.putLast - 2 * middleRow.putLast);
+      const wingWidth = Math.min(middleRow.strike - lowerRow.strike, upperRow.strike - middleRow.strike);
+      const maxProfit = Math.max(0, wingWidth - debit);
+      const score = debit <= 0 ? maxProfit : maxProfit / debit;
+
+      return {
+        optionSide,
+        width,
+        lowerStrike: lowerRow.strike,
+        middleStrike: middleRow.strike,
+        upperStrike: upperRow.strike,
+        wingWidth,
+        debit,
+        maxProfit,
+        breakevenLow: middleRow.strike - debit,
+        breakevenHigh: middleRow.strike + debit,
+        score
+      };
+    };
+
+    const targetDebitHeatScore = (opportunity: ButterflyOpportunity | null): number | null => {
+      if (!opportunity || opportunity.wingWidth <= 0) return null;
+      const targetRatio = 0.1;
+      const ratio = opportunity.debit / opportunity.wingWidth;
+      const distance = Math.abs(ratio - targetRatio);
+      return Math.max(0, Math.min(1, 1 - distance / targetRatio));
+    };
+
+    const opportunities: ButterflyOpportunity[] = [];
+    const opportunityLookup: Record<string, { call?: ButterflyOpportunity; put?: ButterflyOpportunity }> = {};
+    const heatmapRows: ButterflyHeatmapRow[] = windowRows.map((row) => {
+      const values = butterflyWidths.reduce<Record<number, number | null>>((acc, width) => {
+        const callOpp = buildOpportunity(row.strike, width, 'CALL');
+        const putOpp = buildOpportunity(row.strike, width, 'PUT');
+        const key = `${row.strike}-${width}`;
+        if (callOpp || putOpp) {
+          opportunityLookup[key] = {
+            call: callOpp ?? undefined,
+            put: putOpp ?? undefined
+          };
+        }
+        if (!callOpp || !putOpp) {
+          acc[width] = null;
+          return acc;
+        }
+        opportunities.push(callOpp, putOpp);
+        acc[width] = butterflySide === 'CALL'
+          ? callOpp.debit
+          : butterflySide === 'PUT'
+            ? putOpp.debit
+            : (callOpp.debit + putOpp.debit) / 2;
+        return acc;
+      }, {});
+      const heatScores = butterflyWidths.reduce<Record<number, number | null>>((acc, width) => {
+        const pair = opportunityLookup[`${row.strike}-${width}`];
+        if (!pair?.call && !pair?.put) {
+          acc[width] = null;
+          return acc;
+        }
+        const callScore = targetDebitHeatScore(pair?.call ?? null);
+        const putScore = targetDebitHeatScore(pair?.put ?? null);
+        acc[width] = butterflySide === 'CALL'
+          ? callScore
+          : butterflySide === 'PUT'
+            ? putScore
+            : (callScore != null && putScore != null ? (callScore + putScore) / 2 : callScore ?? putScore ?? null);
+        return acc;
+      }, {});
+      return { middleStrike: row.strike, values, heatScores };
+    });
+
+    const maxCellValue = Math.max(
+      0,
+      ...heatmapRows.flatMap((row) => butterflyWidths.map((width) => row.heatScores[width] ?? 0))
+    );
+
+    return {
+      middleStrikeUsed: centerRow.strike,
+      heatmapRows,
+      opportunities,
+      opportunityLookup,
+      maxCellValue
+    };
+  }, [butterflySide, effectiveSpot, parsed.rows, parsed.spotPrice]);
+
+  const selectedButterflyData = useMemo(() => {
+    if (!selectedButterflyCell) return null;
+    const key = `${selectedButterflyCell.middleStrike}-${selectedButterflyCell.width}`;
+    return butterflyModel.opportunityLookup[key] ?? null;
+  }, [butterflyModel.opportunityLookup, selectedButterflyCell]);
+
+  const selectedMiddleAllWidths = useMemo(() => {
+    if (!selectedButterflyCell) return [];
+    return butterflyWidths
+      .map((width) => ({
+        width,
+        data: butterflyModel.opportunityLookup[`${selectedButterflyCell.middleStrike}-${width}`] ?? null
+      }))
+      .filter((row) => row.data && (row.data.call || row.data.put));
+  }, [butterflyModel.opportunityLookup, butterflyWidths, selectedButterflyCell]);
+
+  useEffect(() => {
+    setSelectedButterflyCell(null);
+  }, [symbol, selectedExpiry, parsed.rows.length]);
+
   const loadExpiries = async () => {
     const ticker = symbol.trim().toUpperCase();
     if (!ticker) {
@@ -402,6 +563,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     setParsed({ rows: [], spotPrice: null });
     setSpotOverride('');
     setDaysToExpiry(7);
+    setSelectedButterflyCell(null);
     setError('');
   };
 
@@ -616,6 +778,122 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               )}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="yahoo-table-section">
+        <div className="yahoo-table-title">
+          <BarChart3 size={18} />
+          <h3>Butterfly Strategy Workspace</h3>
+        </div>
+        <div className="butterfly-toolbar">
+          <div className="butterfly-chip-group">
+            <button className="butterfly-chip active">Butterfly</button>
+            {/* <button className="butterfly-chip">Vertical</button>
+            <button className="butterfly-chip">Single</button> */}
+          </div>
+          <div className="butterfly-chip-group">
+            <button className={`butterfly-chip ${butterflySide === 'CALL' ? 'active' : ''}`} onClick={() => setButterflySide('CALL')}>Call</button>
+            <button className={`butterfly-chip ${butterflySide === 'PUT' ? 'active' : ''}`} onClick={() => setButterflySide('PUT')}>Put</button>
+            <button className={`butterfly-chip ${butterflySide === 'BOTH' ? 'active' : ''}`} onClick={() => setButterflySide('BOTH')}>Both</button>
+          </div>
+          <span className="butterfly-meta">
+            Middle Strike Used: <strong>{butterflyModel.middleStrikeUsed ? butterflyModel.middleStrikeUsed.toFixed(2) : '-'}</strong>
+          </span>
+        </div>
+        <p className="yahoo-muted" style={{ marginTop: 0, marginBottom: '0.7rem' }}>
+          Heat focuses on debit near <strong>10%</strong> of leg spacing (for example, width 10 is hottest around debit 1.00).
+        </p>
+        <div className="butterfly-workspace">
+          <div className="butterfly-heatmap-card">
+            <div className="butterfly-heatmap-header">
+              <span>STRIKE</span>
+              {butterflyWidths.map((width) => <span key={`w-${width}`}>{width}</span>)}
+            </div>
+            <div className="butterfly-heatmap-body">
+              {butterflyModel.heatmapRows.length === 0 ? (
+                <p className="yahoo-muted">Load Yahoo chain data to generate butterfly heatmap.</p>
+              ) : (
+                butterflyModel.heatmapRows.map((row) => (
+                  <div key={`hm-row-${row.middleStrike}`} className="butterfly-heatmap-row">
+                    <span className="butterfly-strike">{row.middleStrike.toFixed(0)}</span>
+                    {butterflyWidths.map((width) => {
+                      const val = row.values[width];
+                      const isSelected = selectedButterflyCell?.middleStrike === row.middleStrike && selectedButterflyCell?.width === width;
+                      const heatScore = row.heatScores[width];
+                      const intensity = heatScore != null && butterflyModel.maxCellValue > 0
+                        ? Math.min(1, heatScore / butterflyModel.maxCellValue)
+                        : 0;
+                      const r = Math.round(5 + (34 - 5) * intensity);
+                      const g = Math.round(8 + (197 - 8) * intensity);
+                      const b = Math.round(15 + (94 - 15) * intensity);
+                      const bg = val == null
+                        ? 'rgba(30,41,59,0.45)'
+                        : `rgb(${r}, ${g}, ${b})`;
+                      return (
+                        <button
+                          key={`hm-cell-${row.middleStrike}-${width}`}
+                          className={`butterfly-cell ${isSelected ? 'selected' : ''}`}
+                          style={{ background: bg }}
+                          disabled={val == null}
+                          onClick={() => setSelectedButterflyCell({ middleStrike: row.middleStrike, width })}
+                        >
+                          {val == null ? '-' : val.toFixed(2)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <div className="butterfly-opportunities">
+            {!selectedButterflyCell ? (
+              <div className="butterfly-op-card empty" />
+            ) : (
+              <>
+                <div className="butterfly-op-card put">
+                  <h4>Selected Long Put Butterfly</h4>
+                  {selectedButterflyData?.put ? (
+                    <>
+                      <div className="butterfly-op-line">
+                        <span>
+                          {selectedButterflyData.put.lowerStrike.toFixed(0)}P / {selectedButterflyData.put.middleStrike.toFixed(0)}P / {selectedButterflyData.put.upperStrike.toFixed(0)}P
+                        </span>
+                        <strong>{selectedButterflyData.put.debit.toFixed(2)} debit</strong>
+                      </div>
+                      <p className="yahoo-muted">Max Profit: {selectedButterflyData.put.maxProfit.toFixed(2)} | B/E: {selectedButterflyData.put.breakevenLow.toFixed(2)} - {selectedButterflyData.put.breakevenHigh.toFixed(2)}</p>
+                    </>
+                  ) : <p className="yahoo-muted">No valid put setup for this selection.</p>}
+                </div>
+                <div className="butterfly-op-card call">
+                  <h4>Selected Long Call Butterfly</h4>
+                  {selectedButterflyData?.call ? (
+                    <>
+                      <div className="butterfly-op-line">
+                        <span>
+                          {selectedButterflyData.call.lowerStrike.toFixed(0)}C / {selectedButterflyData.call.middleStrike.toFixed(0)}C / {selectedButterflyData.call.upperStrike.toFixed(0)}C
+                        </span>
+                        <strong>{selectedButterflyData.call.debit.toFixed(2)} debit</strong>
+                      </div>
+                      <p className="yahoo-muted">Max Profit: {selectedButterflyData.call.maxProfit.toFixed(2)} | B/E: {selectedButterflyData.call.breakevenLow.toFixed(2)} - {selectedButterflyData.call.breakevenHigh.toFixed(2)}</p>
+                    </>
+                  ) : <p className="yahoo-muted">No valid call setup for this selection.</p>}
+                </div>
+                <div className="butterfly-op-card">
+                  <h4>Strike Legs by Width (same middle strike)</h4>
+                  <div className="butterfly-leg-list">
+                    {selectedMiddleAllWidths.map((entry) => (
+                      <div key={`legs-${selectedButterflyCell.middleStrike}-${entry.width}`} className="butterfly-op-line">
+                        <span>W{entry.width}: {entry.data?.call ? `${entry.data.call.lowerStrike.toFixed(0)} / ${entry.data.call.middleStrike.toFixed(0)} / ${entry.data.call.upperStrike.toFixed(0)}` : '-'}</span>
+                        <strong>{entry.data?.call ? `${entry.data.call.debit.toFixed(2)}C` : '-'} | {entry.data?.put ? `${entry.data.put.debit.toFixed(2)}P` : '-'}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </section>
 

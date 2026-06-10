@@ -576,6 +576,161 @@
   padding: 0.65rem 0.8rem;
 }
 
+.butterfly-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.75rem;
+}
+
+.butterfly-chip-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.butterfly-chip {
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  background: rgba(30, 41, 59, 0.85);
+  color: #cfe2ff;
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.butterfly-chip.active {
+  background: linear-gradient(135deg, #1e40af, #0ea5e9);
+  color: #ffffff;
+  border-color: rgba(56, 189, 248, 0.7);
+}
+
+.butterfly-meta {
+  margin-left: auto;
+  color: #bfd5ff;
+  font-size: 0.85rem;
+}
+
+.butterfly-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr);
+  gap: 0.8rem;
+}
+
+.butterfly-heatmap-card {
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 10px;
+  background: rgba(8, 14, 30, 0.7);
+  overflow: hidden;
+}
+
+.butterfly-heatmap-header,
+.butterfly-heatmap-row {
+  display: grid;
+  grid-template-columns: 72px repeat(6, minmax(48px, 1fr));
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.28rem 0.5rem;
+}
+
+.butterfly-heatmap-header {
+  border-bottom: 1px solid rgba(96, 165, 250, 0.25);
+  background: rgba(15, 23, 42, 0.95);
+  color: #8bc8ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.butterfly-heatmap-body {
+  max-height: 560px;
+  overflow: auto;
+  padding: 0.25rem 0;
+}
+
+.butterfly-strike {
+  color: #facc15;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.butterfly-cell {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 5px;
+  text-align: center;
+  font-size: 0.74rem;
+  padding: 0.18rem 0.2rem;
+  color: #eaf4ff;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.butterfly-cell:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.butterfly-cell.selected {
+  border-color: rgba(56, 189, 248, 0.95);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.35);
+}
+
+.butterfly-opportunities {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.butterfly-op-card {
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 10px;
+  padding: 0.75rem;
+  background: rgba(15, 23, 42, 0.82);
+}
+
+.butterfly-op-card.put {
+  border-color: rgba(34, 197, 94, 0.5);
+  background: linear-gradient(145deg, rgba(22, 101, 52, 0.55), rgba(15, 23, 42, 0.82));
+}
+
+.butterfly-op-card.call {
+  border-color: rgba(249, 115, 22, 0.5);
+  background: linear-gradient(145deg, rgba(154, 52, 18, 0.55), rgba(15, 23, 42, 0.82));
+}
+
+.butterfly-op-card h4 {
+  margin: 0 0 0.45rem;
+  font-size: 0.92rem;
+  color: #e8f3ff;
+}
+
+.butterfly-op-card.empty {
+  min-height: 280px;
+  background: rgba(15, 23, 42, 0.4);
+  border-style: dashed;
+}
+
+.butterfly-op-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #dbeafe;
+  margin-bottom: 0.35rem;
+}
+
+.butterfly-op-line:last-child {
+  margin-bottom: 0;
+}
+
+.butterfly-leg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 .yahoo-expiry-row {
   display: flex;
   flex-direction: column;
@@ -858,6 +1013,15 @@
 
   .chain-flow-grid {
     grid-template-columns: 1fr;
+  }
+
+  .butterfly-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .butterfly-meta {
+    margin-left: 0;
+    width: 100%;
   }
 }
 
