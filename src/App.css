@@ -141,6 +141,96 @@
   margin: 0.25rem 0 0;
   line-height: 1.5;
 }
+
+/* Toggle row on lock screen */
+.passkey-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 0.25rem 0;
+  border-top: 1px solid rgba(99,102,241,0.12);
+  margin-top: 0.25rem;
+}
+
+.passkey-toggle-label {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.passkey-toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 999px;
+  border: none;
+  background: #1e293b;
+  cursor: pointer;
+  transition: background 0.2s;
+  outline: 1px solid rgba(99,102,241,0.25);
+  flex-shrink: 0;
+}
+
+.passkey-toggle--on {
+  background: #6366f1;
+  outline-color: #6366f1;
+}
+
+.passkey-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #475569;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.passkey-toggle--on .passkey-toggle-thumb {
+  transform: translateX(18px);
+  background: #fff;
+}
+
+/* Floating security badge (shown when app is unlocked) */
+.passkey-fab {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 9000;
+}
+
+.passkey-fab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem 0.4rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(99,102,241,0.3);
+  background: rgba(15,23,42,0.9);
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  transition: all 0.2s;
+  letter-spacing: 0.02em;
+}
+
+.passkey-fab-btn:hover {
+  border-color: rgba(99,102,241,0.6);
+  color: #94a3b8;
+}
+
+.passkey-fab-btn--on {
+  color: #818cf8;
+  border-color: rgba(99,102,241,0.45);
+}
+
+.passkey-fab-btn--off {
+  color: #475569;
+  border-color: rgba(71,85,105,0.4);
+}
 /* ─────────────────────────────────────────────────────────────────────── */
 
 .app {

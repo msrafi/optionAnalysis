@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, Fingerprint, KeyRound, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Fingerprint, KeyRound, AlertTriangle, ShieldOff } from 'lucide-react';
 
-const STORAGE_KEY = 'optionAnalysis_passkey_credId';
-const SESSION_KEY = 'optionAnalysis_authed';
+const STORAGE_KEY  = 'optionAnalysis_passkey_credId';
+const SESSION_KEY  = 'optionAnalysis_authed';
+const ENABLED_KEY  = 'optionAnalysis_passkey_enabled';
 
 function getRpId(): string {
   const host = window.location.hostname;
@@ -81,33 +82,43 @@ async function authenticatePasskey(credId: string): Promise<boolean> {
 }
 
 const PasskeyGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [status, setStatus] = useState<'checking' | 'locked' | 'authenticating' | 'registering' | 'unlocked' | 'error' | 'unsupported'>('checking');
+  type Status = 'checking' | 'locked' | 'authenticating' | 'registering' | 'unlocked' | 'unsupported';
+  const [status, setStatus]     = useState<Status>('checking');
   const [errorMsg, setErrorMsg] = useState('');
+  const [enabled, setEnabled]   = useState<boolean>(() =>
+    localStorage.getItem(ENABLED_KEY) === 'true'
+  );
 
-  const isSupported = typeof window !== 'undefined' &&
+  const isSupported =
+    typeof window !== 'undefined' &&
     window.PublicKeyCredential !== undefined &&
     typeof navigator.credentials?.create === 'function';
 
   useEffect(() => {
-    if (!isSupported) {
-      setStatus('unsupported');
-      return;
-    }
-    // Already authenticated this session?
-    if (sessionStorage.getItem(SESSION_KEY) === '1') {
+    if (!enabled) { setStatus('unlocked'); return; }
+    if (!isSupported) { setStatus('unsupported'); return; }
+    if (sessionStorage.getItem(SESSION_KEY) === '1') { setStatus('unlocked'); return; }
+    setStatus('locked');
+  }, [enabled, isSupported]);
+
+  const toggleEnabled = (next: boolean) => {
+    localStorage.setItem(ENABLED_KEY, String(next));
+    setEnabled(next);
+    if (!next) {
+      // Turning off — clear session lock so the gate opens immediately
+      sessionStorage.setItem(SESSION_KEY, '1');
       setStatus('unlocked');
-      return;
+    } else {
+      // Turning on — require auth on next visit (don't lock immediately this session)
+      sessionStorage.setItem(SESSION_KEY, '1');
+      setStatus('unlocked');
     }
-    const stored = localStorage.getItem(STORAGE_KEY);
-    setStatus(stored ? 'locked' : 'locked');
-  }, [isSupported]);
+  };
 
   const handleUnlock = async () => {
     setErrorMsg('');
     const stored = localStorage.getItem(STORAGE_KEY);
-
     if (!stored) {
-      // First time — register a passkey
       setStatus('registering');
       try {
         await registerPasskey();
@@ -115,15 +126,10 @@ const PasskeyGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setStatus('unlocked');
       } catch (e: any) {
         const msg = e?.message || String(e);
-        if (msg.includes('cancel') || msg.includes('abort') || msg.includes('NotAllowed')) {
-          setErrorMsg('Registration cancelled. Tap "Set up Passkey" to try again.');
-        } else {
-          setErrorMsg(`Registration failed: ${msg}`);
-        }
+        setErrorMsg(msg.includes('NotAllowed') ? 'Cancelled. Try again.' : `Registration failed: ${msg}`);
         setStatus('locked');
       }
     } else {
-      // Authenticate with existing passkey
       setStatus('authenticating');
       try {
         await authenticatePasskey(stored);
@@ -131,11 +137,7 @@ const PasskeyGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setStatus('unlocked');
       } catch (e: any) {
         const msg = e?.message || String(e);
-        if (msg.includes('cancel') || msg.includes('abort') || msg.includes('NotAllowed')) {
-          setErrorMsg('Authentication cancelled. Try again.');
-        } else {
-          setErrorMsg(`Authentication failed: ${msg}`);
-        }
+        setErrorMsg(msg.includes('NotAllowed') ? 'Cancelled. Try again.' : `Authentication failed: ${msg}`);
         setStatus('locked');
       }
     }
@@ -148,20 +150,37 @@ const PasskeyGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setStatus('locked');
   };
 
-  if (status === 'unlocked') return <>{children}</>;
+  // ── Unlocked: render app + floating security toggle ───────────────────────
+  if (status === 'unlocked') {
+    return (
+      <>
+        {children}
+        <div className="passkey-fab" title={enabled ? 'Security: ON — click to disable' : 'Security: OFF — click to enable'}>
+          <button
+            className={`passkey-fab-btn ${enabled ? 'passkey-fab-btn--on' : 'passkey-fab-btn--off'}`}
+            onClick={() => toggleEnabled(!enabled)}
+          >
+            {enabled
+              ? <ShieldCheck size={16} />
+              : <ShieldOff size={16} />}
+            <span>{enabled ? 'Auth ON' : 'Auth OFF'}</span>
+          </button>
+        </div>
+      </>
+    );
+  }
 
+  // ── Lock screen ───────────────────────────────────────────────────────────
   const hasPasskey = !!localStorage.getItem(STORAGE_KEY);
-  const isWorking = status === 'authenticating' || status === 'registering';
+  const isWorking  = status === 'registering' || status === 'authenticating';
 
   return (
     <div className="passkey-gate">
       <div className="passkey-card">
         <div className="passkey-icon-wrap">
-          {status === 'unsupported' ? (
-            <AlertTriangle size={40} className="passkey-icon-warn" />
-          ) : (
-            <ShieldCheck size={40} className="passkey-icon-shield" />
-          )}
+          {status === 'unsupported'
+            ? <AlertTriangle size={40} className="passkey-icon-warn" />
+            : <ShieldCheck size={40} className="passkey-icon-shield" />}
         </div>
 
         <h1 className="passkey-title">Option Analysis</h1>
@@ -181,35 +200,32 @@ const PasskeyGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         )}
 
         {status !== 'unsupported' && (
-          <button
-            className="passkey-btn"
-            onClick={handleUnlock}
-            disabled={isWorking}
-          >
+          <button className="passkey-btn" onClick={handleUnlock} disabled={isWorking}>
             {isWorking ? (
-              <>
-                <span className="passkey-spinner" />
-                {status === 'registering' ? 'Waiting for iPhone…' : 'Waiting for Face ID…'}
-              </>
+              <><span className="passkey-spinner" />{status === 'registering' ? 'Waiting for iPhone…' : 'Waiting for Face ID…'}</>
             ) : hasPasskey ? (
-              <>
-                <Fingerprint size={18} />
-                Unlock — Show QR for iPhone
-              </>
+              <><Fingerprint size={18} />Unlock — Show QR for iPhone</>
             ) : (
-              <>
-                <KeyRound size={18} />
-                Set up iPhone as Key
-              </>
+              <><KeyRound size={18} />Set up iPhone as Key</>
             )}
           </button>
         )}
 
-        {hasPasskey && status === 'locked' && (
-          <button className="passkey-reset-btn" onClick={handleReset}>
-            Reset passkey
-          </button>
+        {hasPasskey && !isWorking && (
+          <button className="passkey-reset-btn" onClick={handleReset}>Reset passkey</button>
         )}
+
+        {/* Toggle to disable auth from the lock screen itself */}
+        <div className="passkey-toggle-row">
+          <span className="passkey-toggle-label">Login required</span>
+          <button
+            className={`passkey-toggle ${enabled ? 'passkey-toggle--on' : ''}`}
+            onClick={() => toggleEnabled(!enabled)}
+            title="Toggle passkey authentication"
+          >
+            <span className="passkey-toggle-thumb" />
+          </button>
+        </div>
 
         <p className="passkey-note">
           {status === 'unsupported'
