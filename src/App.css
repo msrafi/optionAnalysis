@@ -612,6 +612,28 @@
   font-size: 0.85rem;
 }
 
+.butterfly-legend {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: -0.2rem 0 0.75rem;
+}
+
+.butterfly-legend-label {
+  font-size: 0.74rem;
+  color: #9ec3ef;
+  white-space: nowrap;
+}
+
+.butterfly-legend-bar {
+  flex: 1;
+  min-width: 120px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: linear-gradient(90deg, rgb(2, 4, 8) 0%, rgb(8, 34, 22) 50%, rgb(34, 197, 94) 100%);
+}
+
 .butterfly-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1.8fr) minmax(300px, 1fr);
@@ -635,6 +657,9 @@
 }
 
 .butterfly-heatmap-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   border-bottom: 1px solid rgba(96, 165, 250, 0.25);
   background: rgba(15, 23, 42, 0.95);
   color: #8bc8ff;
@@ -664,6 +689,12 @@
   color: #eaf4ff;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.butterfly-cell:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
 }
 
 .butterfly-cell:disabled {

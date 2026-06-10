@@ -876,6 +876,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         <p className="yahoo-muted" style={{ marginTop: 0, marginBottom: '0.7rem' }}>
           Heat focuses on debit near <strong>10%</strong> of leg spacing (for example, width 10 is hottest around debit 1.00).
         </p>
+        <div className="butterfly-legend">
+          <span className="butterfly-legend-label">Far from 10%</span>
+          <div className="butterfly-legend-bar" />
+          <span className="butterfly-legend-label">Closest to 10%</span>
+        </div>
         <div className="butterfly-workspace">
           <div className="butterfly-heatmap-card">
             <div className="butterfly-heatmap-header">
@@ -893,12 +898,10 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                       const val = row.values[width];
                       const isSelected = selectedButterflyCell?.middleStrike === row.middleStrike && selectedButterflyCell?.width === width;
                       const heatScore = row.heatScores[width];
-                      const intensity = heatScore != null && butterflyModel.maxCellValue > 0
-                        ? Math.min(1, heatScore / butterflyModel.maxCellValue)
-                        : 0;
-                      const r = Math.round(5 + (34 - 5) * intensity);
-                      const g = Math.round(8 + (197 - 8) * intensity);
-                      const b = Math.round(15 + (94 - 15) * intensity);
+                      const intensity = heatScore != null ? Math.max(0, Math.min(1, heatScore)) : 0;
+                      const r = Math.round(2 + (34 - 2) * intensity);
+                      const g = Math.round(4 + (197 - 4) * intensity);
+                      const b = Math.round(8 + (94 - 8) * intensity);
                       const bg = val == null
                         ? 'rgba(30,41,59,0.45)'
                         : `rgb(${r}, ${g}, ${b})`;
@@ -906,9 +909,21 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                         <button
                           key={`hm-cell-${row.middleStrike}-${width}`}
                           className={`butterfly-cell ${isSelected ? 'selected' : ''}`}
-                          style={{ background: bg }}
+                          style={{
+                            background: bg,
+                            borderColor: `rgba(34, 197, 94, ${0.15 + intensity * 0.7})`,
+                            boxShadow: intensity > 0.75 ? `0 0 ${2 + intensity * 8}px rgba(34, 197, 94, ${0.15 + intensity * 0.25})` : 'none',
+                            color: intensity > 0.35 ? '#f4fff8' : '#cfe3ff'
+                          }}
                           disabled={val == null}
                           onClick={() => setSelectedButterflyCell({ middleStrike: row.middleStrike, width })}
+                          title={
+                            val == null
+                              ? 'No valid butterfly for this strike/width'
+                              : `Middle ${row.middleStrike} | Width ${width} | Debit ${val.toFixed(2)} | Target ${(
+                                  width * 0.1
+                                ).toFixed(2)} | Heat ${(intensity * 100).toFixed(0)}%`
+                          }
                         >
                           {val == null ? '-' : val.toFixed(2)}
                         </button>
