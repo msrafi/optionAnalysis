@@ -885,8 +885,8 @@
 .butterfly-heatmap-header,
 .butterfly-heatmap-row {
   display: grid;
-  grid-template-columns: 72px repeat(6, minmax(48px, 1fr));
-  gap: 0.35rem;
+  grid-template-columns: 72px repeat(8, minmax(42px, 1fr));
+  gap: 0.3rem;
   align-items: center;
   padding: 0.28rem 0.5rem;
 }
@@ -919,8 +919,8 @@
   border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: 5px;
   text-align: center;
-  font-size: 0.74rem;
-  padding: 0.18rem 0.2rem;
+  font-size: 0.7rem;
+  padding: 0.18rem 0.15rem;
   color: #eaf4ff;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
