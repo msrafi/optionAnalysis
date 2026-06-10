@@ -12,11 +12,31 @@ const projectRoot = path.join(__dirname, '..');
 dotenv.config({ path: path.join(projectRoot, '.env.local') });
 dotenv.config();
 
-const PORT = parseInt(process.env.YAHOO_API_PORT || '8788', 10);
+// Railway sets PORT; fall back to YAHOO_API_PORT for local dev
+const PORT = parseInt(process.env.PORT || process.env.YAHOO_API_PORT || '8788', 10);
 const yahooFinance = new YahooFinance();
 
+const ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://msrafi.github.io',
+  // Also allow any Railway preview URLs during testing
+  /^https:\/\/.*\.railway\.app$/,
+  /^https:\/\/.*\.up\.railway\.app$/,
+];
+
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, server-to-server)
+    if (!origin) return callback(null, true);
+    const allowed = ALLOWED_ORIGINS.some(o =>
+      typeof o === 'string' ? o === origin : o.test(origin)
+    );
+    callback(allowed ? null : new Error(`CORS blocked: ${origin}`), allowed);
+  },
+  credentials: false,
+}));
 
 function unwrapNumeric(field, fallback = 0) {
   if (field && typeof field === 'object' && typeof field.raw === 'number') {

@@ -143,9 +143,13 @@ export function parseSymbolsInput(input: string): string[] {
   );
 }
 
+// In local dev (Vite proxy), base is '' so requests go to /api/yahoo/...
+// In production (GitHub Pages), VITE_YAHOO_API_BASE is set to the Railway URL.
+const API_BASE: string = (import.meta as any).env?.VITE_YAHOO_API_BASE ?? '';
+
 export async function fetchYahooOptionChain(symbol: string, expiry?: number): Promise<YahooOptionChainResult> {
   const query = expiry ? `?date=${expiry}` : '';
-  const response = await fetch(`/api/yahoo/options/${encodeURIComponent(symbol)}${query}`, {
+  const response = await fetch(`${API_BASE}/api/yahoo/options/${encodeURIComponent(symbol)}${query}`, {
     cache: 'no-store'
   });
 
@@ -194,7 +198,7 @@ export async function fetchYahooMostActiveOptions(symbol?: string): Promise<Yaho
     params.set('symbol', symbol.toUpperCase());
   }
 
-  const response = await fetch(`/api/yahoo/most-active?${params.toString()}`, {
+  const response = await fetch(`${API_BASE}/api/yahoo/most-active?${params.toString()}`, {
     cache: 'no-store'
   });
 
