@@ -1141,9 +1141,31 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               {butterflyModel.heatmapRows.length === 0 ? (
                 <p className="yahoo-muted">Load Yahoo chain data to generate butterfly heatmap.</p>
               ) : (
-                butterflyModel.heatmapRows.map((row) => (
-                  <div key={`hm-row-${row.middleStrike}`} className="butterfly-heatmap-row">
-                    <span className="butterfly-strike">{row.middleStrike.toFixed(0)}</span>
+                butterflyModel.heatmapRows.map((row) => {
+                  // Check if this strike is closest to spot price
+                  const isClosestToSpot = effectiveSpot && butterflyModel.heatmapRows.reduce((closest, r) => 
+                    Math.abs(r.middleStrike - effectiveSpot) < Math.abs(closest.middleStrike - effectiveSpot) ? r : closest
+                  ).middleStrike === row.middleStrike;
+                  
+                  return (
+                  <div 
+                    key={`hm-row-${row.middleStrike}`} 
+                    className="butterfly-heatmap-row"
+                    style={{
+                      background: isClosestToSpot ? 'rgba(56, 189, 248, 0.08)' : undefined,
+                      borderLeft: isClosestToSpot ? '3px solid #38bdf8' : undefined
+                    }}
+                  >
+                    <span 
+                      className="butterfly-strike"
+                      style={{
+                        fontWeight: isClosestToSpot ? 700 : undefined,
+                        color: isClosestToSpot ? '#38bdf8' : undefined
+                      }}
+                    >
+                      {isClosestToSpot && '📍 '}
+                      {row.middleStrike.toFixed(0)}
+                    </span>
                     {butterflyWidths.map((width) => {
                       const val = row.values[width];
                       const isSelected = selectedButterflyCell?.middleStrike === row.middleStrike && selectedButterflyCell?.width === width;
@@ -1181,7 +1203,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                       );
                     })}
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
