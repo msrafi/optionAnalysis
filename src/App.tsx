@@ -6,6 +6,7 @@ import YahooOptionsDashboard from './components/YahooOptionsDashboard';
 import OptionChainStructureDashboard from './components/OptionChainStructureDashboard';
 import YahooChainStructureDashboard from './components/YahooChainStructureDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
+import PasskeyGate from './components/PasskeyGate';
 import './App.css';
 
 type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'chainStructure' | 'chainStructureYahoo';
@@ -14,6 +15,7 @@ function App() {
   const [activeDashboard, setActiveDashboard] = useState<DashboardType>('chainStructureYahoo');
 
   return (
+    <PasskeyGate>
     <div className="app">
       <main>
         <ErrorBoundary>
@@ -51,6 +53,7 @@ function App() {
         </ErrorBoundary>
       </main>
     </div>
+    </PasskeyGate>
   )
 }
 

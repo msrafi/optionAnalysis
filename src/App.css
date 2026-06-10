@@ -1,3 +1,148 @@
+/* ── Passkey Gate ─────────────────────────────────────────────────────── */
+.passkey-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #0d1117 0%, #0f172a 60%, #1e1040 100%);
+  padding: 1.5rem;
+}
+
+.passkey-card {
+  width: 100%;
+  max-width: 360px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 20px;
+  padding: 2.5rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(99, 102, 241, 0.1);
+  backdrop-filter: blur(20px);
+}
+
+.passkey-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(139, 92, 246, 0.15));
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.25rem;
+}
+
+.passkey-icon-shield {
+  color: #818cf8;
+}
+
+.passkey-icon-warn {
+  color: #fbbf24;
+}
+
+.passkey-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.passkey-sub {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  text-align: center;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.passkey-error {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.78rem;
+  color: #fca5a5;
+  width: 100%;
+}
+
+.passkey-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.85rem 1.25rem;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.passkey-btn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.passkey-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.passkey-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.passkey-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: passkey-spin 0.7s linear infinite;
+}
+
+@keyframes passkey-spin {
+  to { transform: rotate(360deg); }
+}
+
+.passkey-reset-btn {
+  background: transparent;
+  border: none;
+  color: #475569;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.passkey-reset-btn:hover {
+  color: #94a3b8;
+}
+
+.passkey-note {
+  font-size: 0.72rem;
+  color: #334155;
+  text-align: center;
+  margin: 0.25rem 0 0;
+  line-height: 1.5;
+}
+/* ─────────────────────────────────────────────────────────────────────── */
+
 .app {
   min-height: 100vh;
   width: 100vw;
