@@ -1000,15 +1000,34 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   const isTopMover = topMovers.top3.includes(r.strike);
                   const moverRank = topMovers.top3.indexOf(r.strike) + 1;
                   
+                  // Check if this strike is closest to spot price
+                  const isClosestToSpot = effectiveSpot && visibleRows.reduce((closest, row) => 
+                    Math.abs(row.strike - effectiveSpot) < Math.abs(closest.strike - effectiveSpot) ? row : closest
+                  ).strike === r.strike;
+                  
                   return (
                     <tr 
                       key={`hm-${r.strike}`}
                       style={{
-                        background: isTopMover ? 'rgba(251, 191, 36, 0.08)' : undefined,
-                        borderLeft: isTopMover ? '3px solid #fbbf24' : undefined
+                        background: isClosestToSpot ? 'rgba(56, 189, 248, 0.15)' : isTopMover ? 'rgba(251, 191, 36, 0.08)' : undefined,
+                        borderLeft: isClosestToSpot ? '3px solid #38bdf8' : isTopMover ? '3px solid #fbbf24' : undefined,
+                        boxShadow: isClosestToSpot ? '0 0 8px rgba(56, 189, 248, 0.3)' : undefined
                       }}
                     >
-                      <td style={{ fontWeight: isTopMover ? 600 : undefined }}>
+                      <td style={{ fontWeight: isClosestToSpot || isTopMover ? 600 : undefined }}>
+                        {isClosestToSpot && (
+                          <span style={{ 
+                            marginRight: '6px',
+                            padding: '2px 6px',
+                            background: '#38bdf8',
+                            color: '#000',
+                            borderRadius: '4px',
+                            fontSize: '0.75em',
+                            fontWeight: 700
+                          }}>
+                            📍 ATM
+                          </span>
+                        )}
                         {isTopMover && (
                           <span style={{ 
                             marginRight: '6px',
