@@ -79,7 +79,7 @@ const InsightBarList: React.FC<{
             const isSelected = selectedSymbol === item.contractSymbol;
             return (
               <div
-                key={item.label}
+                key={item.contractSymbol}
                 className={`yahoo-bar-row yahoo-bar-row--clickable${isSelected ? ' yahoo-bar-row--selected' : ''}`}
                 onClick={() => onSelect(isSelected ? null : item.contractSymbol)}
                 title={`Click to view chart: ${item.contractSymbol}`}
