@@ -7,7 +7,7 @@ const ENABLED_KEY  = 'optionAnalysis_passkey_enabled';
 
 function getRpId(): string {
   const host = window.location.hostname;
-  // localhost or any IP → use as-is; otherwise strip to registrable domain
+  // localhost or any IP → use as-is; otherwise strip to registrable domain dummy updates
   return host;
 }
 
