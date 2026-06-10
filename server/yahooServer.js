@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import YahooFinance from 'yahoo-finance2';
+import yahooFinance from 'yahoo-finance2';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,14 +16,18 @@ dotenv.config();
 const PORT = parseInt(process.env.PORT || process.env.YAHOO_API_PORT || '8788', 10);
 console.log(`[startup] PORT=${PORT}, NODE_ENV=${process.env.NODE_ENV}, node=${process.version}`);
 
-let yahooFinance;
-try {
-  yahooFinance = new YahooFinance();
-  console.log('[startup] yahoo-finance2 initialized OK');
-} catch (e) {
-  console.error('[startup] yahoo-finance2 FAILED:', e);
-  process.exit(1);
-}
+// Configure yahoo-finance2
+yahooFinance.setGlobalConfig({
+  validation: {
+    logErrors: true,
+    logOptionsErrors: true
+  },
+  queue: {
+    timeout: 30000 // 30 second timeout
+  }
+});
+
+console.log('[startup] yahoo-finance2 configured OK');
 
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -70,6 +74,7 @@ app.get('/api/yahoo/options/:symbol', async (req, res) => {
   }
 
   try {
+    console.log(`[options] Fetching options for ${symbol}${date ? ` (date: ${date})` : ''}`);
     const initial = await yahooFinance.options(symbol, date ? { date } : undefined);
 
     const expirationDates = (initial.expirationDates || [])
@@ -114,10 +119,17 @@ app.get('/api/yahoo/options/:symbol', async (req, res) => {
       }
     };
 
+    console.log(`[options] Successfully fetched options for ${symbol}`);
     res.json(normalized);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown Yahoo options fetch error';
-    res.status(502).json({ error: message });
+    console.error(`[options] ERROR fetching ${symbol}:`, error);
+    console.error(`[options] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
+    res.status(502).json({ 
+      error: message,
+      symbol,
+      timestamp: new Date().toISOString()
+    });
   }
 });
 
