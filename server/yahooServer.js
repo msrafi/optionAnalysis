@@ -17,8 +17,15 @@ const PORT = parseInt(process.env.PORT || process.env.YAHOO_API_PORT || '8788', 
 console.log(`[startup] PORT=${PORT}, NODE_ENV=${process.env.NODE_ENV}, node=${process.version}`);
 
 // Initialize yahoo-finance2
-const yahooFinance = new YahooFinance();
-console.log('[startup] yahoo-finance2 initialized OK');
+let yahooFinance;
+try {
+  yahooFinance = new YahooFinance();
+  console.log('[startup] yahoo-finance2 initialized OK');
+} catch (error) {
+  console.error('[startup] FATAL: Failed to initialize yahoo-finance2:', error);
+  console.error('[startup] Stack:', error.stack);
+  process.exit(1);
+}
 
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -50,8 +57,33 @@ function unwrapNumeric(field, fallback = 0) {
   return fallback;
 }
 
+// Root endpoint
+app.get('/', (_req, res) => {
+  res.json({ 
+    service: 'yahoo-options-api',
+    version: '1.0.0',
+    status: 'running',
+    endpoints: {
+      health: '/health',
+      options: '/api/yahoo/options/:symbol',
+      mostActive: '/api/yahoo/most-active'
+    }
+  });
+});
+
+// Health check endpoint (used by Railway)
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'yahoo-options-api' });
+  try {
+    res.status(200).json({ 
+      ok: true, 
+      service: 'yahoo-options-api',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  } catch (error) {
+    console.error('[health] Health check error:', error);
+    res.status(500).json({ ok: false, error: 'Health check failed' });
+  }
 });
 
 app.get('/api/yahoo/options/:symbol', async (req, res) => {
@@ -176,9 +208,33 @@ app.get('/api/yahoo/most-active', async (req, res) => {
   }
 });
 
+// Error handling middleware (must be after all routes)
+app.use((err, req, res, next) => {
+  console.error('[express] Unhandled error:', err);
+  console.error('[express] Stack:', err.stack);
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: err.message 
+  });
+});
+
+// Global error handlers to prevent crashes
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[FATAL] Unhandled Promise Rejection:', reason);
+  console.error('[FATAL] Promise:', promise);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[FATAL] Uncaught Exception:', error);
+  console.error('[FATAL] Stack:', error.stack);
+  process.exit(1);
+});
+
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`📈 Yahoo options API listening on http://0.0.0.0:${PORT}`);
+  console.log(`[startup] ✅ Server successfully started`);
+  console.log(`[startup] 📈 Yahoo options API listening on http://0.0.0.0:${PORT}`);
+  console.log(`[startup] Health check available at: http://0.0.0.0:${PORT}/health`);
 }).on('error', (err) => {
-  console.error('[startup] Failed to bind port:', err);
+  console.error('[startup] ❌ Failed to bind port:', err);
   process.exit(1);
 });
