@@ -145,7 +145,7 @@ export function parseSymbolsInput(input: string): string[] {
 
 // In local dev (Vite proxy), base is '' so requests go to /api/yahoo/...
 // In production (GitHub Pages), VITE_YAHOO_API_BASE is set to the Railway URL.
-const API_BASE: string = (import.meta as any).env?.VITE_YAHOO_API_BASE ?? '';
+const API_BASE: string = import.meta.env.VITE_YAHOO_API_BASE ?? '';
 
 export async function fetchYahooOptionChain(symbol: string, expiry?: number): Promise<YahooOptionChainResult> {
   const query = expiry ? `?date=${expiry}` : '';
