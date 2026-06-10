@@ -251,11 +251,13 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [daysToExpiry, setDaysToExpiry] = useState(7);
   const [spotOverride, setSpotOverride] = useState('');
   const [parsed, setParsed] = useState<ParsedChainData>({ rows: [], spotPrice: null });
+  const [previousParsed, setPreviousParsed] = useState<ParsedChainData | null>(null);
   const [availableExpiries, setAvailableExpiries] = useState<number[]>([]);
   const [selectedExpiry, setSelectedExpiry] = useState<number | null>(null);
   const [loadingExpiries, setLoadingExpiries] = useState(false);
   const [loadingChain, setLoadingChain] = useState(false);
   const [error, setError] = useState('');
+  const [autoRefreshActive, setAutoRefreshActive] = useState(false);
   const [mostActiveRows, setMostActiveRows] = useState<YahooMostActiveOptionRow[]>([]);
   const [selectedContractSymbol, setSelectedContractSymbol] = useState<string | null>(null);
   const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
@@ -620,7 +622,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     }
   };
 
-  const loadChain = async () => {
+  const loadChain = async (isRefresh = false) => {
     const ticker = symbol.trim().toUpperCase();
     if (!ticker) {
       setError('Enter a symbol first.');
@@ -639,6 +641,12 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       const chain = chainResult.value;
       const detectedSpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
       const normalized = buildChainFromYahoo(chain.contracts, detectedSpot);
+      
+      // Save previous data before updating (for delta calculation)
+      if (isRefresh && parsed.rows.length > 0) {
+        setPreviousParsed(parsed);
+      }
+      
       setParsed(normalized);
       if (mostActiveResult.status === 'fulfilled') {
         setMostActiveRows(mostActiveResult.value);
@@ -651,6 +659,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       if (selectedExpiry) {
         setDaysToExpiry(daysUntilExpiry(selectedExpiry));
       }
+      
+      // Start auto-refresh on first load (not on subsequent refreshes)
+      if (!isRefresh && !autoRefreshActive) {
+        setAutoRefreshActive(true);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load Yahoo chain.');
     } finally {
@@ -658,18 +671,56 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     }
   };
 
+  // Helper function to get delta for a specific strike and field
+  const getDelta = (strike: number, field: 'callVolume' | 'callOi' | 'putVolume' | 'putOi'): number | null => {
+    if (!previousParsed || previousParsed.rows.length === 0) {
+      return null;
+    }
+    const currentRow = parsed.rows.find(r => r.strike === strike);
+    const previousRow = previousParsed.rows.find(r => r.strike === strike);
+    if (!currentRow || !previousRow) {
+      return null;
+    }
+    return currentRow[field] - previousRow[field];
+  };
+
+  // Auto-refresh every 5 minutes after initial 5-minute wait
+  useEffect(() => {
+    if (!autoRefreshActive || !symbol.trim()) {
+      return;
+    }
+
+    // Wait 5 minutes before starting the refresh cycle
+    const initialTimer = setTimeout(() => {
+      // Then refresh every 5 minutes
+      const intervalId = setInterval(() => {
+        loadChain(true);
+      }, 5 * 60 * 1000); // 5 minutes
+
+      // Do the first refresh
+      loadChain(true);
+
+      // Cleanup interval on unmount or when dependencies change
+      return () => clearInterval(intervalId);
+    }, 5 * 60 * 1000); // Initial 5-minute delay
+
+    return () => clearTimeout(initialTimer);
+  }, [autoRefreshActive, symbol, selectedExpiry]);
+
   const handleSymbolChange = (nextRawSymbol: string) => {
     const nextSymbol = nextRawSymbol.toUpperCase();
     setSymbol(nextSymbol);
     setAvailableExpiries([]);
     setSelectedExpiry(null);
     setParsed({ rows: [], spotPrice: null });
+    setPreviousParsed(null);
     setMostActiveRows([]);
     setSpotOverride('');
     setDaysToExpiry(7);
     setSelectedButterflyCell(null);
     setSelectedContractSymbol(null);
     setError('');
+    setAutoRefreshActive(false);
   };
 
   return (
@@ -682,6 +733,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             {effectiveSpot && <span className="header-stat">Spot: ${effectiveSpot.toFixed(2)}</span>}
             <span className="header-stat">Bias: {stats.direction}</span>
             <span className="header-stat">Confidence: {stats.confidence.toFixed(0)}%</span>
+            {autoRefreshActive && (
+              <span className="header-stat" style={{ color: '#4ade80' }}>
+                🔄 Auto-refresh: ON (every 5min)
+              </span>
+            )}
           </div>
         </div>
         <div className="header-right">
@@ -744,7 +800,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             </div>
 
             <div className="chain-flow-submit">
-              <button className="refresh-button-compact" onClick={loadChain} disabled={loadingChain}>
+              <button className="refresh-button-compact" onClick={() => loadChain(false)} disabled={loadingChain}>
                 <RefreshCw className={`refresh-icon ${loadingChain ? 'spinning' : ''}`} />
                 {loadingChain ? 'Loading chain...' : 'Build From Yahoo'}
               </button>
@@ -811,7 +867,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         </div>
 
         <div className="yahoo-chart-card">
-          <h4>Volume/OI Heatmap (by strike)</h4>
+          <h4>
+            Volume/OI Heatmap (by strike)
+            {autoRefreshActive && !previousParsed && (
+              <span style={{ marginLeft: '12px', fontSize: '0.85em', color: '#94a3b8', fontWeight: 400 }}>
+                • Changes will appear after first refresh (5min)
+              </span>
+            )}
+          </h4>
           <div className="yahoo-table-wrapper">
             <table className="yahoo-table">
               <thead>
@@ -829,13 +892,68 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   const co = r.callOi / maxOi;
                   const pv = r.putVolume / maxVol;
                   const po = r.putOi / maxOi;
+                  
+                  // Get deltas
+                  const callVolDelta = getDelta(r.strike, 'callVolume');
+                  const callOiDelta = getDelta(r.strike, 'callOi');
+                  const putVolDelta = getDelta(r.strike, 'putVolume');
+                  const putOiDelta = getDelta(r.strike, 'putOi');
+                  
                   return (
                     <tr key={`hm-${r.strike}`}>
                       <td>{r.strike}</td>
-                      <td style={{ background: `rgba(34,197,94,${0.1 + cv * 0.7})` }}>{r.callVolume.toLocaleString()}</td>
-                      <td style={{ background: `rgba(34,197,94,${0.1 + co * 0.7})` }}>{r.callOi.toLocaleString()}</td>
-                      <td style={{ background: `rgba(239,68,68,${0.1 + pv * 0.7})` }}>{r.putVolume.toLocaleString()}</td>
-                      <td style={{ background: `rgba(239,68,68,${0.1 + po * 0.7})` }}>{r.putOi.toLocaleString()}</td>
+                      <td style={{ background: `rgba(34,197,94,${0.1 + cv * 0.7})` }}>
+                        {r.callVolume.toLocaleString()}
+                        {callVolDelta !== null && callVolDelta !== 0 && (
+                          <span style={{ 
+                            marginLeft: '6px', 
+                            fontSize: '0.85em', 
+                            color: callVolDelta > 0 ? '#4ade80' : '#f87171',
+                            fontWeight: 600
+                          }}>
+                            ({callVolDelta > 0 ? '+' : ''}{callVolDelta.toLocaleString()})
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ background: `rgba(34,197,94,${0.1 + co * 0.7})` }}>
+                        {r.callOi.toLocaleString()}
+                        {callOiDelta !== null && callOiDelta !== 0 && (
+                          <span style={{ 
+                            marginLeft: '6px', 
+                            fontSize: '0.85em', 
+                            color: callOiDelta > 0 ? '#4ade80' : '#f87171',
+                            fontWeight: 600
+                          }}>
+                            ({callOiDelta > 0 ? '+' : ''}{callOiDelta.toLocaleString()})
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ background: `rgba(239,68,68,${0.1 + pv * 0.7})` }}>
+                        {r.putVolume.toLocaleString()}
+                        {putVolDelta !== null && putVolDelta !== 0 && (
+                          <span style={{ 
+                            marginLeft: '6px', 
+                            fontSize: '0.85em', 
+                            color: putVolDelta > 0 ? '#4ade80' : '#f87171',
+                            fontWeight: 600
+                          }}>
+                            ({putVolDelta > 0 ? '+' : ''}{putVolDelta.toLocaleString()})
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ background: `rgba(239,68,68,${0.1 + po * 0.7})` }}>
+                        {r.putOi.toLocaleString()}
+                        {putOiDelta !== null && putOiDelta !== 0 && (
+                          <span style={{ 
+                            marginLeft: '6px', 
+                            fontSize: '0.85em', 
+                            color: putOiDelta > 0 ? '#4ade80' : '#f87171',
+                            fontWeight: 600
+                          }}>
+                            ({putOiDelta > 0 ? '+' : ''}{putOiDelta.toLocaleString()})
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
