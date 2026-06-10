@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import yahooFinance from 'yahoo-finance2';
+import YahooFinance from 'yahoo-finance2';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,7 +15,10 @@ dotenv.config();
 // Railway sets PORT; fall back to YAHOO_API_PORT for local dev
 const PORT = parseInt(process.env.PORT || process.env.YAHOO_API_PORT || '8788', 10);
 console.log(`[startup] PORT=${PORT}, NODE_ENV=${process.env.NODE_ENV}, node=${process.version}`);
-console.log('[startup] yahoo-finance2 imported OK');
+
+// Initialize yahoo-finance2
+const yahooFinance = new YahooFinance();
+console.log('[startup] yahoo-finance2 initialized OK');
 
 const ALLOWED_ORIGINS = [
   'http://localhost:3000',
