@@ -1,5 +1,7 @@
 [build]
 builder = "NIXPACKS"
+# Only install deps — do NOT run the Vite frontend build
+buildCommand = "npm install"
 
 [deploy]
 startCommand = "node server/yahooServer.js"
@@ -7,3 +9,6 @@ healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
+
+[environment]
+NODE_VERSION = "22"
