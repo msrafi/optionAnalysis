@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { BarChart3, RefreshCw, X, ExternalLink } from 'lucide-react';
 import { fetchYahooMostActiveOptions, fetchYahooOptionChain, YahooMostActiveOptionRow } from '../utils/yahooOptions';
 
@@ -265,6 +265,10 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [selectedContractSymbol, setSelectedContractSymbol] = useState<string | null>(null);
   const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
   const selectedExpiryDays = selectedExpiry ? daysUntilExpiry(selectedExpiry) : null;
+
+  // Refs for auto-scrolling to ATM strike
+  const heatmapAtmRowRef = useRef<HTMLTableRowElement>(null);
+  const butterflyAtmRowRef = useRef<HTMLDivElement>(null);
 
   const mostActiveTopByVolume = useMemo(
     () => [...mostActiveRows].sort((a, b) => b.volume - a.volume).slice(0, 15),
@@ -856,6 +860,30 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     return () => clearTimeout(initialTimer);
   }, [autoRefreshActive, symbol, selectedExpiry]);
 
+  // Auto-scroll to ATM strike in Volume/OI Heatmap
+  useEffect(() => {
+    if (heatmapAtmRowRef.current && effectiveSpot) {
+      setTimeout(() => {
+        heatmapAtmRowRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }, 100);
+    }
+  }, [effectiveSpot, parsed.rows]);
+
+  // Auto-scroll to ATM strike in Butterfly Workspace
+  useEffect(() => {
+    if (butterflyAtmRowRef.current && effectiveSpot) {
+      setTimeout(() => {
+        butterflyAtmRowRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }, 100);
+    }
+  }, [effectiveSpot, parsed.rows]);
+
   const handleSymbolChange = (nextRawSymbol: string) => {
     const nextSymbol = nextRawSymbol.toUpperCase();
     setSymbol(nextSymbol);
@@ -1391,6 +1419,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   return (
                     <tr 
                       key={`hm-${r.strike}`}
+                      ref={isClosestToSpot ? heatmapAtmRowRef : null}
                       style={{
                         background: isClosestToSpot ? 'rgba(56, 189, 248, 0.15)' : isTopMover ? 'rgba(251, 191, 36, 0.08)' : undefined,
                         borderLeft: isClosestToSpot ? '3px solid #38bdf8' : isTopMover ? '3px solid #fbbf24' : undefined,
@@ -1563,6 +1592,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   return (
                   <div 
                     key={`hm-row-${row.middleStrike}`} 
+                    ref={isClosestToSpot ? butterflyAtmRowRef : null}
                     className="butterfly-heatmap-row"
                     style={{
                       background: isClosestToSpot ? 'rgba(56, 189, 248, 0.08)' : undefined,
