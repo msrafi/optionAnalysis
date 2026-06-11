@@ -1115,7 +1115,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
 
       {/* Four Insight Cards - Full Width Section */}
       {effectiveSpot && parsed.rows.length > 0 && (() => {
-          const spot = effectiveSpot;
           const rows = parsed.rows;
           
           // Find top volume and OI strikes
