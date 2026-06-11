@@ -457,6 +457,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       };
     });
   }, [daysToExpiry, effectiveSpot, parsed.rows, stats.direction]);
+  void deltaPresets;
 
   const [butterflySide, setButterflySide] = useState<'BOTH' | 'CALL' | 'PUT'>('BOTH');
   const butterflyWidths = [5, 10, 15, 20, 25, 30, 40, 50];
@@ -886,27 +887,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             </div>
           </div>
 
-          {/* Key Metrics Grid */}
-          <div className="decision-metrics-grid">
-            <div className="metric-card">
-              <div className="metric-label">SPOT PRICE</div>
-              <div className="metric-value">${effectiveSpot?.toFixed(2) || '-'}</div>
-            </div>
-            <div className="metric-card">
-              <div className="metric-label">EXPECTED MOVE</div>
-              <div className="metric-value">±${stats.expectedMove.toFixed(2)}</div>
-              <div className="metric-subtext">({stats.expectedMovePct.toFixed(2)}%)</div>
-            </div>
-            <div className="metric-card">
-              <div className="metric-label">RANGE</div>
-              <div className="metric-value">
-                <span className="range-down">${downTarget.toFixed(2)}</span>
-                <span style={{ margin: '0 0.5rem', color: '#64748b' }}>–</span>
-                <span className="range-up">${upTarget.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-
           {/* Expected Move Slider */}
           {effectiveSpot && (
             <div className="decision-slider">
@@ -930,70 +910,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                 <div className="slider-fill slider-fill-down" style={{ width: '50%' }} />
                 <div className="slider-fill slider-fill-up" style={{ width: '50%' }} />
                 <div className="slider-thumb" style={{ left: '50%' }} />
-              </div>
-            </div>
-          )}
-
-          {/* Trade Idea Card */}
-          <div className="trade-idea-card">
-            <div className="trade-idea-header">
-              <span className="trade-idea-icon">🎯</span>
-              <span className="trade-idea-title">Trade Idea</span>
-            </div>
-            <div className="trade-idea-body">
-              <div className="trade-idea-main">{stats.suggestion}</div>
-              <div className="trade-idea-details">
-                <div className="trade-idea-detail">
-                  <span className="trade-idea-detail-label">TARGET</span>
-                  <span className="trade-idea-detail-value upside">${upTarget.toFixed(2)}</span>
-                  <span className="trade-idea-detail-sub">(+{stats.expectedMovePct.toFixed(2)}%)</span>
-                </div>
-                <div className="trade-idea-detail">
-                  <span className="trade-idea-detail-label">RISK</span>
-                  <span className="trade-idea-detail-value downside">Below ${downTarget.toFixed(2)}</span>
-                </div>
-                <div className="trade-idea-detail">
-                  <span className="trade-idea-detail-label">R:R</span>
-                  <span className="trade-idea-detail-value">1 : 1</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Delta Presets */}
-          {deltaPresets.length > 0 && (
-            <div className="decision-presets">
-              <div className="presets-header">
-                <span>RECOMMENDED STRIKE PRESETS</span>
-                <span className="presets-note">Higher Delta = More Aggressive</span>
-              </div>
-              <div className="presets-table">
-                {deltaPresets.map((row) => (
-                  <div key={`${row.preset}-${row.side}`} className="preset-row">
-                    <div className="preset-icon">
-                      {row.preset === 'Aggressive' ? '🚀' : row.preset === 'Balanced' ? '⚖️' : '🛡️'}
-                    </div>
-                    <div className="preset-info">
-                      <div className="preset-name">{row.preset}</div>
-                      <div className="preset-rationale">{row.note}</div>
-                    </div>
-                    <div className="preset-side">
-                      <span className={`preset-side-badge ${row.side.toLowerCase()}`}>{row.side}</span>
-                    </div>
-                    <div className="preset-strike">{row.strike}</div>
-                    <div className="preset-delta">{row.estDelta}</div>
-                    <div className="preset-suitability">
-                      <div className="suitability-bars">
-                        <div className={`suitability-bar ${row.preset === 'Aggressive' ? 'high' : row.preset === 'Balanced' ? 'medium' : 'low'}`} />
-                        <div className={`suitability-bar ${row.preset === 'Aggressive' ? 'high' : row.preset === 'Balanced' ? 'medium' : ''}`} />
-                        <div className={`suitability-bar ${row.preset === 'Aggressive' ? 'high' : ''}`} />
-                      </div>
-                      <div className="suitability-text">
-                        {row.preset === 'Aggressive' ? 'Higher reward\nHigher risk' : row.preset === 'Balanced' ? 'Balanced risk/reward' : 'Lower risk\nHigher probability'}
-                      </div>
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           )}
@@ -1026,8 +942,10 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   <th>Strike</th>
                   <th>Call Vol</th>
                   <th>Call OI</th>
+                  <th>Call Δ</th>
                   <th>Put Vol</th>
                   <th>Put OI</th>
+                  <th>Put Δ</th>
                 </tr>
               </thead>
               <tbody>
@@ -1042,6 +960,10 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   const callOiDelta = getDelta(r.strike, 'callOi');
                   const putVolDelta = getDelta(r.strike, 'putVolume');
                   const putOiDelta = getDelta(r.strike, 'putOi');
+                  
+                  // Calculate option deltas
+                  const callDelta = effectiveSpot ? estimateOptionDelta(effectiveSpot, r.strike, r.callIv || 30, daysToExpiry, 'CALL') : 0;
+                  const putDelta = effectiveSpot ? estimateOptionDelta(effectiveSpot, r.strike, r.putIv || 30, daysToExpiry, 'PUT') : 0;
                   
                   // Check if this strike is a top mover
                   const isTopMover = topMovers.top3.includes(r.strike);
@@ -1116,6 +1038,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                           </span>
                         )}
                       </td>
+                      <td style={{ background: 'rgba(34,197,94,0.1)', fontWeight: 500 }}>
+                        {callDelta.toFixed(2)}
+                      </td>
                       <td style={{ background: `rgba(239,68,68,${0.1 + pv * 0.7})` }}>
                         {r.putVolume.toLocaleString()}
                         {putVolDelta !== null && putVolDelta !== 0 && (
@@ -1141,6 +1066,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                             ({putOiDelta > 0 ? '+' : ''}{putOiDelta.toLocaleString()})
                           </span>
                         )}
+                      </td>
+                      <td style={{ background: 'rgba(239,68,68,0.1)', fontWeight: 500 }}>
+                        {putDelta.toFixed(2)}
                       </td>
                     </tr>
                   );
