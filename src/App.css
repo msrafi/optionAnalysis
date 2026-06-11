@@ -8314,23 +8314,35 @@
 /* Header with Direction and Confidence */
 .decision-header {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
   gap: 1rem;
-  padding-bottom: 1rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid rgba(96, 165, 250, 0.15);
 }
 
 .decision-direction .direction-badge {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1.25rem;
-  border-radius: 12px;
-  font-size: 1.25rem;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.5px;
-  width: 100%;
+  white-space: nowrap;
+}
+
+.decision-direction .direction-badge-icon {
+  padding: 0.5rem;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
   justify-content: center;
+  cursor: help;
 }
 
 .direction-badge.up {
@@ -8353,35 +8365,45 @@
 
 .direction-icon {
   font-size: 1.5rem;
+  line-height: 1;
+}
+
+.direction-badge-icon .direction-icon {
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
 .decision-confidence {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
 }
 
 .confidence-label {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   color: #94a3b8;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 0.25rem;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .confidence-value {
-  font-size: 2.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #22c55e;
   line-height: 1;
-  margin-bottom: 0.5rem;
+  white-space: nowrap;
+  min-width: 50px;
 }
 
 .confidence-gauge {
-  width: 120px;
-  height: 8px;
+  width: 60px;
+  height: 5px;
   background: rgba(100, 116, 139, 0.3);
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
-  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .confidence-gauge-fill {
@@ -8814,6 +8836,26 @@
 
   .decision-insights {
     grid-template-columns: 1fr;
+  }
+
+  .decision-header {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .decision-direction .direction-badge-icon {
+    width: 36px;
+    height: 36px;
+    padding: 0.4rem;
+  }
+
+  .direction-badge-icon .direction-icon {
+    font-size: 1.3rem;
+  }
+
+  .decision-confidence {
+    flex: 1;
   }
 
   .refresh-status-bar-fullwidth {

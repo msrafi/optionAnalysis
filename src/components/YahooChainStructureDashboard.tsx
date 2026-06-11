@@ -996,9 +996,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             {/* Header with Direction and Confidence */}
             <div className="decision-header">
               <div className="decision-direction">
-                <div className={`direction-badge ${stats.direction.toLowerCase()}`}>
+                <div className={`direction-badge direction-badge-icon ${stats.direction.toLowerCase()}`} title={stats.direction === 'UP' ? 'BULLISH' : stats.direction === 'DOWN' ? 'BEARISH' : 'NEUTRAL'}>
                   <span className="direction-icon">{stats.direction === 'UP' ? '📈' : stats.direction === 'DOWN' ? '📉' : '↔️'}</span>
-                  <span className="direction-text">{stats.direction === 'UP' ? 'BULLISH' : stats.direction === 'DOWN' ? 'BEARISH' : 'NEUTRAL'}</span>
                 </div>
               </div>
               <div className="decision-confidence">
