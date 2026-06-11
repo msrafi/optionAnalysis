@@ -251,7 +251,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [daysToExpiry, setDaysToExpiry] = useState(7);
   const [spotOverride, setSpotOverride] = useState('');
   const [parsed, setParsed] = useState<ParsedChainData>({ rows: [], spotPrice: null });
-  const [previousParsed, setPreviousParsed] = useState<ParsedChainData | null>(null);
+  const [dataHistory, setDataHistory] = useState<ParsedChainData[]>([]); // Keep last 5 snapshots
   const [availableExpiries, setAvailableExpiries] = useState<number[]>([]);
   const [selectedExpiry, setSelectedExpiry] = useState<number | null>(null);
   const [loadingExpiries, setLoadingExpiries] = useState(false);
@@ -259,6 +259,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [error, setError] = useState('');
   const [autoRefreshActive, setAutoRefreshActive] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
+  const [nextRefreshIn, setNextRefreshIn] = useState<number>(300); // seconds until next refresh
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [mostActiveRows, setMostActiveRows] = useState<YahooMostActiveOptionRow[]>([]);
   const [selectedContractSymbol, setSelectedContractSymbol] = useState<string | null>(null);
   const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
@@ -308,7 +310,10 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         expectedMovePct: 0,
         direction: 'Neutral',
         confidence: 50,
-        suggestion: 'Load a Yahoo option chain to generate signal.'
+        suggestion: 'Load a Yahoo option chain to generate signal.',
+        volBias: 0,
+        oiBias: 0,
+        wallBias: 0
       };
     }
 
@@ -318,7 +323,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     const totalPutVol = rows.reduce((s, r) => s + r.putVolume, 0);
     const totalCallOi = rows.reduce((s, r) => s + r.callOi, 0);
     const totalPutOi = rows.reduce((s, r) => s + r.putOi, 0);
+    
+    // Volume bias (more weight - reflects current activity)
     const volBias = safeRatio(totalCallVol - totalPutVol, totalCallVol + totalPutVol);
+    
+    // OI bias (medium weight - reflects positioning)
     const oiBias = safeRatio(totalCallOi - totalPutOi, totalCallOi + totalPutOi);
 
     const spot = effectiveSpot || rows[Math.floor(rows.length / 2)].strike;
@@ -328,15 +337,50 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     const expectedMove = spot * Math.max(0.01, atmIv) * Math.sqrt(Math.max(1, daysToExpiry) / 365);
     const expectedMovePct = safeRatio(expectedMove, spot) * 100;
 
+    // Gamma proxy for near-the-money positioning
     const gammaProxy = rows.reduce((sum, r) => {
       const distance = Math.abs(r.strike - spot) / Math.max(spot, 1);
       const distanceWeight = Math.max(0.1, 1 - distance * 2);
       return sum + ((r.callOi * (r.callIv / 100)) - (r.putOi * (r.putIv / 100))) * distanceWeight;
     }, 0);
 
-    const score = (volBias * 0.45) + (oiBias * 0.35) + Math.tanh(gammaProxy / 1_000_000) * 0.2;
-    const direction = score > 0.08 ? 'Up' : score < -0.08 ? 'Down' : 'Neutral';
-    const confidence = Math.min(95, Math.max(50, 50 + Math.abs(score) * 140));
+    // Wall positioning bias (where are the walls relative to spot?)
+    const wallBias = (() => {
+      const callWallDistance = (callWall - spot) / spot;
+      const putWallDistance = (spot - putWall) / spot;
+      // If call wall is closer above than put wall below = bearish (resistance)
+      // If put wall is closer below than call wall above = bullish (support)
+      if (Math.abs(callWallDistance) < 0.001 && Math.abs(putWallDistance) < 0.001) return 0;
+      return (putWallDistance - callWallDistance) * 0.5; // Normalize influence
+    })();
+
+    // Combined score with adjusted weights
+    // Volume = 50% (most important for current sentiment)
+    // OI = 30% (positioning)
+    // Gamma = 15% (near-money activity)
+    // Wall = 5% (structural levels)
+    const score = (volBias * 0.50) + (oiBias * 0.30) + Math.tanh(gammaProxy / 1_000_000) * 0.15 + wallBias * 0.05;
+    
+    // More sensitive thresholds for better detection
+    // Strong signals: > 0.12 or < -0.12
+    // Moderate signals: > 0.05 or < -0.05
+    // Weak/Neutral: between -0.05 and 0.05
+    let direction: 'Up' | 'Down' | 'Neutral';
+    let confidence: number;
+    
+    if (score > 0.05) {
+      direction = 'Up';
+      // Higher confidence with stronger score
+      confidence = Math.min(95, Math.max(55, 55 + Math.abs(score) * 200));
+    } else if (score < -0.05) {
+      direction = 'Down';
+      confidence = Math.min(95, Math.max(55, 55 + Math.abs(score) * 200));
+    } else {
+      direction = 'Neutral';
+      // Lower confidence for neutral
+      confidence = Math.min(60, Math.max(45, 50 - Math.abs(score) * 100));
+    }
+    
     const targetUp = spot + expectedMove;
     const targetDown = Math.max(0, spot - expectedMove);
     const suggestion = direction === 'Up'
@@ -345,7 +389,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         ? `Higher-probability bias: DOWN toward ~$${targetDown.toFixed(2)} (-${expectedMovePct.toFixed(2)}%). Prefer bearish structures with put-wall at ${putWall}.`
         : `Neutral / range likely. Expected move ±$${expectedMove.toFixed(2)} (${expectedMovePct.toFixed(2)}%). Trade around ${putWall}-${callWall}.`;
 
-    return { callWall, putWall, expectedMove, expectedMovePct, direction, confidence, suggestion };
+    return { callWall, putWall, expectedMove, expectedMovePct, direction, confidence, suggestion, volBias, oiBias, wallBias };
   }, [daysToExpiry, effectiveSpot, parsed.rows]);
 
   const visibleRows = useMemo(() => {
@@ -629,6 +673,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       return;
     }
     setLoadingChain(true);
+    setIsRefreshing(isRefresh);
     setError('');
     try {
       const [chainResult, mostActiveResult] = await Promise.allSettled([
@@ -642,9 +687,12 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       const detectedSpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
       const normalized = buildChainFromYahoo(chain.contracts, detectedSpot);
       
-      // Save previous data before updating (for delta calculation)
+      // Save current data to history before updating (for delta calculation)
       if (isRefresh && parsed.rows.length > 0) {
-        setPreviousParsed(parsed);
+        setDataHistory(prev => {
+          const newHistory = [parsed, ...prev].slice(0, 5); // Keep last 5 snapshots
+          return newHistory;
+        });
       }
       
       setParsed(normalized);
@@ -663,42 +711,72 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       // Update last refresh time
       setLastUpdateTime(new Date());
       
+      // Reset countdown to 5 minutes on refresh
+      if (isRefresh) {
+        setNextRefreshIn(300);
+      }
+      
       // Start auto-refresh on first load (not on subsequent refreshes)
       if (!isRefresh && !autoRefreshActive) {
         setAutoRefreshActive(true);
+        setNextRefreshIn(300); // Start 5-minute countdown
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load Yahoo chain.');
     } finally {
       setLoadingChain(false);
+      setIsRefreshing(false);
     }
   };
 
-  // Helper function to get delta for a specific strike and field
-  const getDelta = (strike: number, field: 'callVolume' | 'callOi' | 'putVolume' | 'putOi'): number | null => {
-    if (!previousParsed || previousParsed.rows.length === 0) {
-      return null;
+  // Helper function to get deltas for a specific strike and field (returns last 5 changes)
+  const getDeltas = (strike: number, field: 'callVolume' | 'callOi' | 'putVolume' | 'putOi'): number[] => {
+    if (dataHistory.length === 0) {
+      return [];
     }
+    
     const currentRow = parsed.rows.find(r => r.strike === strike);
-    const previousRow = previousParsed.rows.find(r => r.strike === strike);
-    if (!currentRow || !previousRow) {
-      return null;
+    if (!currentRow) {
+      return [];
     }
-    return currentRow[field] - previousRow[field];
+    
+    const deltas: number[] = [];
+    let previousValue = currentRow[field];
+    
+    // Go through history from most recent to oldest
+    for (const historicalData of dataHistory) {
+      const historicalRow = historicalData.rows.find(r => r.strike === strike);
+      if (historicalRow) {
+        const delta = previousValue - historicalRow[field];
+        if (delta !== 0) {
+          deltas.push(delta);
+        }
+        previousValue = historicalRow[field];
+      }
+    }
+    
+    return deltas.slice(0, 5); // Return max 5 changes
   };
 
-  // Calculate total absolute change for a strike (across all fields)
+  // Calculate total absolute change for a strike (across all fields, most recent change only)
   const getTotalAbsoluteChange = (strike: number): number => {
-    const callVolDelta = Math.abs(getDelta(strike, 'callVolume') || 0);
-    const callOiDelta = Math.abs(getDelta(strike, 'callOi') || 0);
-    const putVolDelta = Math.abs(getDelta(strike, 'putVolume') || 0);
-    const putOiDelta = Math.abs(getDelta(strike, 'putOi') || 0);
+    const callVolDeltas = getDeltas(strike, 'callVolume');
+    const callOiDeltas = getDeltas(strike, 'callOi');
+    const putVolDeltas = getDeltas(strike, 'putVolume');
+    const putOiDeltas = getDeltas(strike, 'putOi');
+    
+    // Sum the most recent change (first in array) for each field
+    const callVolDelta = Math.abs(callVolDeltas[0] || 0);
+    const callOiDelta = Math.abs(callOiDeltas[0] || 0);
+    const putVolDelta = Math.abs(putVolDeltas[0] || 0);
+    const putOiDelta = Math.abs(putOiDeltas[0] || 0);
+    
     return callVolDelta + callOiDelta + putVolDelta + putOiDelta;
   };
 
   // Identify top movers (strikes with most significant changes)
   const topMovers = useMemo(() => {
-    if (!previousParsed || previousParsed.rows.length === 0) {
+    if (dataHistory.length === 0) {
       return { top3: [] as number[], maxChange: 0 };
     }
     
@@ -714,7 +792,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       top3: strikesWithChanges.slice(0, 3).map(s => s.strike),
       maxChange: strikesWithChanges[0]?.totalChange || 0
     };
-  }, [parsed.rows, previousParsed]);
+  }, [parsed.rows, dataHistory]);
 
   // Format last update time
   const formatLastUpdate = (date: Date | null): string => {
@@ -734,6 +812,26 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       hour12: true 
     });
   };
+
+  const formatCountdown = (seconds: number): string => {
+    if (seconds <= 0) return 'Refreshing...';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Countdown timer for next refresh
+  useEffect(() => {
+    if (!autoRefreshActive || nextRefreshIn <= 0) {
+      return;
+    }
+
+    const countdownInterval = setInterval(() => {
+      setNextRefreshIn(prev => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => clearInterval(countdownInterval);
+  }, [autoRefreshActive, nextRefreshIn]);
 
   // Auto-refresh every 5 minutes after initial 5-minute wait
   useEffect(() => {
@@ -764,7 +862,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     setAvailableExpiries([]);
     setSelectedExpiry(null);
     setParsed({ rows: [], spotPrice: null });
-    setPreviousParsed(null);
+    setDataHistory([]);
     setMostActiveRows([]);
     setSpotOverride('');
     setDaysToExpiry(7);
@@ -914,6 +1012,254 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             </div>
           )}
 
+          {/* Enhanced Recommendations */}
+          {effectiveSpot && parsed.rows.length > 0 && (() => {
+            const spot = effectiveSpot;
+            const rows = parsed.rows;
+            
+            // Calculate 10% move targets for butterfly
+            const tenPercentUp = spot * 1.10;
+            const tenPercentDown = spot * 0.90;
+            
+            // Find strikes closest to 10% moves
+            const findNearestStrike = (target: number) => 
+              rows.reduce((best, r) => 
+                Math.abs(r.strike - target) < Math.abs(best.strike - target) ? r : best, 
+                rows[0]
+              );
+            
+            const atmStrike = findNearestStrike(spot);
+            const upStrike = findNearestStrike(tenPercentUp);
+            const downStrike = findNearestStrike(tenPercentDown);
+            
+            // Volume and OI analysis
+            const totalCallVol = rows.reduce((s, r) => s + r.callVolume, 0);
+            const totalPutVol = rows.reduce((s, r) => s + r.putVolume, 0);
+            const totalCallOi = rows.reduce((s, r) => s + r.callOi, 0);
+            const totalPutOi = rows.reduce((s, r) => s + r.putOi, 0);
+            const volRatio = totalCallVol / Math.max(1, totalPutVol);
+            const oiRatio = totalCallOi / Math.max(1, totalPutOi);
+            
+            // Find strikes with highest volume changes
+            const strikeChanges = dataHistory.length > 0 ? rows
+              .map(r => {
+                const prev = dataHistory[0].rows.find(pr => pr.strike === r.strike);
+                if (!prev) return null;
+                const totalChange = Math.abs(r.callVolume - prev.callVolume) + 
+                                  Math.abs(r.putVolume - prev.putVolume) +
+                                  Math.abs(r.callOi - prev.callOi) + 
+                                  Math.abs(r.putOi - prev.putOi);
+                return { strike: r.strike, change: totalChange, row: r };
+              })
+              .filter((x): x is NonNullable<typeof x> => x !== null && x.change > 0)
+              .sort((a, b) => b.change - a.change)
+              .slice(0, 3)
+            : [];
+            
+            // Butterfly recommendation
+            const butterflyType = stats.direction === 'Up' ? 'Call' : stats.direction === 'Down' ? 'Put' : 'Iron';
+            const butterflyStrikes = stats.direction === 'Up' 
+              ? [atmStrike.strike, (atmStrike.strike + upStrike.strike) / 2, upStrike.strike]
+              : stats.direction === 'Down'
+              ? [downStrike.strike, (downStrike.strike + atmStrike.strike) / 2, atmStrike.strike]
+              : [downStrike.strike, atmStrike.strike, upStrike.strike];
+            
+            return (
+              <>
+                {/* Refresh Status Bar */}
+                {autoRefreshActive && (
+                  <div className="refresh-status-bar">
+                    <div className="refresh-status-left">
+                      <span className={`refresh-indicator ${isRefreshing ? 'refreshing' : ''}`}>
+                        {isRefreshing ? '🔄 Updating...' : '✓ Live Updates Active'}
+                      </span>
+                      {lastUpdateTime && !isRefreshing && (
+                        <span className="last-update-time">
+                          Last updated: {formatLastUpdate(lastUpdateTime)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="refresh-countdown">
+                      {!isRefreshing && nextRefreshIn > 0 && (
+                        <>
+                          <span className="countdown-label">Next refresh in:</span>
+                          <span className="countdown-timer">{formatCountdown(nextRefreshIn)}</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                <div className={`decision-insights ${isRefreshing ? 'updating' : ''}`}>
+                  {/* Butterfly Recommendation */}
+                  <div className="insight-card">
+                    <div className="insight-header">
+                      <span className="insight-icon">🦋</span>
+                      <span className="insight-title">Butterfly Setup (10% Move)</span>
+                    </div>
+                    <div className="insight-content">
+                      <div className="butterfly-setup">
+                        <span className="butterfly-type">{butterflyType} Butterfly:</span>
+                        <span className="butterfly-strikes">
+                          ${butterflyStrikes[0].toFixed(2)} / ${butterflyStrikes[1].toFixed(2)} / ${butterflyStrikes[2].toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="butterfly-note">
+                        {stats.direction === 'Up' && `Target profit zone: $${butterflyStrikes[1].toFixed(2)} (+${((butterflyStrikes[1] - spot) / spot * 100).toFixed(1)}%)`}
+                        {stats.direction === 'Down' && `Target profit zone: $${butterflyStrikes[1].toFixed(2)} (${((butterflyStrikes[1] - spot) / spot * 100).toFixed(1)}%)`}
+                        {stats.direction === 'Neutral' && `Iron Butterfly at $${atmStrike.strike.toFixed(2)} for range-bound profit`}
+                      </div>
+                    </div>
+                  </div>
+
+                {/* Volume/OI Analysis */}
+                <div className="insight-card">
+                  <div className="insight-header">
+                    <span className="insight-icon">📊</span>
+                    <span className="insight-title">Volume & OI Analysis</span>
+                  </div>
+                  <div className="insight-content">
+                    <div className="insight-metrics">
+                      <div className="insight-metric">
+                        <span className="metric-label">Call/Put Vol Ratio:</span>
+                        <span className={`metric-value ${volRatio > 1.2 ? 'bullish' : volRatio < 0.8 ? 'bearish' : 'neutral'}`}>
+                          {volRatio.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="insight-metric">
+                        <span className="metric-label">Call/Put OI Ratio:</span>
+                        <span className={`metric-value ${oiRatio > 1.2 ? 'bullish' : oiRatio < 0.8 ? 'bearish' : 'neutral'}`}>
+                          {oiRatio.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="insight-suggestion">
+                      {volRatio > 1.3 && oiRatio > 1.2 && '⬆️ Strong bullish flow - Call buyers dominating'}
+                      {volRatio < 0.7 && oiRatio < 0.8 && '⬇️ Strong bearish flow - Put buyers dominating'}
+                      {volRatio > 1.2 && oiRatio < 0.9 && '⚠️ Mixed signals - Short-term bullish, positioning bearish'}
+                      {volRatio < 0.9 && oiRatio > 1.1 && '⚠️ Mixed signals - Short-term bearish, positioning bullish'}
+                      {volRatio >= 0.7 && volRatio <= 1.3 && oiRatio >= 0.8 && oiRatio <= 1.2 && '↔️ Balanced flow - Neutral sentiment'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Signal Breakdown */}
+                <div className="insight-card">
+                  <div className="insight-header">
+                    <span className="insight-icon">🔍</span>
+                    <span className="insight-title">Signal Components</span>
+                  </div>
+                  <div className="insight-content">
+                    <div className="signal-breakdown">
+                      <div className="signal-component">
+                        <div className="signal-label">
+                          <span>Volume Flow</span>
+                          <span className="signal-weight">50%</span>
+                        </div>
+                        <div className="signal-bar-container">
+                          <div 
+                            className={`signal-bar ${stats.volBias > 0.05 ? 'bullish' : stats.volBias < -0.05 ? 'bearish' : 'neutral'}`}
+                            style={{ 
+                              width: `${Math.min(100, Math.abs(stats.volBias) * 500)}%`,
+                              marginLeft: stats.volBias < 0 ? 'auto' : '0'
+                            }}
+                          />
+                        </div>
+                        <span className={`signal-value ${stats.volBias > 0 ? 'bullish' : stats.volBias < 0 ? 'bearish' : 'neutral'}`}>
+                          {stats.volBias > 0 ? '+' : ''}{(stats.volBias * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="signal-component">
+                        <div className="signal-label">
+                          <span>OI Positioning</span>
+                          <span className="signal-weight">30%</span>
+                        </div>
+                        <div className="signal-bar-container">
+                          <div 
+                            className={`signal-bar ${stats.oiBias > 0.05 ? 'bullish' : stats.oiBias < -0.05 ? 'bearish' : 'neutral'}`}
+                            style={{ 
+                              width: `${Math.min(100, Math.abs(stats.oiBias) * 500)}%`,
+                              marginLeft: stats.oiBias < 0 ? 'auto' : '0'
+                            }}
+                          />
+                        </div>
+                        <span className={`signal-value ${stats.oiBias > 0 ? 'bullish' : stats.oiBias < 0 ? 'bearish' : 'neutral'}`}>
+                          {stats.oiBias > 0 ? '+' : ''}{(stats.oiBias * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="signal-component">
+                        <div className="signal-label">
+                          <span>Wall Structure</span>
+                          <span className="signal-weight">5%</span>
+                        </div>
+                        <div className="signal-bar-container">
+                          <div 
+                            className={`signal-bar ${stats.wallBias > 0.02 ? 'bullish' : stats.wallBias < -0.02 ? 'bearish' : 'neutral'}`}
+                            style={{ 
+                              width: `${Math.min(100, Math.abs(stats.wallBias) * 1000)}%`,
+                              marginLeft: stats.wallBias < 0 ? 'auto' : '0'
+                            }}
+                          />
+                        </div>
+                        <span className={`signal-value ${stats.wallBias > 0 ? 'bullish' : stats.wallBias < 0 ? 'bearish' : 'neutral'}`}>
+                          {stats.wallBias > 0 ? '+' : ''}{(stats.wallBias * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Top Volume Changes */}
+                {strikeChanges.length > 0 && (
+                  <div className="insight-card">
+                    <div className="insight-header">
+                      <span className="insight-icon">🔥</span>
+                      <span className="insight-title">Highest Activity Changes</span>
+                    </div>
+                    <div className="insight-content">
+                      <div className="strike-changes">
+                        {strikeChanges.map((sc, idx) => (
+                          <div key={sc.strike} className="strike-change-item">
+                            <span className="change-rank">#{idx + 1}</span>
+                            <span className="change-strike">${sc.strike.toFixed(2)}</span>
+                            <span className="change-activity">
+                              C: {sc.row.callVolume.toLocaleString()} / P: {sc.row.putVolume.toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Key Levels */}
+                <div className="insight-card">
+                  <div className="insight-header">
+                    <span className="insight-icon">🎯</span>
+                    <span className="insight-title">Key Support & Resistance</span>
+                  </div>
+                  <div className="insight-content">
+                    <div className="key-levels">
+                      <div className="level-item">
+                        <span className="level-label">Put Wall (Support):</span>
+                        <span className="level-value put">${stats.putWall.toFixed(2)}</span>
+                      </div>
+                      <div className="level-item">
+                        <span className="level-label">Call Wall (Resistance):</span>
+                        <span className="level-value call">${stats.callWall.toFixed(2)}</span>
+                      </div>
+                      <div className="level-item">
+                        <span className="level-label">Expected Range:</span>
+                        <span className="level-value">${downTarget.toFixed(2)} - ${upTarget.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              </>
+            );
+          })()}
+
           {error && <p className="chain-inline-error">{error}</p>}
         </div>
       </section>
@@ -923,7 +1269,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
           <BarChart3 size={18} />
           <h3>
             Volume/OI Heatmap (by strike)
-            {autoRefreshActive && !previousParsed && (
+            {autoRefreshActive && dataHistory.length === 0 && (
               <span style={{ marginLeft: '12px', fontSize: '0.85em', color: '#94a3b8', fontWeight: 400 }}>
                 • Changes will appear after first refresh (5min)
               </span>
@@ -942,10 +1288,10 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   <th>Strike</th>
                   <th>Call Vol</th>
                   <th>Call OI</th>
-                  <th>Call Δ</th>
+                  <th>Call Premium</th>
                   <th>Put Vol</th>
                   <th>Put OI</th>
-                  <th>Put Δ</th>
+                  <th>Put Premium</th>
                 </tr>
               </thead>
               <tbody>
@@ -955,15 +1301,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   const pv = r.putVolume / maxVol;
                   const po = r.putOi / maxOi;
                   
-                  // Get deltas
-                  const callVolDelta = getDelta(r.strike, 'callVolume');
-                  const callOiDelta = getDelta(r.strike, 'callOi');
-                  const putVolDelta = getDelta(r.strike, 'putVolume');
-                  const putOiDelta = getDelta(r.strike, 'putOi');
-                  
-                  // Calculate option deltas
-                  const callDelta = effectiveSpot ? estimateOptionDelta(effectiveSpot, r.strike, r.callIv || 30, daysToExpiry, 'CALL') : 0;
-                  const putDelta = effectiveSpot ? estimateOptionDelta(effectiveSpot, r.strike, r.putIv || 30, daysToExpiry, 'PUT') : 0;
+                  // Get deltas (up to last 5 changes)
+                  const callVolDeltas = getDeltas(r.strike, 'callVolume');
+                  const callOiDeltas = getDeltas(r.strike, 'callOi');
+                  const putVolDeltas = getDeltas(r.strike, 'putVolume');
+                  const putOiDeltas = getDeltas(r.strike, 'putOi');
                   
                   // Check if this strike is a top mover
                   const isTopMover = topMovers.top3.includes(r.strike);
@@ -1014,61 +1356,85 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                       </td>
                       <td style={{ background: `rgba(34,197,94,${0.1 + cv * 0.7})` }}>
                         {r.callVolume.toLocaleString()}
-                        {callVolDelta !== null && callVolDelta !== 0 && (
-                          <span style={{ 
-                            marginLeft: '6px', 
-                            fontSize: '0.85em', 
-                            color: callVolDelta > 0 ? '#4ade80' : '#f87171',
-                            fontWeight: 600
-                          }}>
-                            ({callVolDelta > 0 ? '+' : ''}{callVolDelta.toLocaleString()})
-                          </span>
-                        )}
+                        {callVolDeltas.length > 0 && callVolDeltas.map((delta, idx) => (
+                          delta !== 0 && (
+                            <span 
+                              key={idx}
+                              style={{ 
+                                marginLeft: '4px', 
+                                fontSize: '0.8em', 
+                                color: delta > 0 ? '#4ade80' : '#f87171',
+                                fontWeight: 500,
+                                opacity: 1 - (idx * 0.15) // Fade older changes
+                              }}
+                            >
+                              ({delta > 0 ? '+' : ''}{delta.toLocaleString()})
+                            </span>
+                          )
+                        ))}
                       </td>
                       <td style={{ background: `rgba(34,197,94,${0.1 + co * 0.7})` }}>
                         {r.callOi.toLocaleString()}
-                        {callOiDelta !== null && callOiDelta !== 0 && (
-                          <span style={{ 
-                            marginLeft: '6px', 
-                            fontSize: '0.85em', 
-                            color: callOiDelta > 0 ? '#4ade80' : '#f87171',
-                            fontWeight: 600
-                          }}>
-                            ({callOiDelta > 0 ? '+' : ''}{callOiDelta.toLocaleString()})
-                          </span>
-                        )}
+                        {callOiDeltas.length > 0 && callOiDeltas.map((delta, idx) => (
+                          delta !== 0 && (
+                            <span 
+                              key={idx}
+                              style={{ 
+                                marginLeft: '4px', 
+                                fontSize: '0.8em', 
+                                color: delta > 0 ? '#4ade80' : '#f87171',
+                                fontWeight: 500,
+                                opacity: 1 - (idx * 0.15)
+                              }}
+                            >
+                              ({delta > 0 ? '+' : ''}{delta.toLocaleString()})
+                            </span>
+                          )
+                        ))}
                       </td>
-                      <td style={{ background: 'rgba(34,197,94,0.1)', fontWeight: 500 }}>
-                        {callDelta.toFixed(2)}
+                      <td style={{ background: 'rgba(34,197,94,0.1)', fontWeight: 500, color: '#22c55e' }}>
+                        ${r.callLast > 0 ? r.callLast.toFixed(2) : '-'}
                       </td>
                       <td style={{ background: `rgba(239,68,68,${0.1 + pv * 0.7})` }}>
                         {r.putVolume.toLocaleString()}
-                        {putVolDelta !== null && putVolDelta !== 0 && (
-                          <span style={{ 
-                            marginLeft: '6px', 
-                            fontSize: '0.85em', 
-                            color: putVolDelta > 0 ? '#4ade80' : '#f87171',
-                            fontWeight: 600
-                          }}>
-                            ({putVolDelta > 0 ? '+' : ''}{putVolDelta.toLocaleString()})
-                          </span>
-                        )}
+                        {putVolDeltas.length > 0 && putVolDeltas.map((delta, idx) => (
+                          delta !== 0 && (
+                            <span 
+                              key={idx}
+                              style={{ 
+                                marginLeft: '4px', 
+                                fontSize: '0.8em', 
+                                color: delta > 0 ? '#4ade80' : '#f87171',
+                                fontWeight: 500,
+                                opacity: 1 - (idx * 0.15)
+                              }}
+                            >
+                              ({delta > 0 ? '+' : ''}{delta.toLocaleString()})
+                            </span>
+                          )
+                        ))}
                       </td>
                       <td style={{ background: `rgba(239,68,68,${0.1 + po * 0.7})` }}>
                         {r.putOi.toLocaleString()}
-                        {putOiDelta !== null && putOiDelta !== 0 && (
-                          <span style={{ 
-                            marginLeft: '6px', 
-                            fontSize: '0.85em', 
-                            color: putOiDelta > 0 ? '#4ade80' : '#f87171',
-                            fontWeight: 600
-                          }}>
-                            ({putOiDelta > 0 ? '+' : ''}{putOiDelta.toLocaleString()})
-                          </span>
-                        )}
+                        {putOiDeltas.length > 0 && putOiDeltas.map((delta, idx) => (
+                          delta !== 0 && (
+                            <span 
+                              key={idx}
+                              style={{ 
+                                marginLeft: '4px', 
+                                fontSize: '0.8em', 
+                                color: delta > 0 ? '#4ade80' : '#f87171',
+                                fontWeight: 500,
+                                opacity: 1 - (idx * 0.15)
+                              }}
+                            >
+                              ({delta > 0 ? '+' : ''}{delta.toLocaleString()})
+                            </span>
+                          )
+                        ))}
                       </td>
-                      <td style={{ background: 'rgba(239,68,68,0.1)', fontWeight: 500 }}>
-                        {putDelta.toFixed(2)}
+                      <td style={{ background: 'rgba(239,68,68,0.1)', fontWeight: 500, color: '#ef4444' }}>
+                        ${r.putLast > 0 ? r.putLast.toFixed(2) : '-'}
                       </td>
                     </tr>
                   );
@@ -1230,37 +1596,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               </>
             )}
           </div>
-        </div>
-      </section>
-
-      <section className="yahoo-table-section">
-        <div className="yahoo-table-title">
-          <BarChart3 size={18} />
-          <h3>OI by Strike (Call vs Put)</h3>
-        </div>
-        <div className="yahoo-table-wrapper">
-          <table className="yahoo-table">
-            <thead>
-              <tr>
-                <th>Strike</th>
-                <th>Call OI</th>
-                <th>Put OI</th>
-                <th>Call Volume</th>
-                <th>Put Volume</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visibleRows.map((r) => (
-                <tr key={`row-${r.strike}`}>
-                  <td>{r.strike.toFixed(2)}</td>
-                  <td className={r.strike === stats.callWall ? 'yahoo-call' : ''}>{r.callOi.toLocaleString()}</td>
-                  <td className={r.strike === stats.putWall ? 'yahoo-put' : ''}>{r.putOi.toLocaleString()}</td>
-                  <td>{r.callVolume.toLocaleString()}</td>
-                  <td>{r.putVolume.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </section>
 
