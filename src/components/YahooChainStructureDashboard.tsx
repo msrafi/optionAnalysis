@@ -1040,29 +1040,45 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             const volRatio = totalCallVol / Math.max(1, totalPutVol);
             const oiRatio = totalCallOi / Math.max(1, totalPutOi);
             
-            // Find strikes with highest volume changes
-            const strikeChanges = dataHistory.length > 0 ? rows
-              .map(r => {
-                const prev = dataHistory[0].rows.find(pr => pr.strike === r.strike);
-                if (!prev) return null;
-                const totalChange = Math.abs(r.callVolume - prev.callVolume) + 
-                                  Math.abs(r.putVolume - prev.putVolume) +
-                                  Math.abs(r.callOi - prev.callOi) + 
-                                  Math.abs(r.putOi - prev.putOi);
-                return { strike: r.strike, change: totalChange, row: r };
-              })
-              .filter((x): x is NonNullable<typeof x> => x !== null && x.change > 0)
-              .sort((a, b) => b.change - a.change)
-              .slice(0, 3)
-            : [];
+            // Find top volume and OI strikes
+            const topCallVolumeStrikes = [...rows]
+              .sort((a, b) => b.callVolume - a.callVolume)
+              .slice(0, 5);
             
-            // Butterfly recommendation
-            const butterflyType = stats.direction === 'Up' ? 'Call' : stats.direction === 'Down' ? 'Put' : 'Iron';
-            const butterflyStrikes = stats.direction === 'Up' 
-              ? [atmStrike.strike, (atmStrike.strike + upStrike.strike) / 2, upStrike.strike]
-              : stats.direction === 'Down'
-              ? [downStrike.strike, (downStrike.strike + atmStrike.strike) / 2, atmStrike.strike]
-              : [downStrike.strike, atmStrike.strike, upStrike.strike];
+            const topPutVolumeStrikes = [...rows]
+              .sort((a, b) => b.putVolume - a.putVolume)
+              .slice(0, 5);
+            
+            const topCallOiStrikes = [...rows]
+              .sort((a, b) => b.callOi - a.callOi)
+              .slice(0, 5);
+            
+            const topPutOiStrikes = [...rows]
+              .sort((a, b) => b.putOi - a.putOi)
+              .slice(0, 5);
+            
+            // Find hot strikes (where volume is being added)
+            const hotStrikes = dataHistory.length > 0 ? rows
+              .map(r => {
+                const callVolDeltas = getDeltas(r.strike, 'callVolume');
+                const putVolDeltas = getDeltas(r.strike, 'putVolume');
+                const recentCallChange = callVolDeltas[0] || 0;
+                const recentPutChange = putVolDeltas[0] || 0;
+                const totalRecentChange = recentCallChange + recentPutChange;
+                
+                return {
+                  strike: r.strike,
+                  callChange: recentCallChange,
+                  putChange: recentPutChange,
+                  totalChange: totalRecentChange,
+                  type: recentCallChange > recentPutChange ? 'CALL' : 'PUT',
+                  row: r
+                };
+              })
+              .filter(s => Math.abs(s.totalChange) > 0)
+              .sort((a, b) => Math.abs(b.totalChange) - Math.abs(a.totalChange))
+              .slice(0, 5)
+            : [];
             
             return (
               <>
@@ -1091,171 +1107,151 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                 )}
                 
                 <div className={`decision-insights ${isRefreshing ? 'updating' : ''}`}>
-                  {/* Butterfly Recommendation */}
+                  {/* Top Volume Strikes */}
                   <div className="insight-card">
                     <div className="insight-header">
-                      <span className="insight-icon">🦋</span>
-                      <span className="insight-title">Butterfly Setup (10% Move)</span>
+                      <span className="insight-icon">📈</span>
+                      <span className="insight-title">Highest Volume Strikes</span>
                     </div>
                     <div className="insight-content">
-                      <div className="butterfly-setup">
-                        <span className="butterfly-type">{butterflyType} Butterfly:</span>
-                        <span className="butterfly-strikes">
-                          ${butterflyStrikes[0].toFixed(2)} / ${butterflyStrikes[1].toFixed(2)} / ${butterflyStrikes[2].toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="butterfly-note">
-                        {stats.direction === 'Up' && `Target profit zone: $${butterflyStrikes[1].toFixed(2)} (+${((butterflyStrikes[1] - spot) / spot * 100).toFixed(1)}%)`}
-                        {stats.direction === 'Down' && `Target profit zone: $${butterflyStrikes[1].toFixed(2)} (${((butterflyStrikes[1] - spot) / spot * 100).toFixed(1)}%)`}
-                        {stats.direction === 'Neutral' && `Iron Butterfly at $${atmStrike.strike.toFixed(2)} for range-bound profit`}
-                      </div>
-                    </div>
-                  </div>
-
-                {/* Volume/OI Analysis */}
-                <div className="insight-card">
-                  <div className="insight-header">
-                    <span className="insight-icon">📊</span>
-                    <span className="insight-title">Volume & OI Analysis</span>
-                  </div>
-                  <div className="insight-content">
-                    <div className="insight-metrics">
-                      <div className="insight-metric">
-                        <span className="metric-label">Call/Put Vol Ratio:</span>
-                        <span className={`metric-value ${volRatio > 1.2 ? 'bullish' : volRatio < 0.8 ? 'bearish' : 'neutral'}`}>
-                          {volRatio.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="insight-metric">
-                        <span className="metric-label">Call/Put OI Ratio:</span>
-                        <span className={`metric-value ${oiRatio > 1.2 ? 'bullish' : oiRatio < 0.8 ? 'bearish' : 'neutral'}`}>
-                          {oiRatio.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="insight-suggestion">
-                      {volRatio > 1.3 && oiRatio > 1.2 && '⬆️ Strong bullish flow - Call buyers dominating'}
-                      {volRatio < 0.7 && oiRatio < 0.8 && '⬇️ Strong bearish flow - Put buyers dominating'}
-                      {volRatio > 1.2 && oiRatio < 0.9 && '⚠️ Mixed signals - Short-term bullish, positioning bearish'}
-                      {volRatio < 0.9 && oiRatio > 1.1 && '⚠️ Mixed signals - Short-term bearish, positioning bullish'}
-                      {volRatio >= 0.7 && volRatio <= 1.3 && oiRatio >= 0.8 && oiRatio <= 1.2 && '↔️ Balanced flow - Neutral sentiment'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Signal Breakdown */}
-                <div className="insight-card">
-                  <div className="insight-header">
-                    <span className="insight-icon">🔍</span>
-                    <span className="insight-title">Signal Components</span>
-                  </div>
-                  <div className="insight-content">
-                    <div className="signal-breakdown">
-                      <div className="signal-component">
-                        <div className="signal-label">
-                          <span>Volume Flow</span>
-                          <span className="signal-weight">50%</span>
-                        </div>
-                        <div className="signal-bar-container">
-                          <div 
-                            className={`signal-bar ${stats.volBias > 0.05 ? 'bullish' : stats.volBias < -0.05 ? 'bearish' : 'neutral'}`}
-                            style={{ 
-                              width: `${Math.min(100, Math.abs(stats.volBias) * 500)}%`,
-                              marginLeft: stats.volBias < 0 ? 'auto' : '0'
-                            }}
-                          />
-                        </div>
-                        <span className={`signal-value ${stats.volBias > 0 ? 'bullish' : stats.volBias < 0 ? 'bearish' : 'neutral'}`}>
-                          {stats.volBias > 0 ? '+' : ''}{(stats.volBias * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="signal-component">
-                        <div className="signal-label">
-                          <span>OI Positioning</span>
-                          <span className="signal-weight">30%</span>
-                        </div>
-                        <div className="signal-bar-container">
-                          <div 
-                            className={`signal-bar ${stats.oiBias > 0.05 ? 'bullish' : stats.oiBias < -0.05 ? 'bearish' : 'neutral'}`}
-                            style={{ 
-                              width: `${Math.min(100, Math.abs(stats.oiBias) * 500)}%`,
-                              marginLeft: stats.oiBias < 0 ? 'auto' : '0'
-                            }}
-                          />
-                        </div>
-                        <span className={`signal-value ${stats.oiBias > 0 ? 'bullish' : stats.oiBias < 0 ? 'bearish' : 'neutral'}`}>
-                          {stats.oiBias > 0 ? '+' : ''}{(stats.oiBias * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="signal-component">
-                        <div className="signal-label">
-                          <span>Wall Structure</span>
-                          <span className="signal-weight">5%</span>
-                        </div>
-                        <div className="signal-bar-container">
-                          <div 
-                            className={`signal-bar ${stats.wallBias > 0.02 ? 'bullish' : stats.wallBias < -0.02 ? 'bearish' : 'neutral'}`}
-                            style={{ 
-                              width: `${Math.min(100, Math.abs(stats.wallBias) * 1000)}%`,
-                              marginLeft: stats.wallBias < 0 ? 'auto' : '0'
-                            }}
-                          />
-                        </div>
-                        <span className={`signal-value ${stats.wallBias > 0 ? 'bullish' : stats.wallBias < 0 ? 'bearish' : 'neutral'}`}>
-                          {stats.wallBias > 0 ? '+' : ''}{(stats.wallBias * 100).toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Top Volume Changes */}
-                {strikeChanges.length > 0 && (
-                  <div className="insight-card">
-                    <div className="insight-header">
-                      <span className="insight-icon">🔥</span>
-                      <span className="insight-title">Highest Activity Changes</span>
-                    </div>
-                    <div className="insight-content">
-                      <div className="strike-changes">
-                        {strikeChanges.map((sc, idx) => (
-                          <div key={sc.strike} className="strike-change-item">
-                            <span className="change-rank">#{idx + 1}</span>
-                            <span className="change-strike">${sc.strike.toFixed(2)}</span>
-                            <span className="change-activity">
-                              C: {sc.row.callVolume.toLocaleString()} / P: {sc.row.putVolume.toLocaleString()}
+                      <div className="strike-list-section">
+                        <div className="strike-list-header call">Call Options</div>
+                        {topCallVolumeStrikes.map((row, idx) => (
+                          <div key={`call-vol-${row.strike}`} className="strike-list-item">
+                            <span className="strike-rank">#{idx + 1}</span>
+                            <span className="strike-price">${row.strike.toFixed(2)}</span>
+                            <span className="strike-metric call">
+                              Vol: {row.callVolume.toLocaleString()}
                             </span>
+                            <span className="strike-premium">${row.callLast.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="strike-list-section">
+                        <div className="strike-list-header put">Put Options</div>
+                        {topPutVolumeStrikes.map((row, idx) => (
+                          <div key={`put-vol-${row.strike}`} className="strike-list-item">
+                            <span className="strike-rank">#{idx + 1}</span>
+                            <span className="strike-price">${row.strike.toFixed(2)}</span>
+                            <span className="strike-metric put">
+                              Vol: {row.putVolume.toLocaleString()}
+                            </span>
+                            <span className="strike-premium">${row.putLast.toFixed(2)}</span>
                           </div>
                         ))}
                       </div>
                     </div>
                   </div>
-                )}
 
-                {/* Key Levels */}
-                <div className="insight-card">
-                  <div className="insight-header">
-                    <span className="insight-icon">🎯</span>
-                    <span className="insight-title">Key Support & Resistance</span>
+                  {/* Top OI Strikes */}
+                  <div className="insight-card">
+                    <div className="insight-header">
+                      <span className="insight-icon">💼</span>
+                      <span className="insight-title">Highest Open Interest</span>
+                    </div>
+                    <div className="insight-content">
+                      <div className="strike-list-section">
+                        <div className="strike-list-header call">Call Options</div>
+                        {topCallOiStrikes.map((row, idx) => (
+                          <div key={`call-oi-${row.strike}`} className="strike-list-item">
+                            <span className="strike-rank">#{idx + 1}</span>
+                            <span className="strike-price">${row.strike.toFixed(2)}</span>
+                            <span className="strike-metric call">
+                              OI: {row.callOi.toLocaleString()}
+                            </span>
+                            <span className="strike-premium">${row.callLast.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="strike-list-section">
+                        <div className="strike-list-header put">Put Options</div>
+                        {topPutOiStrikes.map((row, idx) => (
+                          <div key={`put-oi-${row.strike}`} className="strike-list-item">
+                            <span className="strike-rank">#{idx + 1}</span>
+                            <span className="strike-price">${row.strike.toFixed(2)}</span>
+                            <span className="strike-metric put">
+                              OI: {row.putOi.toLocaleString()}
+                            </span>
+                            <span className="strike-premium">${row.putLast.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <div className="insight-content">
-                    <div className="key-levels">
-                      <div className="level-item">
-                        <span className="level-label">Put Wall (Support):</span>
-                        <span className="level-value put">${stats.putWall.toFixed(2)}</span>
+
+                  {/* Hot Strikes - Volume Being Added */}
+                  {hotStrikes.length > 0 && (
+                    <div className="insight-card">
+                      <div className="insight-header">
+                        <span className="insight-icon">🔥</span>
+                        <span className="insight-title">Hot Strikes (Volume Added Recently)</span>
                       </div>
-                      <div className="level-item">
-                        <span className="level-label">Call Wall (Resistance):</span>
-                        <span className="level-value call">${stats.callWall.toFixed(2)}</span>
+                      <div className="insight-content">
+                        <div className="hot-strikes-list">
+                          {hotStrikes.map((hs, idx) => (
+                            <div key={hs.strike} className="hot-strike-item">
+                              <div className="hot-strike-main">
+                                <span className="strike-rank hot">#{idx + 1}</span>
+                                <span className="strike-price">${hs.strike.toFixed(2)}</span>
+                                <span className={`hot-strike-type ${hs.type.toLowerCase()}`}>
+                                  {hs.type}
+                                </span>
+                              </div>
+                              <div className="hot-strike-details">
+                                <span className="hot-strike-change call">
+                                  C: {hs.callChange > 0 ? '+' : ''}{hs.callChange.toLocaleString()}
+                                </span>
+                                <span className="hot-strike-change put">
+                                  P: {hs.putChange > 0 ? '+' : ''}{hs.putChange.toLocaleString()}
+                                </span>
+                                <span className="hot-strike-current">
+                                  Total: {hs.row.callVolume + hs.row.putVolume}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="hot-strikes-note">
+                          ⚡ These strikes are attracting the most new volume in recent updates
+                        </div>
                       </div>
-                      <div className="level-item">
-                        <span className="level-label">Expected Range:</span>
-                        <span className="level-value">${downTarget.toFixed(2)} - ${upTarget.toFixed(2)}</span>
+                    </div>
+                  )}
+
+                  {/* Key Trading Levels */}
+                  <div className="insight-card">
+                    <div className="insight-header">
+                      <span className="insight-icon">🎯</span>
+                      <span className="insight-title">Key Trading Levels</span>
+                    </div>
+                    <div className="insight-content">
+                      <div className="trading-levels">
+                        <div className="trading-level-item">
+                          <span className="level-label">Max Pain / Pinning Risk:</span>
+                          <span className="level-value">${Math.max(stats.callWall, stats.putWall).toFixed(2)}</span>
+                        </div>
+                        <div className="trading-level-item">
+                          <span className="level-label">Call Wall (Resistance):</span>
+                          <span className="level-value call">${stats.callWall.toFixed(2)}</span>
+                        </div>
+                        <div className="trading-level-item">
+                          <span className="level-label">Put Wall (Support):</span>
+                          <span className="level-value put">${stats.putWall.toFixed(2)}</span>
+                        </div>
+                        <div className="trading-level-item">
+                          <span className="level-label">Expected Move (±):</span>
+                          <span className="level-value">${stats.expectedMove.toFixed(2)} ({stats.expectedMovePct.toFixed(1)}%)</span>
+                        </div>
+                        <div className="trading-level-item">
+                          <span className="level-label">Breakout Targets:</span>
+                          <span className="level-value">
+                            ${downTarget.toFixed(2)} / ${upTarget.toFixed(2)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
               </>
             );
           })()}
