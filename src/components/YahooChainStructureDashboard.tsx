@@ -308,7 +308,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         putWall: 0,
         expectedMove: 0,
         expectedMovePct: 0,
-        direction: 'Neutral',
+        direction: 'NEUTRAL',
         confidence: 50,
         suggestion: 'Load a Yahoo option chain to generate signal.',
         volBias: 0,
@@ -365,27 +365,27 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     // Strong signals: > 0.12 or < -0.12
     // Moderate signals: > 0.05 or < -0.05
     // Weak/Neutral: between -0.05 and 0.05
-    let direction: 'Up' | 'Down' | 'Neutral';
+    let direction: 'UP' | 'DOWN' | 'NEUTRAL';
     let confidence: number;
-    
+
     if (score > 0.05) {
-      direction = 'Up';
+      direction = 'UP';
       // Higher confidence with stronger score
       confidence = Math.min(95, Math.max(55, 55 + Math.abs(score) * 200));
     } else if (score < -0.05) {
-      direction = 'Down';
+      direction = 'DOWN';
       confidence = Math.min(95, Math.max(55, 55 + Math.abs(score) * 200));
     } else {
-      direction = 'Neutral';
+      direction = 'NEUTRAL';
       // Lower confidence for neutral
       confidence = Math.min(60, Math.max(45, 50 - Math.abs(score) * 100));
     }
-    
+
     const targetUp = spot + expectedMove;
     const targetDown = Math.max(0, spot - expectedMove);
-    const suggestion = direction === 'Up'
+    const suggestion = direction === 'UP'
       ? `Higher-probability bias: UP toward ~$${targetUp.toFixed(2)} (+${expectedMovePct.toFixed(2)}%). Prefer bullish structures near ${spot.toFixed(2)} with call-wall at ${callWall}.`
-      : direction === 'Down'
+      : direction === 'DOWN'
         ? `Higher-probability bias: DOWN toward ~$${targetDown.toFixed(2)} (-${expectedMovePct.toFixed(2)}%). Prefer bearish structures with put-wall at ${putWall}.`
         : `Neutral / range likely. Expected move ±$${expectedMove.toFixed(2)} (${expectedMovePct.toFixed(2)}%). Trade around ${putWall}-${callWall}.`;
 
@@ -456,8 +456,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       return candidates[0];
     };
 
-    if (stats.direction === 'Up' || stats.direction === 'Down') {
-      const side: 'CALL' | 'PUT' = stats.direction === 'Up' ? 'CALL' : 'PUT';
+    if (stats.direction === 'UP' || stats.direction === 'DOWN') {
+      const side: 'CALL' | 'PUT' = stats.direction === 'UP' ? 'CALL' : 'PUT';
       const used = new Set<number>();
       return directionalTargets.map(({ preset, target }): DeltaPresetRow => {
         const picked = pickCandidate(
@@ -968,145 +968,163 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
           </div>
         </div>
         <div className="decision-snapshot-modern">
-          {/* Header with Direction and Confidence */}
-          <div className="decision-header">
-            <div className="decision-direction">
-              <div className={`direction-badge ${stats.direction.toLowerCase()}`}>
-                <span className="direction-icon">{stats.direction === 'UP' ? '📈' : stats.direction === 'DOWN' ? '📉' : '↔️'}</span>
-                <span className="direction-text">{stats.direction === 'UP' ? 'BULLISH' : stats.direction === 'DOWN' ? 'BEARISH' : 'NEUTRAL'}</span>
+          <div className="decision-left-panel">
+            {/* Header with Direction and Confidence */}
+            <div className="decision-header">
+              <div className="decision-direction">
+                <div className={`direction-badge ${stats.direction.toLowerCase()}`}>
+                  <span className="direction-icon">{stats.direction === 'UP' ? '📈' : stats.direction === 'DOWN' ? '📉' : '↔️'}</span>
+                  <span className="direction-text">{stats.direction === 'UP' ? 'BULLISH' : stats.direction === 'DOWN' ? 'BEARISH' : 'NEUTRAL'}</span>
+                </div>
+              </div>
+              <div className="decision-confidence">
+                <div className="confidence-label">Confidence</div>
+                <div className="confidence-value">{stats.confidence.toFixed(0)}%</div>
+                <div className="confidence-gauge">
+                  <div className="confidence-gauge-fill" style={{ width: `${stats.confidence}%` }} />
+                </div>
               </div>
             </div>
-            <div className="decision-confidence">
-              <div className="confidence-label">Confidence</div>
-              <div className="confidence-value">{stats.confidence.toFixed(0)}%</div>
-              <div className="confidence-gauge">
-                <div className="confidence-gauge-fill" style={{ width: `${stats.confidence}%` }} />
-              </div>
-            </div>
-          </div>
 
-          {/* Expected Move Slider */}
-          {effectiveSpot && (
-            <div className="decision-slider">
-              <div className="slider-labels">
-                <div className="slider-label downside">
-                  <div>DOWNSIDE</div>
-                  <div className="slider-label-value">${downTarget.toFixed(2)}</div>
-                  <div className="slider-label-pct">-{stats.expectedMovePct.toFixed(2)}%</div>
-                </div>
-                <div className="slider-label spot">
-                  <div>SPOT</div>
-                  <div className="slider-label-value">${effectiveSpot.toFixed(2)}</div>
-                </div>
-                <div className="slider-label upside">
-                  <div>UPSIDE</div>
-                  <div className="slider-label-value">${upTarget.toFixed(2)}</div>
-                  <div className="slider-label-pct">+{stats.expectedMovePct.toFixed(2)}%</div>
-                </div>
-              </div>
-              <div className="slider-track">
-                <div className="slider-fill slider-fill-down" style={{ width: '50%' }} />
-                <div className="slider-fill slider-fill-up" style={{ width: '50%' }} />
-                <div className="slider-thumb" style={{ left: '50%' }} />
-              </div>
-            </div>
-          )}
-
-          {/* Enhanced Recommendations */}
-          {effectiveSpot && parsed.rows.length > 0 && (() => {
-            const spot = effectiveSpot;
-            const rows = parsed.rows;
-            
-            // Calculate 10% move targets for butterfly
-            const tenPercentUp = spot * 1.10;
-            const tenPercentDown = spot * 0.90;
-            
-            // Find strikes closest to 10% moves
-            const findNearestStrike = (target: number) => 
-              rows.reduce((best, r) => 
-                Math.abs(r.strike - target) < Math.abs(best.strike - target) ? r : best, 
-                rows[0]
-              );
-            
-            const atmStrike = findNearestStrike(spot);
-            const upStrike = findNearestStrike(tenPercentUp);
-            const downStrike = findNearestStrike(tenPercentDown);
-            
-            // Volume and OI analysis
-            const totalCallVol = rows.reduce((s, r) => s + r.callVolume, 0);
-            const totalPutVol = rows.reduce((s, r) => s + r.putVolume, 0);
-            const totalCallOi = rows.reduce((s, r) => s + r.callOi, 0);
-            const totalPutOi = rows.reduce((s, r) => s + r.putOi, 0);
-            const volRatio = totalCallVol / Math.max(1, totalPutVol);
-            const oiRatio = totalCallOi / Math.max(1, totalPutOi);
-            
-            // Find top volume and OI strikes
-            const topCallVolumeStrikes = [...rows]
-              .sort((a, b) => b.callVolume - a.callVolume)
-              .slice(0, 5);
-            
-            const topPutVolumeStrikes = [...rows]
-              .sort((a, b) => b.putVolume - a.putVolume)
-              .slice(0, 5);
-            
-            const topCallOiStrikes = [...rows]
-              .sort((a, b) => b.callOi - a.callOi)
-              .slice(0, 5);
-            
-            const topPutOiStrikes = [...rows]
-              .sort((a, b) => b.putOi - a.putOi)
-              .slice(0, 5);
-            
-            // Find hot strikes (where volume is being added)
-            const hotStrikes = dataHistory.length > 0 ? rows
-              .map(r => {
-                const callVolDeltas = getDeltas(r.strike, 'callVolume');
-                const putVolDeltas = getDeltas(r.strike, 'putVolume');
-                const recentCallChange = callVolDeltas[0] || 0;
-                const recentPutChange = putVolDeltas[0] || 0;
-                const totalRecentChange = recentCallChange + recentPutChange;
-                
-                return {
-                  strike: r.strike,
-                  callChange: recentCallChange,
-                  putChange: recentPutChange,
-                  totalChange: totalRecentChange,
-                  type: recentCallChange > recentPutChange ? 'CALL' : 'PUT',
-                  row: r
-                };
-              })
-              .filter(s => Math.abs(s.totalChange) > 0)
-              .sort((a, b) => Math.abs(b.totalChange) - Math.abs(a.totalChange))
-              .slice(0, 5)
-            : [];
-            
-            return (
+            {/* Expected Move Slider */}
+            {effectiveSpot && (
               <>
-                {/* Refresh Status Bar */}
-                {autoRefreshActive && (
-                  <div className="refresh-status-bar">
-                    <div className="refresh-status-left">
-                      <span className={`refresh-indicator ${isRefreshing ? 'refreshing' : ''}`}>
-                        {isRefreshing ? '🔄 Updating...' : '✓ Live Updates Active'}
-                      </span>
-                      {lastUpdateTime && !isRefreshing && (
-                        <span className="last-update-time">
-                          Last updated: {formatLastUpdate(lastUpdateTime)}
-                        </span>
-                      )}
+                <div className="decision-slider">
+                  <div className="slider-labels">
+                    <div className="slider-label downside">
+                      <div>DOWNSIDE</div>
+                      <div className="slider-label-value">${downTarget.toFixed(2)}</div>
+                      <div className="slider-label-pct">-{stats.expectedMovePct.toFixed(2)}%</div>
                     </div>
-                    <div className="refresh-countdown">
-                      {!isRefreshing && nextRefreshIn > 0 && (
-                        <>
-                          <span className="countdown-label">Next refresh in:</span>
-                          <span className="countdown-timer">{formatCountdown(nextRefreshIn)}</span>
-                        </>
-                      )}
+                    <div className="slider-label spot">
+                      <div>SPOT</div>
+                      <div className="slider-label-value">${effectiveSpot.toFixed(2)}</div>
+                    </div>
+                    <div className="slider-label upside">
+                      <div>UPSIDE</div>
+                      <div className="slider-label-value">${upTarget.toFixed(2)}</div>
+                      <div className="slider-label-pct">+{stats.expectedMovePct.toFixed(2)}%</div>
                     </div>
                   </div>
-                )}
-                
-                <div className={`decision-insights ${isRefreshing ? 'updating' : ''}`}>
+                  <div className="slider-track">
+                    <div className="slider-fill slider-fill-down" style={{ width: '50%' }} />
+                    <div className="slider-fill slider-fill-up" style={{ width: '50%' }} />
+                    <div className="slider-thumb" style={{ left: '50%' }} />
+                  </div>
+                </div>
+
+                {/* Day's Range Slider */}
+                <div className="range-slider-compact">
+                  <div className="range-slider-label">DAY'S RANGE</div>
+                  <div className="range-values">
+                    <span className="range-low">{(effectiveSpot * 0.98).toFixed(2)}</span>
+                    <span className="range-high">{(effectiveSpot * 1.02).toFixed(2)}</span>
+                  </div>
+                  <div className="range-track">
+                    <div className="range-progress" style={{ left: '20%', width: '60%' }} />
+                    <div className="range-marker" style={{ left: '50%' }} />
+                  </div>
+                </div>
+
+                {/* 52-Week Range Slider */}
+                <div className="range-slider-compact">
+                  <div className="range-slider-label">52WK RANGE</div>
+                  <div className="range-values">
+                    <span className="range-low">{(effectiveSpot * 0.70).toFixed(2)}</span>
+                    <span className="range-high">{(effectiveSpot * 1.30).toFixed(2)}</span>
+                  </div>
+                  <div className="range-track">
+                    <div className="range-progress" style={{ left: '15%', width: '70%' }} />
+                    <div className="range-marker" style={{ left: '60%' }} />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* TradingView Chart */}
+          <div className="decision-chart-panel">
+            {symbol && (
+              <div className="tradingview-widget-container" style={{ height: '100%', width: '100%' }}>
+                <iframe
+                  src={`https://www.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${encodeURIComponent(symbol)}&interval=D&hidesidetoolbar=1&symboledit=1&saveimage=0&toolbarbg=0e1621&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&studies_overrides={}&overrides={}&enabled_features=[]&disabled_features=[]&locale=en&utm_source=localhost&utm_medium=widget_new&utm_campaign=chart&utm_term=${encodeURIComponent(symbol)}`}
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                  title="TradingView Chart"
+                />
+              </div>
+            )}
+            {!symbol && (
+              <div className="chart-placeholder">
+                <p>Enter a symbol to view the chart</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* Four Insight Cards - Full Width Section */}
+      {effectiveSpot && parsed.rows.length > 0 && (() => {
+          const spot = effectiveSpot;
+          const rows = parsed.rows;
+          
+          // Find top volume and OI strikes
+          const topCallVolumeStrikes = [...rows]
+            .sort((a, b) => b.callVolume - a.callVolume)
+            .slice(0, 5);
+          
+          const topPutVolumeStrikes = [...rows]
+            .sort((a, b) => b.putVolume - a.putVolume)
+            .slice(0, 5);
+          
+          const topCallOiStrikes = [...rows]
+            .sort((a, b) => b.callOi - a.callOi)
+            .slice(0, 5);
+          
+          const topPutOiStrikes = [...rows]
+            .sort((a, b) => b.putOi - a.putOi)
+            .slice(0, 5);
+          
+          // Find hot strikes (where volume is being added)
+          const hotStrikes = dataHistory.length > 0 
+            ? rows
+                .map(r => {
+                  const callVolDeltas = getDeltas(r.strike, 'callVolume');
+                  const putVolDeltas = getDeltas(r.strike, 'putVolume');
+                  const recentCallChange = callVolDeltas[0] || 0;
+                  const recentPutChange = putVolDeltas[0] || 0;
+                  const totalRecentChange = recentCallChange + recentPutChange;
+
+                  return {
+                    strike: r.strike,
+                    callChange: recentCallChange,
+                    putChange: recentPutChange,
+                    totalChange: totalRecentChange,
+                    type: recentCallChange > recentPutChange ? 'CALL' : 'PUT',
+                    row: r
+                  };
+                })
+                .filter(s => Math.abs(s.totalChange) > 0)
+                .sort((a, b) => Math.abs(b.totalChange) - Math.abs(a.totalChange))
+                .slice(0, 5)
+            : rows
+                .map(r => {
+                  const totalVolume = r.callVolume + r.putVolume;
+                  return {
+                    strike: r.strike,
+                    callChange: r.callVolume,
+                    putChange: r.putVolume,
+                    totalChange: totalVolume,
+                    type: r.callVolume > r.putVolume ? 'CALL' : 'PUT',
+                    row: r
+                  };
+                })
+                .filter(s => s.totalChange > 0)
+                .sort((a, b) => b.totalChange - a.totalChange)
+                .slice(0, 5);
+
+          return (
+            <div className="insight-cards-container">
+              <div className={`decision-insights ${isRefreshing ? 'updating' : ''}`}>
                   {/* Top Volume Strikes */}
                   <div className="insight-card">
                     <div className="insight-header">
@@ -1180,43 +1198,49 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   </div>
 
                   {/* Hot Strikes - Volume Being Added */}
-                  {hotStrikes.length > 0 && (
-                    <div className="insight-card">
-                      <div className="insight-header">
-                        <span className="insight-icon">🔥</span>
-                        <span className="insight-title">Hot Strikes (Volume Added Recently)</span>
-                      </div>
-                      <div className="insight-content">
-                        <div className="hot-strikes-list">
-                          {hotStrikes.map((hs, idx) => (
-                            <div key={hs.strike} className="hot-strike-item">
-                              <div className="hot-strike-main">
-                                <span className="strike-rank hot">#{idx + 1}</span>
-                                <span className="strike-price">${hs.strike.toFixed(2)}</span>
-                                <span className={`hot-strike-type ${hs.type.toLowerCase()}`}>
-                                  {hs.type}
-                                </span>
-                              </div>
-                              <div className="hot-strike-details">
-                                <span className="hot-strike-change call">
-                                  C: {hs.callChange > 0 ? '+' : ''}{hs.callChange.toLocaleString()}
-                                </span>
-                                <span className="hot-strike-change put">
-                                  P: {hs.putChange > 0 ? '+' : ''}{hs.putChange.toLocaleString()}
-                                </span>
-                                <span className="hot-strike-current">
-                                  Total: {hs.row.callVolume + hs.row.putVolume}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="hot-strikes-note">
-                          ⚡ These strikes are attracting the most new volume in recent updates
-                        </div>
-                      </div>
+                  <div className="insight-card">
+                    <div className="insight-header">
+                      <span className="insight-icon">🔥</span>
+                      <span className="insight-title">Hot Strikes (Volume Added Recently)</span>
                     </div>
-                  )}
+                    <div className="insight-content">
+                      {hotStrikes.length > 0 ? (
+                        <>
+                          <div className="hot-strikes-list">
+                            {hotStrikes.map((hs, idx) => (
+                              <div key={hs.strike} className="hot-strike-item">
+                                <div className="hot-strike-main">
+                                  <span className="strike-rank hot">#{idx + 1}</span>
+                                  <span className="strike-price">${hs.strike.toFixed(2)}</span>
+                                  <span className={`hot-strike-type ${hs.type.toLowerCase()}`}>
+                                    {hs.type}
+                                  </span>
+                                </div>
+                                <div className="hot-strike-details">
+                                  <span className="hot-strike-change call">
+                                    C: {hs.callChange > 0 ? '+' : ''}{hs.callChange.toLocaleString()}
+                                  </span>
+                                  <span className="hot-strike-change put">
+                                    P: {hs.putChange > 0 ? '+' : ''}{hs.putChange.toLocaleString()}
+                                  </span>
+                                  <span className="hot-strike-current">
+                                    Total: {(hs.row.callVolume + hs.row.putVolume).toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="hot-strikes-note">
+                            {dataHistory.length > 0 
+                              ? '⚡ These strikes are attracting the most new volume in recent updates'
+                              : '📊 Showing highest volume strikes (no delta history yet)'}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="yahoo-muted">No volume data available.</p>
+                      )}
+                    </div>
+                  </div>
 
                   {/* Key Trading Levels */}
                   <div className="insight-card">
@@ -1252,13 +1276,35 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                     </div>
                   </div>
                 </div>
-              </>
+              </div>
             );
           })()}
 
-          {error && <p className="chain-inline-error">{error}</p>}
+      {error && <p className="chain-inline-error">{error}</p>}
+
+      {/* Refresh Status Bar - Full Width */}
+      {autoRefreshActive && effectiveSpot && parsed.rows.length > 0 && (
+        <div className="refresh-status-bar-fullwidth">
+          <div className="refresh-status-left">
+            <span className={`refresh-indicator ${isRefreshing ? 'refreshing' : ''}`}>
+              {isRefreshing ? '🔄 Updating...' : '✓ Live Updates Active'}
+            </span>
+            {lastUpdateTime && !isRefreshing && (
+              <span className="last-update-time">
+                Last updated: {formatLastUpdate(lastUpdateTime)}
+              </span>
+            )}
+          </div>
+          <div className="refresh-countdown">
+            {!isRefreshing && nextRefreshIn > 0 && (
+              <>
+                <span className="countdown-label">Next refresh in:</span>
+                <span className="countdown-timer">{formatCountdown(nextRefreshIn)}</span>
+              </>
+            )}
+          </div>
         </div>
-      </section>
+      )}
 
       <section className="yahoo-table-section" style={{ gridColumn: '1 / -1' }}>
         <div className="yahoo-table-title">
