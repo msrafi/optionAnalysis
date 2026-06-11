@@ -1,0 +1,363 @@
+{
+  "generatedAt": "2025-11-21T22:06:42.228Z",
+  "generatedBy": "combineDataFiles.js",
+  "sourceFiles": {
+    "count": 55,
+    "latest": "darkpool_data_2025-11-21_16-00.csv",
+    "latestModified": "2025-11-21T22:03:19.987Z",
+    "files": [
+      {
+        "filename": "options_data_2025-11-04_16-00.csv",
+        "modifiedTime": "2025-11-05T00:58:15.322Z",
+        "parsedTimestamp": "2025-11-04T21:00:00.000Z",
+        "size": 49373
+      },
+      {
+        "filename": "options_data_2025-11-03_16-00.csv",
+        "modifiedTime": "2025-11-04T01:36:30.402Z",
+        "parsedTimestamp": "2025-11-03T21:00:00.000Z",
+        "size": 63142
+      },
+      {
+        "filename": "options_data_2025-10-31_16-00.csv",
+        "modifiedTime": "2025-10-31T20:45:30.656Z",
+        "parsedTimestamp": "2025-10-31T20:00:00.000Z",
+        "size": 69224
+      },
+      {
+        "filename": "options_data_2025-10-30_14-30.csv",
+        "modifiedTime": "2025-10-30T18:31:03.517Z",
+        "parsedTimestamp": "2025-10-30T18:30:00.000Z",
+        "size": 40302
+      },
+      {
+        "filename": "options_data_2025-10-29_16-00.csv",
+        "modifiedTime": "2025-10-29T21:22:48.049Z",
+        "parsedTimestamp": "2025-10-29T20:00:00.000Z",
+        "size": 84567
+      },
+      {
+        "filename": "options_data_2025-10-28_16-00.csv",
+        "modifiedTime": "2025-10-29T13:19:41.688Z",
+        "parsedTimestamp": "2025-10-28T20:00:00.000Z",
+        "size": 23977
+      },
+      {
+        "filename": "options_data_2025-10-28_15-00.csv",
+        "modifiedTime": "2025-10-28T19:13:07.360Z",
+        "parsedTimestamp": "2025-10-28T19:00:00.000Z",
+        "size": 81351
+      },
+      {
+        "filename": "options_data_2025-10-27_16-00.csv",
+        "modifiedTime": "2025-10-27T21:26:04.327Z",
+        "parsedTimestamp": "2025-10-27T20:00:00.000Z",
+        "size": 72048
+      },
+      {
+        "filename": "options_data_2025-10-24_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.612Z",
+        "parsedTimestamp": "2025-10-24T20:00:00.000Z",
+        "size": 52860
+      },
+      {
+        "filename": "options_data_2025-10-23_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.610Z",
+        "parsedTimestamp": "2025-10-23T20:00:00.000Z",
+        "size": 25329
+      },
+      {
+        "filename": "options_data_2025-10-23_14-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.608Z",
+        "parsedTimestamp": "2025-10-23T18:00:00.000Z",
+        "size": 50251
+      },
+      {
+        "filename": "options_data_2025-10-22_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.606Z",
+        "parsedTimestamp": "2025-10-22T20:00:00.000Z",
+        "size": 25825
+      },
+      {
+        "filename": "options_data_2025-10-22_14-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.604Z",
+        "parsedTimestamp": "2025-10-22T18:00:00.000Z",
+        "size": 29416
+      },
+      {
+        "filename": "options_data_2025-10-22_10-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.602Z",
+        "parsedTimestamp": "2025-10-22T14:00:00.000Z",
+        "size": 25455
+      },
+      {
+        "filename": "options_data_2025-10-21_16-51.csv",
+        "modifiedTime": "2025-10-24T21:34:31.600Z",
+        "parsedTimestamp": "2025-10-21T20:51:00.000Z",
+        "size": 36293
+      },
+      {
+        "filename": "options_data_2025-10-21_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.598Z",
+        "parsedTimestamp": "2025-10-21T20:00:00.000Z",
+        "size": 36293
+      },
+      {
+        "filename": "options_data_2025-10-21_15-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.596Z",
+        "parsedTimestamp": "2025-10-21T19:00:00.000Z",
+        "size": 35937
+      },
+      {
+        "filename": "options_data_2025-10-20_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.594Z",
+        "parsedTimestamp": "2025-10-20T20:00:00.000Z",
+        "size": 48330
+      },
+      {
+        "filename": "options_data_2025-10-17_15-45.csv",
+        "modifiedTime": "2025-10-24T21:34:31.591Z",
+        "parsedTimestamp": "2025-10-17T19:45:00.000Z",
+        "size": 36919
+      },
+      {
+        "filename": "options_data_2025-10-16_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.588Z",
+        "parsedTimestamp": "2025-10-16T20:00:00.000Z",
+        "size": 29341
+      },
+      {
+        "filename": "options_data_2025-10-16_15-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.585Z",
+        "parsedTimestamp": "2025-10-16T19:00:00.000Z",
+        "size": 24386
+      },
+      {
+        "filename": "options_data_2025-10-16_12-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.580Z",
+        "parsedTimestamp": "2025-10-16T16:00:00.000Z",
+        "size": 45107
+      },
+      {
+        "filename": "options_data_2025-10-16_10-30.csv",
+        "modifiedTime": "2025-10-24T21:34:31.578Z",
+        "parsedTimestamp": "2025-10-16T14:30:00.000Z",
+        "size": 30393
+      },
+      {
+        "filename": "options_data_2025-10-15_TSLA.csv",
+        "modifiedTime": "2025-10-24T21:34:31.576Z",
+        "parsedTimestamp": null,
+        "size": 33921
+      },
+      {
+        "filename": "options_data_2025-10-15_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.567Z",
+        "parsedTimestamp": "2025-10-15T20:00:00.000Z",
+        "size": 37161
+      },
+      {
+        "filename": "options_data_2025-10-15_14-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.563Z",
+        "parsedTimestamp": "2025-10-15T18:00:00.000Z",
+        "size": 29767
+      },
+      {
+        "filename": "options_data_2025-10-15_11-30.csv",
+        "modifiedTime": "2025-10-24T21:34:31.560Z",
+        "parsedTimestamp": "2025-10-15T15:30:00.000Z",
+        "size": 56322
+      },
+      {
+        "filename": "options_data_2025-10-15_10-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.557Z",
+        "parsedTimestamp": "2025-10-15T14:00:00.000Z",
+        "size": 41041
+      },
+      {
+        "filename": "options_data_2025-10-14_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.543Z",
+        "parsedTimestamp": "2025-10-14T20:00:00.000Z",
+        "size": 28607
+      },
+      {
+        "filename": "options_data_2025-10-14_15-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.538Z",
+        "parsedTimestamp": "2025-10-14T19:00:00.000Z",
+        "size": 28730
+      },
+      {
+        "filename": "options_data_2025-10-14_11-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.533Z",
+        "parsedTimestamp": "2025-10-14T15:00:00.000Z",
+        "size": 35740
+      },
+      {
+        "filename": "options_data_2025-10-14_01-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.524Z",
+        "parsedTimestamp": "2025-10-14T05:00:00.000Z",
+        "size": 41080
+      },
+      {
+        "filename": "options_data_2025-10-13_13-20.csv",
+        "modifiedTime": "2025-10-24T21:34:31.497Z",
+        "parsedTimestamp": "2025-10-13T17:20:00.000Z",
+        "size": 29360
+      },
+      {
+        "filename": "options_data_2025-10-13_13-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.494Z",
+        "parsedTimestamp": "2025-10-13T17:00:00.000Z",
+        "size": 28025
+      },
+      {
+        "filename": "options_data_2025-10-13_10-50.csv",
+        "modifiedTime": "2025-10-24T21:34:31.492Z",
+        "parsedTimestamp": "2025-10-13T14:50:00.000Z",
+        "size": 27701
+      },
+      {
+        "filename": "options_data_2025-10-13_10-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.481Z",
+        "parsedTimestamp": "2025-10-13T14:00:00.000Z",
+        "size": 27321
+      },
+      {
+        "filename": "options_data_2025-10-13_05-30.csv",
+        "modifiedTime": "2025-10-24T21:34:31.479Z",
+        "parsedTimestamp": "2025-10-13T09:30:00.000Z",
+        "size": 35920
+      },
+      {
+        "filename": "options_data_2024-01-15_16-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.478Z",
+        "parsedTimestamp": "2024-01-15T21:00:00.000Z",
+        "size": 29261
+      },
+      {
+        "filename": "options_data_2024-01-15_11-30.csv",
+        "modifiedTime": "2025-10-24T21:34:31.475Z",
+        "parsedTimestamp": "2024-01-15T16:30:00.000Z",
+        "size": 148896
+      },
+      {
+        "filename": "options_data_2024-01-15_11-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.445Z",
+        "parsedTimestamp": "2024-01-15T16:00:00.000Z",
+        "size": 16899
+      },
+      {
+        "filename": "options_data_2024-01-15_10-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.430Z",
+        "parsedTimestamp": "2024-01-15T15:00:00.000Z",
+        "size": 60346
+      },
+      {
+        "filename": "options_data_2024-01-15_02-30.csv",
+        "modifiedTime": "2025-10-24T21:34:31.416Z",
+        "parsedTimestamp": "2024-01-15T07:30:00.000Z",
+        "size": 50407
+      },
+      {
+        "filename": "options_data_2025-11-05_14-00.csv",
+        "modifiedTime": "2025-11-05T19:26:16.058Z",
+        "parsedTimestamp": "2025-11-05T19:00:00.000Z",
+        "size": 29297
+      },
+      {
+        "filename": "options_data_2025-11-05_16-00.csv",
+        "modifiedTime": "2025-11-06T02:33:03.942Z",
+        "parsedTimestamp": "2025-11-05T21:00:00.000Z",
+        "size": 50196
+      },
+      {
+        "filename": "options_data_2025-11-05_15-00.csv",
+        "modifiedTime": "2025-11-06T20:13:52.726Z",
+        "parsedTimestamp": "2025-11-05T20:00:00.000Z",
+        "size": 49858
+      },
+      {
+        "filename": "darkpool_data_2025-11-06_16-00.csv",
+        "modifiedTime": "2025-11-07T02:45:40.458Z",
+        "parsedTimestamp": "2025-11-06T21:00:00.000Z",
+        "size": 49917
+      },
+      {
+        "filename": "darkpool_data_2025-10-17_15-00.csv",
+        "modifiedTime": "2025-10-24T21:34:31.410Z",
+        "parsedTimestamp": "2025-10-17T19:00:00.000Z",
+        "size": 119907
+      },
+      {
+        "filename": "darkpool_data_2025-11-11_16-00.csv",
+        "modifiedTime": "2025-11-11T21:53:14.431Z",
+        "parsedTimestamp": "2025-11-11T21:00:00.000Z",
+        "size": 122279
+      },
+      {
+        "filename": "darkpool_data_2025-11-12_16-00.csv",
+        "modifiedTime": "2025-11-12T22:07:19.453Z",
+        "parsedTimestamp": "2025-11-12T21:00:00.000Z",
+        "size": 48774
+      },
+      {
+        "filename": "darkpool_data_2025-11-13_16-00.csv",
+        "modifiedTime": "2025-11-14T02:06:24.723Z",
+        "parsedTimestamp": "2025-11-13T21:00:00.000Z",
+        "size": 50059
+      },
+      {
+        "filename": "darkpool_data_2025-11-14_16-00.csv",
+        "modifiedTime": "2025-11-14T21:24:17.866Z",
+        "parsedTimestamp": "2025-11-14T21:00:00.000Z",
+        "size": 49127
+      },
+      {
+        "filename": "darkpool_data_2025-11-17_16-00.csv",
+        "modifiedTime": "2025-11-17T22:12:56.154Z",
+        "parsedTimestamp": "2025-11-17T21:00:00.000Z",
+        "size": 31541
+      },
+      {
+        "filename": "darkpool_data_2025-11-18_16-00.csv",
+        "modifiedTime": "2025-11-19T00:43:36.554Z",
+        "parsedTimestamp": "2025-11-18T21:00:00.000Z",
+        "size": 41358
+      },
+      {
+        "filename": "darkpool_data_2025-11-19_16-00.csv",
+        "modifiedTime": "2025-11-20T14:59:44.315Z",
+        "parsedTimestamp": "2025-11-19T21:00:00.000Z",
+        "size": 42082
+      },
+      {
+        "filename": "darkpool_data_2025-11-21_16-00.csv",
+        "modifiedTime": "2025-11-21T22:03:19.987Z",
+        "parsedTimestamp": "2025-11-21T21:00:00.000Z",
+        "size": 95875
+      }
+    ]
+  },
+  "combinedFile": {
+    "filename": "options_data_combined.csv",
+    "size": 481209,
+    "records": {
+      "totalUnique": 3748,
+      "newRecordsAdded": 480,
+      "expiredRemoved": 0,
+      "duplicatesRemoved": 93,
+      "existingRecordsKept": 3361
+    },
+    "fileStats": [
+      {
+        "filename": "darkpool_data_2025-11-21_16-00.csv",
+        "records": 480,
+        "duplicates": 93,
+        "expired": 0,
+        "unique": 387
+      }
+    ]
+  },
+  "version": "2.0",
+  "note": "Metadata tracks processed files for deduplication. Old individual files can be safely deleted after processing."
+}
