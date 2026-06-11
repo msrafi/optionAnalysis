@@ -8825,6 +8825,14 @@
     padding: 1rem;
   }
 
+  .refresh-status-inline {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
   .refresh-countdown {
     width: 100%;
     display: flex;
@@ -8846,6 +8854,19 @@
   border: 1px solid rgba(96, 165, 250, 0.2);
   border-radius: 8px;
   margin-bottom: 1rem;
+}
+
+/* Refresh Status - Inline Version (Inside Form) */
+.refresh-status-inline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(96, 165, 250, 0.2);
+  border-radius: 8px;
+  margin-top: 1rem;
+  font-size: 0.85rem;
 }
 
 /* Refresh Status Bar - Full Width Version */

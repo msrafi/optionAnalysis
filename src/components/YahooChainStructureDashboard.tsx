@@ -966,6 +966,30 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               </button>
             </div>
           </div>
+
+          {/* Refresh Status - Inside Form */}
+          {autoRefreshActive && (
+            <div className="refresh-status-inline">
+              <div className="refresh-status-left">
+                <span className={`refresh-indicator ${isRefreshing ? 'refreshing' : ''}`}>
+                  {isRefreshing ? '🔄 Updating...' : '✓ Live Updates Active'}
+                </span>
+                {lastUpdateTime && !isRefreshing && (
+                  <span className="last-update-time">
+                    Last updated: {formatLastUpdate(lastUpdateTime)}
+                  </span>
+                )}
+              </div>
+              <div className="refresh-countdown">
+                {!isRefreshing && nextRefreshIn > 0 && (
+                  <>
+                    <span className="countdown-label">Next refresh:</span>
+                    <span className="countdown-timer">{formatCountdown(nextRefreshIn)}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         <div className="decision-snapshot-modern">
           <div className="decision-left-panel">
@@ -1129,7 +1153,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   <div className="insight-card">
                     <div className="insight-header">
                       <span className="insight-icon">📈</span>
-                      <span className="insight-title">Highest Volume Strikes</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                        <span className="insight-title">Highest Volume Strikes</span>
+                        {symbol && effectiveSpot && (
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>
+                            {symbol} • ${effectiveSpot.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="insight-content">
                       <div className="strike-list-section">
@@ -1165,7 +1196,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   <div className="insight-card">
                     <div className="insight-header">
                       <span className="insight-icon">💼</span>
-                      <span className="insight-title">Highest Open Interest</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                        <span className="insight-title">Highest Open Interest</span>
+                        {symbol && effectiveSpot && (
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>
+                            {symbol} • ${effectiveSpot.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="insight-content">
                       <div className="strike-list-section">
@@ -1201,7 +1239,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   <div className="insight-card">
                     <div className="insight-header">
                       <span className="insight-icon">🔥</span>
-                      <span className="insight-title">Hot Strikes (Volume Added Recently)</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                        <span className="insight-title">Hot Strikes (Volume Added Recently)</span>
+                        {symbol && effectiveSpot && (
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>
+                            {symbol} • ${effectiveSpot.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="insight-content">
                       {hotStrikes.length > 0 ? (
@@ -1246,7 +1291,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   <div className="insight-card">
                     <div className="insight-header">
                       <span className="insight-icon">🎯</span>
-                      <span className="insight-title">Key Trading Levels</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                        <span className="insight-title">Key Trading Levels</span>
+                        {symbol && effectiveSpot && (
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>
+                            {symbol} • ${effectiveSpot.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="insight-content">
                       <div className="trading-levels">
@@ -1282,34 +1334,13 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
 
       {error && <p className="chain-inline-error">{error}</p>}
 
-      {/* Refresh Status Bar - Full Width */}
-      {autoRefreshActive && effectiveSpot && parsed.rows.length > 0 && (
-        <div className="refresh-status-bar-fullwidth">
-          <div className="refresh-status-left">
-            <span className={`refresh-indicator ${isRefreshing ? 'refreshing' : ''}`}>
-              {isRefreshing ? '🔄 Updating...' : '✓ Live Updates Active'}
-            </span>
-            {lastUpdateTime && !isRefreshing && (
-              <span className="last-update-time">
-                Last updated: {formatLastUpdate(lastUpdateTime)}
-              </span>
-            )}
-          </div>
-          <div className="refresh-countdown">
-            {!isRefreshing && nextRefreshIn > 0 && (
-              <>
-                <span className="countdown-label">Next refresh in:</span>
-                <span className="countdown-timer">{formatCountdown(nextRefreshIn)}</span>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
       <section className="yahoo-table-section" style={{ gridColumn: '1 / -1' }}>
         <div className="yahoo-table-title">
           <BarChart3 size={18} />
           <h3>
+            {symbol && <span style={{ color: '#60a5fa', fontWeight: 700 }}>{symbol}</span>}
+            {effectiveSpot && <span style={{ marginLeft: '8px', color: '#94a3b8', fontSize: '0.9em' }}>${effectiveSpot.toFixed(2)}</span>}
+            {(symbol || effectiveSpot) && <span style={{ margin: '0 8px', color: '#475569' }}>•</span>}
             Volume/OI Heatmap (by strike)
             {autoRefreshActive && dataHistory.length === 0 && (
               <span style={{ marginLeft: '12px', fontSize: '0.85em', color: '#94a3b8', fontWeight: 400 }}>
