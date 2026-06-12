@@ -98,7 +98,18 @@ app.get('/api/yahoo/options/:symbol', async (req, res) => {
 
   try {
     console.log(`[options] Fetching options for ${symbol}${date ? ` (date: ${date})` : ''}`);
-    const initial = await yahooFinance.options(symbol, date ? { date } : undefined);
+    
+    // Add timeout and better error handling
+    const fetchWithTimeout = async (promise, timeoutMs = 10000) => {
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+      );
+      return Promise.race([promise, timeout]);
+    };
+    
+    const initial = await fetchWithTimeout(
+      yahooFinance.options(symbol, date ? { date } : undefined)
+    );
 
     const expirationDates = (initial.expirationDates || [])
       .map((expiry) => {
@@ -118,7 +129,9 @@ app.get('/api/yahoo/options/:symbol', async (req, res) => {
             return Math.abs(current - date) < Math.abs(closest - date) ? current : closest;
           }, expirationDates[0])
         : expirationDates[0];
-      result = await yahooFinance.options(symbol, { date: fallbackDate });
+      result = await fetchWithTimeout(
+        yahooFinance.options(symbol, { date: fallbackDate })
+      );
     }
 
     const bucket = result.options?.[0] || {};
@@ -146,12 +159,17 @@ app.get('/api/yahoo/options/:symbol', async (req, res) => {
     res.json(normalized);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown Yahoo options fetch error';
-    console.error(`[options] ERROR fetching ${symbol}:`, error);
+    console.error(`[options] ❌ ERROR fetching ${symbol}:`, message);
+    console.error(`[options] Error type:`, error.constructor.name);
     console.error(`[options] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
+    console.error(`[options] Environment:`, process.env.RAILWAY_ENVIRONMENT ? 'Railway' : 'Local');
+    
     res.status(502).json({ 
-      error: message,
+      error: 'fetch failed',
+      message: message,
       symbol,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
@@ -235,15 +253,27 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`[startup] 📈 Yahoo options API listening on http://0.0.0.0:${PORT}`);
   console.log(`[startup] Health check available at: http://0.0.0.0:${PORT}/health`);
   
-  // Keep-alive: Ping self every 5 minutes to prevent Railway sleep
+  // More aggressive keep-alive strategy for Railway free tier
   if (process.env.RAILWAY_ENVIRONMENT) {
-    const KEEP_ALIVE_INTERVAL = 5 * 60 * 1000; // 5 minutes
-    setInterval(() => {
+    const KEEP_ALIVE_INTERVAL = 2 * 60 * 1000; // 2 minutes (more aggressive)
+    
+    // Function to ping self
+    const keepAlive = () => {
       fetch(`http://localhost:${PORT}/health`)
-        .then(() => console.log('[keep-alive] Self-ping successful'))
-        .catch(err => console.error('[keep-alive] Self-ping failed:', err.message));
-    }, KEEP_ALIVE_INTERVAL);
-    console.log('[startup] 💚 Keep-alive enabled (self-ping every 5min)');
+        .then(res => res.json())
+        .then(data => console.log('[keep-alive] ✓ Self-ping successful, uptime:', data.uptime))
+        .catch(err => console.error('[keep-alive] ✗ Self-ping failed:', err.message));
+    };
+    
+    // Start pinging immediately after 30 seconds, then every 2 minutes
+    setTimeout(() => {
+      console.log('[keep-alive] 🚀 Starting first ping...');
+      keepAlive();
+      setInterval(keepAlive, KEEP_ALIVE_INTERVAL);
+    }, 30000);
+    
+    console.log('[startup] 💚 Aggressive keep-alive enabled (ping every 2min)');
+    console.log('[startup] 🔗 External ping URL: https://optionanalysis-production.up.railway.app/health');
   }
 }).on('error', (err) => {
   console.error('[startup] ❌ Failed to bind port:', err);
