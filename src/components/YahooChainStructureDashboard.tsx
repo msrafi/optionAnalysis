@@ -323,6 +323,22 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
 
     const callWall = rows.reduce((best, r) => (r.callOi > best.callOi ? r : best), rows[0]).strike;
     const putWall = rows.reduce((best, r) => (r.putOi > best.putOi ? r : best), rows[0]).strike;
+    
+    // Filter to strikes within ±30% of spot for more relevant walls
+    const spot = effectiveSpot || rows[Math.floor(rows.length / 2)].strike;
+    const rangeFilter = 0.30; // 30% range
+    const relevantStrikes = rows.filter(r => 
+      r.strike >= spot * (1 - rangeFilter) && r.strike <= spot * (1 + rangeFilter)
+    );
+    
+    // Find highest OI within relevant range
+    const relevantCallWall = relevantStrikes.length > 0
+      ? relevantStrikes.reduce((best, r) => (r.callOi > best.callOi ? r : best), relevantStrikes[0]).strike
+      : callWall;
+    const relevantPutWall = relevantStrikes.length > 0
+      ? relevantStrikes.reduce((best, r) => (r.putOi > best.putOi ? r : best), relevantStrikes[0]).strike
+      : putWall;
+    
     const totalCallVol = rows.reduce((s, r) => s + r.callVolume, 0);
     const totalPutVol = rows.reduce((s, r) => s + r.putVolume, 0);
     const totalCallOi = rows.reduce((s, r) => s + r.callOi, 0);
@@ -334,7 +350,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     // OI bias (medium weight - reflects positioning)
     const oiBias = safeRatio(totalCallOi - totalPutOi, totalCallOi + totalPutOi);
 
-    const spot = effectiveSpot || rows[Math.floor(rows.length / 2)].strike;
     const nearest = rows.reduce((best, r) =>
       Math.abs(r.strike - spot) < Math.abs(best.strike - spot) ? r : best, rows[0]);
     const atmIv = ((nearest.callIv + nearest.putIv) / 2) / 100;
@@ -350,8 +365,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
 
     // Wall positioning bias (where are the walls relative to spot?)
     const wallBias = (() => {
-      const callWallDistance = (callWall - spot) / spot;
-      const putWallDistance = (spot - putWall) / spot;
+      const callWallDistance = (relevantCallWall - spot) / spot;
+      const putWallDistance = (spot - relevantPutWall) / spot;
       // If call wall is closer above than put wall below = bearish (resistance)
       // If put wall is closer below than call wall above = bullish (support)
       if (Math.abs(callWallDistance) < 0.001 && Math.abs(putWallDistance) < 0.001) return 0;
@@ -388,12 +403,23 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     const targetUp = spot + expectedMove;
     const targetDown = Math.max(0, spot - expectedMove);
     const suggestion = direction === 'UP'
-      ? `Higher-probability bias: UP toward ~$${targetUp.toFixed(2)} (+${expectedMovePct.toFixed(2)}%). Prefer bullish structures near ${spot.toFixed(2)} with call-wall at ${callWall}.`
+      ? `Higher-probability bias: UP toward ~$${targetUp.toFixed(2)} (+${expectedMovePct.toFixed(2)}%). Prefer bullish structures near ${spot.toFixed(2)} with call-wall at ${relevantCallWall}.`
       : direction === 'DOWN'
-        ? `Higher-probability bias: DOWN toward ~$${targetDown.toFixed(2)} (-${expectedMovePct.toFixed(2)}%). Prefer bearish structures with put-wall at ${putWall}.`
-        : `Neutral / range likely. Expected move ±$${expectedMove.toFixed(2)} (${expectedMovePct.toFixed(2)}%). Trade around ${putWall}-${callWall}.`;
+        ? `Higher-probability bias: DOWN toward ~$${targetDown.toFixed(2)} (-${expectedMovePct.toFixed(2)}%). Prefer bearish structures with put-wall at ${relevantPutWall}.`
+        : `Neutral / range likely. Expected move ±$${expectedMove.toFixed(2)} (${expectedMovePct.toFixed(2)}%). Trade around ${relevantPutWall}-${relevantCallWall}.`;
 
-    return { callWall, putWall, expectedMove, expectedMovePct, direction, confidence, suggestion, volBias, oiBias, wallBias };
+    return { 
+      callWall: relevantCallWall, 
+      putWall: relevantPutWall, 
+      expectedMove, 
+      expectedMovePct, 
+      direction, 
+      confidence, 
+      suggestion, 
+      volBias, 
+      oiBias, 
+      wallBias 
+    };
   }, [daysToExpiry, effectiveSpot, parsed.rows]);
 
   const visibleRows = useMemo(() => {
