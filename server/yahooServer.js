@@ -234,6 +234,17 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`[startup] ✅ Server successfully started`);
   console.log(`[startup] 📈 Yahoo options API listening on http://0.0.0.0:${PORT}`);
   console.log(`[startup] Health check available at: http://0.0.0.0:${PORT}/health`);
+  
+  // Keep-alive: Ping self every 5 minutes to prevent Railway sleep
+  if (process.env.RAILWAY_ENVIRONMENT) {
+    const KEEP_ALIVE_INTERVAL = 5 * 60 * 1000; // 5 minutes
+    setInterval(() => {
+      fetch(`http://localhost:${PORT}/health`)
+        .then(() => console.log('[keep-alive] Self-ping successful'))
+        .catch(err => console.error('[keep-alive] Self-ping failed:', err.message));
+    }, KEEP_ALIVE_INTERVAL);
+    console.log('[startup] 💚 Keep-alive enabled (self-ping every 5min)');
+  }
 }).on('error', (err) => {
   console.error('[startup] ❌ Failed to bind port:', err);
   process.exit(1);
