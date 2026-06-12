@@ -165,11 +165,29 @@ const MostActiveOptionsInsightDashboard: React.FC<MostActiveOptionsInsightDashbo
 
   const topVolumeChartItems = useMemo(
     () =>
-      analysis.topByVolume.slice(0, 8).map((row) => ({
-        label: `${row.contractSymbol.slice(0, 15)}...`,
-        value: row.volume,
-        optionType: String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' as const : 'PUT' as const
-      })),
+      analysis.topByVolume.slice(0, 8).map((row) => {
+        // Parse option type from contract symbol (e.g., NVDA260612C00207500 has 'C' for Call)
+        // Contract format: SYMBOL + YYMMDD + [C/P] + STRIKE
+        const contractSymbol = row.contractSymbol || '';
+        const hasCallInSymbol = /\d[CP]\d/.test(contractSymbol) && contractSymbol.match(/\d([CP])\d/)?.[1] === 'C';
+        const hasPutInSymbol = /\d[CP]\d/.test(contractSymbol) && contractSymbol.match(/\d([CP])\d/)?.[1] === 'P';
+        
+        // Determine option type from symbol or fallback to optionType field
+        let optionType: 'CALL' | 'PUT';
+        if (hasCallInSymbol) {
+          optionType = 'CALL';
+        } else if (hasPutInSymbol) {
+          optionType = 'PUT';
+        } else {
+          optionType = String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' : 'PUT';
+        }
+        
+        return {
+          label: `${contractSymbol.slice(0, 15)}...`,
+          value: row.volume,
+          optionType
+        };
+      }),
     [analysis.topByVolume]
   );
 
@@ -178,11 +196,27 @@ const MostActiveOptionsInsightDashboard: React.FC<MostActiveOptionsInsightDashbo
       [...analysis.topByVolume]
         .sort((a, b) => b.openInterest - a.openInterest)
         .slice(0, 8)
-        .map((row) => ({
-          label: `${row.contractSymbol.slice(0, 15)}...`,
-          value: row.openInterest,
-          optionType: String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' as const : 'PUT' as const
-        })),
+        .map((row) => {
+          // Parse option type from contract symbol
+          const contractSymbol = row.contractSymbol || '';
+          const hasCallInSymbol = /\d[CP]\d/.test(contractSymbol) && contractSymbol.match(/\d([CP])\d/)?.[1] === 'C';
+          const hasPutInSymbol = /\d[CP]\d/.test(contractSymbol) && contractSymbol.match(/\d([CP])\d/)?.[1] === 'P';
+          
+          let optionType: 'CALL' | 'PUT';
+          if (hasCallInSymbol) {
+            optionType = 'CALL';
+          } else if (hasPutInSymbol) {
+            optionType = 'PUT';
+          } else {
+            optionType = String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' : 'PUT';
+          }
+          
+          return {
+            label: `${contractSymbol.slice(0, 15)}...`,
+            value: row.openInterest,
+            optionType
+          };
+        }),
     [analysis.topByVolume]
   );
 
