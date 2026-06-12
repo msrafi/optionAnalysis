@@ -167,20 +167,12 @@ const MostActiveOptionsInsightDashboard: React.FC<MostActiveOptionsInsightDashbo
     () =>
       analysis.topByVolume.slice(0, 8).map((row) => {
         // Parse option type from contract symbol (e.g., NVDA260612C00207500 has 'C' for Call)
-        // Contract format: SYMBOL + YYMMDD + [C/P] + STRIKE
+        // Contract format: SYMBOL + YYMMDD + [C/P] + 8-digit STRIKE
         const contractSymbol = row.contractSymbol || '';
-        const hasCallInSymbol = /\d[CP]\d/.test(contractSymbol) && contractSymbol.match(/\d([CP])\d/)?.[1] === 'C';
-        const hasPutInSymbol = /\d[CP]\d/.test(contractSymbol) && contractSymbol.match(/\d([CP])\d/)?.[1] === 'P';
         
-        // Determine option type from symbol or fallback to optionType field
-        let optionType: 'CALL' | 'PUT';
-        if (hasCallInSymbol) {
-          optionType = 'CALL';
-        } else if (hasPutInSymbol) {
-          optionType = 'PUT';
-        } else {
-          optionType = String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' : 'PUT';
-        }
+        // Find the C or P indicator in the contract symbol
+        const cpMatch = contractSymbol.match(/([CP])(?=\d{8})/);
+        const optionType: 'CALL' | 'PUT' = cpMatch?.[1] === 'C' ? 'CALL' : 'PUT';
         
         return {
           label: `${contractSymbol.slice(0, 15)}...`,
@@ -199,17 +191,8 @@ const MostActiveOptionsInsightDashboard: React.FC<MostActiveOptionsInsightDashbo
         .map((row) => {
           // Parse option type from contract symbol
           const contractSymbol = row.contractSymbol || '';
-          const hasCallInSymbol = /\d[CP]\d/.test(contractSymbol) && contractSymbol.match(/\d([CP])\d/)?.[1] === 'C';
-          const hasPutInSymbol = /\d[CP]\d/.test(contractSymbol) && contractSymbol.match(/\d([CP])\d/)?.[1] === 'P';
-          
-          let optionType: 'CALL' | 'PUT';
-          if (hasCallInSymbol) {
-            optionType = 'CALL';
-          } else if (hasPutInSymbol) {
-            optionType = 'PUT';
-          } else {
-            optionType = String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' : 'PUT';
-          }
+          const cpMatch = contractSymbol.match(/([CP])(?=\d{8})/);
+          const optionType: 'CALL' | 'PUT' = cpMatch?.[1] === 'C' ? 'CALL' : 'PUT';
           
           return {
             label: `${contractSymbol.slice(0, 15)}...`,
