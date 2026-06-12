@@ -147,16 +147,24 @@ export function parseSymbolsInput(input: string): string[] {
 // In production (GitHub Pages), VITE_YAHOO_API_BASE is set to the Railway URL.
 const API_BASE: string = import.meta.env.VITE_YAHOO_API_BASE ?? '';
 
+// Log the API base URL for debugging
+console.log('[YahooOptions] Using API_BASE:', API_BASE || '(empty - using local proxy)');
+
 export async function fetchYahooOptionChain(symbol: string, expiry?: number): Promise<YahooOptionChainResult> {
   const query = expiry ? `?date=${expiry}` : '';
-  const response = await fetch(`${API_BASE}/api/yahoo/options/${encodeURIComponent(symbol)}${query}`, {
+  const url = `${API_BASE}/api/yahoo/options/${encodeURIComponent(symbol)}${query}`;
+  
+  console.log('[YahooOptions] Fetching options from:', url);
+  
+  const response = await fetch(url, {
     cache: 'no-store'
   });
 
   if (!response.ok) {
     if (response.status === 404 || response.status === 502 || response.status === 503 || response.status === 504) {
+      const baseUrl = API_BASE || 'local server';
       throw new Error(
-        `Yahoo server is not running. Open a new terminal and run: npm run yahoo-server`
+        `Failed to connect to Yahoo API backend (${response.status}). Backend URL: ${baseUrl}. Check if the server is running and accessible.`
       );
     }
     throw new Error(`Yahoo request failed for ${symbol}: ${response.status} ${response.statusText}`);
@@ -204,8 +212,9 @@ export async function fetchYahooMostActiveOptions(symbol?: string): Promise<Yaho
 
   if (!response.ok) {
     if (response.status === 404 || response.status === 502 || response.status === 503 || response.status === 504) {
+      const baseUrl = API_BASE || 'local server';
       throw new Error(
-        `Yahoo server is not running. Open a new terminal and run: npm run yahoo-server`
+        `Failed to connect to Yahoo API backend (${response.status}). Backend URL: ${baseUrl}. Check if the server is running and accessible.`
       );
     }
     throw new Error(`Failed to fetch Yahoo most active options: ${response.status} ${response.statusText}`);
