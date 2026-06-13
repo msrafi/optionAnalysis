@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { BarChart3, RefreshCw, X, ExternalLink } from 'lucide-react';
+import { BarChart3, RefreshCw } from 'lucide-react';
 import { fetchYahooMostActiveOptions, fetchYahooOptionChain, YahooMostActiveOptionRow } from '../utils/yahooOptions';
 
 type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'chainStructure' | 'chainStructureYahoo';
@@ -24,6 +24,19 @@ function buildTradingViewOptionUrl(contractSymbol: string): string {
 
   const encoded = encodeURIComponent(`OPRA:${opraSymbol}`);
   return `https://www.tradingview.com/chart/w5Dqfeyt/?symbol=${encoded}`;
+}
+
+function formatContractSymbol(contractSymbol: string): string {
+  // OCC format: ROOT + YYMMDD + C/P + STRIKE(8 digits, strike * 1000)
+  // Example: NVDA260615C00210000 -> NVDA 210C 06/15
+  const match = contractSymbol.match(/^([A-Z.]+)(\d{2})(\d{2})(\d{2})([CP])(\d{8})$/);
+  if (!match) return contractSymbol;
+
+  const [, root, , month, day, cp, strikeRaw] = match;
+  const strike = parseInt(strikeRaw, 10) / 1000;
+  const strikeText = Number.isInteger(strike) ? strike.toFixed(0) : strike.toString();
+
+  return `${root} ${strikeText}${cp} ${month}/${day}`;
 }
 
 function getMostActiveOptionType(row: YahooMostActiveOptionRow): 'CALL' | 'PUT' {
@@ -88,9 +101,8 @@ interface SelectedButterflyCell {
 const InsightBarList: React.FC<{
   title: string;
   items: Array<{ label: string; value: number; optionType: 'CALL' | 'PUT'; contractSymbol: string }>;
-  selectedSymbol: string | null;
-  onSelect: (symbol: string | null) => void;
-}> = ({ title, items, selectedSymbol, onSelect }) => {
+  onOpenContract: (contractSymbol: string) => void;
+}> = ({ title, items, onOpenContract }) => {
   const max = Math.max(...items.map((item) => item.value), 0);
   return (
     <div className="yahoo-chart-card">
@@ -101,12 +113,11 @@ const InsightBarList: React.FC<{
         <div className="yahoo-bar-list">
           {items.map((item) => {
             const width = max > 0 ? (item.value / max) * 100 : 0;
-            const isSelected = selectedSymbol === item.contractSymbol;
             return (
               <div
                 key={item.contractSymbol}
-                className={`yahoo-bar-row yahoo-bar-row--clickable${isSelected ? ' yahoo-bar-row--selected' : ''}`}
-                onClick={() => onSelect(isSelected ? null : item.contractSymbol)}
+                className="yahoo-bar-row yahoo-bar-row--clickable"
+                onClick={() => onOpenContract(item.contractSymbol)}
                 title={`Click to view chart: ${item.contractSymbol}`}
               >
                 <div className="yahoo-bar-label">
@@ -271,7 +282,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [nextRefreshIn, setNextRefreshIn] = useState<number>(300); // seconds until next refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [mostActiveRows, setMostActiveRows] = useState<YahooMostActiveOptionRow[]>([]);
-  const [selectedContractSymbol, setSelectedContractSymbol] = useState<string | null>(null);
   const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
   const selectedExpiryDays = selectedExpiry ? daysUntilExpiry(selectedExpiry) : null;
 
@@ -286,7 +296,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const mostActiveVolumeItems = useMemo(
     () =>
       mostActiveTopByVolume.slice(0, 8).map((row) => ({
-        label: row.contractSymbol,
+        label: formatContractSymbol(row.contractSymbol),
         value: row.volume,
         optionType: getMostActiveOptionType(row),
         contractSymbol: row.contractSymbol,
@@ -299,13 +309,18 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         .sort((a, b) => b.openInterest - a.openInterest)
         .slice(0, 8)
         .map((row) => ({
-          label: row.contractSymbol,
+          label: formatContractSymbol(row.contractSymbol),
           value: row.openInterest,
           optionType: getMostActiveOptionType(row),
           contractSymbol: row.contractSymbol,
         })),
     [mostActiveTopByVolume]
   );
+
+  const openContractInTradingView = (contractSymbol: string) => {
+    const url = buildTradingViewOptionUrl(contractSymbol);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   const effectiveSpot = useMemo(() => {
     const overrideNum = Number(spotOverride);
@@ -930,7 +945,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     setSpotOverride('');
     setDaysToExpiry(7);
     setSelectedButterflyCell(null);
-    setSelectedContractSymbol(null);
     setError('');
     setAutoRefreshActive(false);
     setLastUpdateTime(null);
@@ -1739,47 +1753,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         <InsightBarList
           title="Most Active Contracts by Volume"
           items={mostActiveVolumeItems}
-          selectedSymbol={selectedContractSymbol}
-          onSelect={setSelectedContractSymbol}
+          onOpenContract={openContractInTradingView}
         />
         <InsightBarList
           title="Most Active Contracts by Open Interest"
           items={mostActiveOiItems}
-          selectedSymbol={selectedContractSymbol}
-          onSelect={setSelectedContractSymbol}
+          onOpenContract={openContractInTradingView}
         />
       </section>
-
-      {selectedContractSymbol && (
-        <section className="yahoo-table-section">
-          <div className="contract-chart-panel">
-            <div className="contract-chart-header">
-              <span className="contract-chart-title">📈 {selectedContractSymbol}</span>
-              <button
-                className="contract-chart-close"
-                onClick={() => setSelectedContractSymbol(null)}
-                title="Close"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="contract-chart-link-wrapper">
-              <p className="contract-chart-info">
-                TradingView doesn't support embedded charts for individual option contracts.
-              </p>
-              <a
-                href={buildTradingViewOptionUrl(selectedContractSymbol)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="contract-chart-external-btn"
-              >
-                <ExternalLink size={18} />
-                Open {selectedContractSymbol} in TradingView
-              </a>
-            </div>
-          </div>
-        </section>
-      )}
 
       <section className="yahoo-table-section">
         <div className="yahoo-table-title">
@@ -1807,18 +1788,17 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                 </tr>
               ) : (
                 mostActiveTopByVolume.map((row) => {
-                  const isSelected = selectedContractSymbol === row.contractSymbol;
                   const optionType = getMostActiveOptionType(row);
                   return (
                     <tr
                       key={row.contractSymbol}
-                      className={`most-active-row${isSelected ? ' most-active-row--selected' : ''}`}
-                      onClick={() => setSelectedContractSymbol(isSelected ? null : row.contractSymbol)}
+                      className="most-active-row"
+                      onClick={() => openContractInTradingView(row.contractSymbol)}
                       title="Click to view TradingView chart"
                     >
                       <td className="most-active-contract-cell">
                         <span className="most-active-chart-icon">📈</span>
-                        {row.contractSymbol}
+                        {formatContractSymbol(row.contractSymbol)}
                       </td>
                       <td className={optionType === 'CALL' ? 'yahoo-call' : 'yahoo-put'}>
                         {optionType}
