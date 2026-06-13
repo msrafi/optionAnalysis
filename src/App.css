@@ -1097,14 +1097,15 @@
 .yahoo-bar-fill {
   height: 100%;
   border-radius: inherit;
+  background: rgba(148, 163, 184, 0.3); /* Default gray */
 }
 
 .yahoo-bar-fill.call {
-  background: linear-gradient(90deg, #22c55e, #4ade80);
+  background: linear-gradient(90deg, #22c55e, #4ade80) !important;
 }
 
 .yahoo-bar-fill.put {
-  background: linear-gradient(90deg, #ef4444, #f87171);
+  background: linear-gradient(90deg, #ef4444, #f87171) !important;
 }
 
 .yahoo-bar-value {

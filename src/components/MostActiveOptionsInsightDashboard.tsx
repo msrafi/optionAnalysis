@@ -174,17 +174,32 @@ const MostActiveOptionsInsightDashboard: React.FC<MostActiveOptionsInsightDashbo
         const cpMatch = contractSymbol.match(/([CP])(?=\d{8})/);
         const optionType: 'CALL' | 'PUT' = cpMatch?.[1] === 'C' ? 'CALL' : 'PUT';
         
+        // Parse contract details for better display
+        // Format: SYMBOL + YYMMDD + [C/P] + 8-digit STRIKE
+        const match = contractSymbol.match(/^([A-Z]+)(\d{6})([CP])(\d{8})$/);
+        let displayLabel = `${contractSymbol.slice(0, 15)}...`;
+        
+        if (match) {
+          const [, ticker, date, callPut, strikeRaw] = match;
+          const strike = parseInt(strikeRaw, 10) / 1000;
+          const month = date.slice(2, 4);
+          const day = date.slice(4, 6);
+          displayLabel = `${ticker} ${callPut} ${month}/${day} $${strike}`;
+        }
+        
         // Debug logging
         console.log('[MostActive]', {
           symbol: contractSymbol.slice(0, 20),
           match: cpMatch?.[1],
-          optionType
+          optionType,
+          displayLabel
         });
         
         return {
-          label: `${contractSymbol.slice(0, 15)}...`,
+          label: displayLabel,
           value: row.volume,
-          optionType
+          optionType,
+          contractSymbol
         };
       }),
     [analysis.topByVolume]
@@ -201,10 +216,23 @@ const MostActiveOptionsInsightDashboard: React.FC<MostActiveOptionsInsightDashbo
           const cpMatch = contractSymbol.match(/([CP])(?=\d{8})/);
           const optionType: 'CALL' | 'PUT' = cpMatch?.[1] === 'C' ? 'CALL' : 'PUT';
           
+          // Parse contract details for better display
+          const match = contractSymbol.match(/^([A-Z]+)(\d{6})([CP])(\d{8})$/);
+          let displayLabel = `${contractSymbol.slice(0, 15)}...`;
+          
+          if (match) {
+            const [, ticker, date, callPut, strikeRaw] = match;
+            const strike = parseInt(strikeRaw, 10) / 1000;
+            const month = date.slice(2, 4);
+            const day = date.slice(4, 6);
+            displayLabel = `${ticker} ${callPut} ${month}/${day} $${strike}`;
+          }
+          
           return {
-            label: `${contractSymbol.slice(0, 15)}...`,
+            label: displayLabel,
             value: row.openInterest,
-            optionType
+            optionType,
+            contractSymbol
           };
         }),
     [analysis.topByVolume]
