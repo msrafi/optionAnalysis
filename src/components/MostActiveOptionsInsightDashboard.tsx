@@ -174,6 +174,13 @@ const MostActiveOptionsInsightDashboard: React.FC<MostActiveOptionsInsightDashbo
         const cpMatch = contractSymbol.match(/([CP])(?=\d{8})/);
         const optionType: 'CALL' | 'PUT' = cpMatch?.[1] === 'C' ? 'CALL' : 'PUT';
         
+        // Debug logging
+        console.log('[MostActive]', {
+          symbol: contractSymbol.slice(0, 20),
+          match: cpMatch?.[1],
+          optionType
+        });
+        
         return {
           label: `${contractSymbol.slice(0, 15)}...`,
           value: row.volume,
