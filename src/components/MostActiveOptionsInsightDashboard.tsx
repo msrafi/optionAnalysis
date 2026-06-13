@@ -166,37 +166,22 @@ const MostActiveOptionsInsightDashboard: React.FC<MostActiveOptionsInsightDashbo
   const topVolumeChartItems = useMemo(
     () =>
       analysis.topByVolume.slice(0, 8).map((row) => {
-        // Parse option type from contract symbol (e.g., NVDA260612C00207500 has 'C' for Call)
-        // Contract format: SYMBOL + YYMMDD + [C/P] + 8-digit STRIKE
         const contractSymbol = row.contractSymbol || '';
         
-        // Find the C or P indicator in the contract symbol
-        const cpMatch = contractSymbol.match(/([CP])(?=\d{8})/);
-        const optionType: 'CALL' | 'PUT' = cpMatch?.[1] === 'C' ? 'CALL' : 'PUT';
+        // Find the C or P indicator - match C or P followed by 8 digits
+        const cpMatch = contractSymbol.match(/([CP])(\d{8})/);
+        const optionType: 'CALL' | 'PUT' = cpMatch && cpMatch[1] === 'C' ? 'CALL' : 'PUT';
         
-        // Parse contract details for better display
-        // Format: SYMBOL + YYMMDD + [C/P] + 8-digit STRIKE
-        const match = contractSymbol.match(/^([A-Z]+)(\d{6})([CP])(\d{8})$/);
-        let displayLabel = `${contractSymbol.slice(0, 15)}...`;
-        
-        if (match) {
-          const [, ticker, date, callPut, strikeRaw] = match;
-          const strike = parseInt(strikeRaw, 10) / 1000;
-          const month = date.slice(2, 4);
-          const day = date.slice(4, 6);
-          displayLabel = `${ticker} ${callPut} ${month}/${day} $${strike}`;
-        }
-        
-        // Debug logging
-        console.log('[MostActive]', {
-          symbol: contractSymbol.slice(0, 20),
-          match: cpMatch?.[1],
-          optionType,
-          displayLabel
+        // Debug logging to see what's happening
+        console.log('[MostActive Volume]', {
+          contract: contractSymbol,
+          cpMatch: cpMatch ? cpMatch[0] : null,
+          letter: cpMatch ? cpMatch[1] : null,
+          optionType
         });
         
         return {
-          label: displayLabel,
+          label: contractSymbol, // Show full contract symbol
           value: row.volume,
           optionType,
           contractSymbol
@@ -211,25 +196,21 @@ const MostActiveOptionsInsightDashboard: React.FC<MostActiveOptionsInsightDashbo
         .sort((a, b) => b.openInterest - a.openInterest)
         .slice(0, 8)
         .map((row) => {
-          // Parse option type from contract symbol
           const contractSymbol = row.contractSymbol || '';
-          const cpMatch = contractSymbol.match(/([CP])(?=\d{8})/);
-          const optionType: 'CALL' | 'PUT' = cpMatch?.[1] === 'C' ? 'CALL' : 'PUT';
           
-          // Parse contract details for better display
-          const match = contractSymbol.match(/^([A-Z]+)(\d{6})([CP])(\d{8})$/);
-          let displayLabel = `${contractSymbol.slice(0, 15)}...`;
+          // Find the C or P indicator - match C or P followed by 8 digits
+          const cpMatch = contractSymbol.match(/([CP])(\d{8})/);
+          const optionType: 'CALL' | 'PUT' = cpMatch && cpMatch[1] === 'C' ? 'CALL' : 'PUT';
           
-          if (match) {
-            const [, ticker, date, callPut, strikeRaw] = match;
-            const strike = parseInt(strikeRaw, 10) / 1000;
-            const month = date.slice(2, 4);
-            const day = date.slice(4, 6);
-            displayLabel = `${ticker} ${callPut} ${month}/${day} $${strike}`;
-          }
+          console.log('[MostActive OI]', {
+            contract: contractSymbol,
+            cpMatch: cpMatch ? cpMatch[0] : null,
+            letter: cpMatch ? cpMatch[1] : null,
+            optionType
+          });
           
           return {
-            label: displayLabel,
+            label: contractSymbol, // Show full contract symbol
             value: row.openInterest,
             optionType,
             contractSymbol

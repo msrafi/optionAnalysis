@@ -26,6 +26,15 @@ function buildTradingViewOptionUrl(contractSymbol: string): string {
   return `https://www.tradingview.com/chart/w5Dqfeyt/?symbol=${encoded}`;
 }
 
+function getMostActiveOptionType(row: YahooMostActiveOptionRow): 'CALL' | 'PUT' {
+  const normalizedType = String(row.optionType || '').toUpperCase();
+  if (normalizedType === 'CALL' || normalizedType === 'PUT') return normalizedType;
+
+  // Fallback to OCC symbol parsing when Yahoo omits/changes optionType.
+  const cpMatch = String(row.contractSymbol || '').match(/([CP])\d{8}$/);
+  return cpMatch?.[1] === 'C' ? 'CALL' : 'PUT';
+}
+
 interface ChainRow {
   strike: number;
   callVolume: number;
@@ -277,9 +286,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const mostActiveVolumeItems = useMemo(
     () =>
       mostActiveTopByVolume.slice(0, 8).map((row) => ({
-        label: `${row.contractSymbol.slice(0, 14)}...`,
+        label: row.contractSymbol,
         value: row.volume,
-        optionType: String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' as const : 'PUT' as const,
+        optionType: getMostActiveOptionType(row),
         contractSymbol: row.contractSymbol,
       })),
     [mostActiveTopByVolume]
@@ -290,9 +299,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         .sort((a, b) => b.openInterest - a.openInterest)
         .slice(0, 8)
         .map((row) => ({
-          label: `${row.contractSymbol.slice(0, 14)}...`,
+          label: row.contractSymbol,
           value: row.openInterest,
-          optionType: String(row.optionType).toUpperCase() === 'CALL' ? 'CALL' as const : 'PUT' as const,
+          optionType: getMostActiveOptionType(row),
           contractSymbol: row.contractSymbol,
         })),
     [mostActiveTopByVolume]
@@ -1799,6 +1808,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               ) : (
                 mostActiveTopByVolume.map((row) => {
                   const isSelected = selectedContractSymbol === row.contractSymbol;
+                  const optionType = getMostActiveOptionType(row);
                   return (
                     <tr
                       key={row.contractSymbol}
@@ -1810,8 +1820,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                         <span className="most-active-chart-icon">📈</span>
                         {row.contractSymbol}
                       </td>
-                      <td className={String(row.optionType).toUpperCase() === 'CALL' ? 'yahoo-call' : 'yahoo-put'}>
-                        {String(row.optionType).toUpperCase()}
+                      <td className={optionType === 'CALL' ? 'yahoo-call' : 'yahoo-put'}>
+                        {optionType}
                       </td>
                       <td>{row.strike.toFixed(2)}</td>
                       <td>{new Date(row.expiration * 1000).toLocaleDateString()}</td>
