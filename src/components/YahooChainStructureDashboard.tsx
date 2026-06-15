@@ -742,7 +742,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       const normalized = buildChainFromYahoo(chain.contracts, detectedSpot);
       
       // Save current data to history before updating (for delta calculation)
-      if (isRefresh && parsed.rows.length > 0) {
+      // Keep history for every successful fetch (manual + auto refresh),
+      // so heatmap deltas reflect each update cycle.
+      if (parsed.rows.length > 0) {
         setDataHistory(prev => {
           const newHistory = [parsed, ...prev].slice(0, 5); // Keep last 5 snapshots
           return newHistory;
@@ -1179,251 +1181,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         </div>
       </section>
 
-      {/* Four Insight Cards - Full Width Section */}
-      {effectiveSpot && parsed.rows.length > 0 && (() => {
-          const rows = parsed.rows;
-          
-          // Find top volume and OI strikes
-          const topCallVolumeStrikes = [...rows]
-            .sort((a, b) => b.callVolume - a.callVolume)
-            .slice(0, 5);
-          
-          const topPutVolumeStrikes = [...rows]
-            .sort((a, b) => b.putVolume - a.putVolume)
-            .slice(0, 5);
-          
-          const topCallOiStrikes = [...rows]
-            .sort((a, b) => b.callOi - a.callOi)
-            .slice(0, 5);
-          
-          const topPutOiStrikes = [...rows]
-            .sort((a, b) => b.putOi - a.putOi)
-            .slice(0, 5);
-          
-          // Find hot strikes (where volume is being added)
-          const hotStrikes = dataHistory.length > 0 
-            ? rows
-                .map(r => {
-                  const callVolDeltas = getDeltas(r.strike, 'callVolume');
-                  const putVolDeltas = getDeltas(r.strike, 'putVolume');
-                  const recentCallChange = callVolDeltas[0] || 0;
-                  const recentPutChange = putVolDeltas[0] || 0;
-                  const totalRecentChange = recentCallChange + recentPutChange;
-
-                  return {
-                    strike: r.strike,
-                    callChange: recentCallChange,
-                    putChange: recentPutChange,
-                    totalChange: totalRecentChange,
-                    type: recentCallChange > recentPutChange ? 'CALL' : 'PUT',
-                    row: r
-                  };
-                })
-                .filter(s => Math.abs(s.totalChange) > 0)
-                .sort((a, b) => Math.abs(b.totalChange) - Math.abs(a.totalChange))
-                .slice(0, 5)
-            : rows
-                .map(r => {
-                  const totalVolume = r.callVolume + r.putVolume;
-                  return {
-                    strike: r.strike,
-                    callChange: r.callVolume,
-                    putChange: r.putVolume,
-                    totalChange: totalVolume,
-                    type: r.callVolume > r.putVolume ? 'CALL' : 'PUT',
-                    row: r
-                  };
-                })
-                .filter(s => s.totalChange > 0)
-                .sort((a, b) => b.totalChange - a.totalChange)
-                .slice(0, 5);
-
-          return (
-            <div className="insight-cards-container">
-              <div className={`decision-insights ${isRefreshing ? 'updating' : ''}`}>
-                  {/* Top Volume Strikes */}
-                  <div className="insight-card">
-                    <div className="insight-header">
-                      <span className="insight-icon">📈</span>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
-                        <span className="insight-title">Highest Volume Strikes</span>
-                        {symbol && effectiveSpot && (
-                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>
-                            {symbol} • ${effectiveSpot.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="insight-content">
-                      <div className="strike-list-section">
-                        <div className="strike-list-header call">Call Options</div>
-                        {topCallVolumeStrikes.map((row, idx) => (
-                          <div key={`call-vol-${row.strike}`} className="strike-list-item">
-                            <span className="strike-rank">#{idx + 1}</span>
-                            <span className="strike-price">${row.strike.toFixed(2)}</span>
-                            <span className="strike-metric call">
-                              Vol: {row.callVolume.toLocaleString()}
-                            </span>
-                            <span className="strike-premium">${row.callLast.toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="strike-list-section">
-                        <div className="strike-list-header put">Put Options</div>
-                        {topPutVolumeStrikes.map((row, idx) => (
-                          <div key={`put-vol-${row.strike}`} className="strike-list-item">
-                            <span className="strike-rank">#{idx + 1}</span>
-                            <span className="strike-price">${row.strike.toFixed(2)}</span>
-                            <span className="strike-metric put">
-                              Vol: {row.putVolume.toLocaleString()}
-                            </span>
-                            <span className="strike-premium">${row.putLast.toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Top OI Strikes */}
-                  <div className="insight-card">
-                    <div className="insight-header">
-                      <span className="insight-icon">💼</span>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
-                        <span className="insight-title">Highest Open Interest</span>
-                        {symbol && effectiveSpot && (
-                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>
-                            {symbol} • ${effectiveSpot.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="insight-content">
-                      <div className="strike-list-section">
-                        <div className="strike-list-header call">Call Options</div>
-                        {topCallOiStrikes.map((row, idx) => (
-                          <div key={`call-oi-${row.strike}`} className="strike-list-item">
-                            <span className="strike-rank">#{idx + 1}</span>
-                            <span className="strike-price">${row.strike.toFixed(2)}</span>
-                            <span className="strike-metric call">
-                              OI: {row.callOi.toLocaleString()}
-                            </span>
-                            <span className="strike-premium">${row.callLast.toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="strike-list-section">
-                        <div className="strike-list-header put">Put Options</div>
-                        {topPutOiStrikes.map((row, idx) => (
-                          <div key={`put-oi-${row.strike}`} className="strike-list-item">
-                            <span className="strike-rank">#{idx + 1}</span>
-                            <span className="strike-price">${row.strike.toFixed(2)}</span>
-                            <span className="strike-metric put">
-                              OI: {row.putOi.toLocaleString()}
-                            </span>
-                            <span className="strike-premium">${row.putLast.toFixed(2)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Hot Strikes - Volume Being Added */}
-                  <div className="insight-card">
-                    <div className="insight-header">
-                      <span className="insight-icon">🔥</span>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
-                        <span className="insight-title">Hot Strikes (Volume Added Recently)</span>
-                        {symbol && effectiveSpot && (
-                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>
-                            {symbol} • ${effectiveSpot.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="insight-content">
-                      {hotStrikes.length > 0 ? (
-                        <>
-                          <div className="hot-strikes-list">
-                            {hotStrikes.map((hs, idx) => (
-                              <div key={hs.strike} className="hot-strike-item">
-                                <div className="hot-strike-main">
-                                  <span className="strike-rank hot">#{idx + 1}</span>
-                                  <span className="strike-price">${hs.strike.toFixed(2)}</span>
-                                  <span className={`hot-strike-type ${hs.type.toLowerCase()}`}>
-                                    {hs.type}
-                                  </span>
-                                </div>
-                                <div className="hot-strike-details">
-                                  <span className="hot-strike-change call">
-                                    C: {hs.callChange > 0 ? '+' : ''}{hs.callChange.toLocaleString()}
-                                  </span>
-                                  <span className="hot-strike-change put">
-                                    P: {hs.putChange > 0 ? '+' : ''}{hs.putChange.toLocaleString()}
-                                  </span>
-                                  <span className="hot-strike-current">
-                                    Total: {(hs.row.callVolume + hs.row.putVolume).toLocaleString()}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="hot-strikes-note">
-                            {dataHistory.length > 0 
-                              ? '⚡ These strikes are attracting the most new volume in recent updates'
-                              : '📊 Showing highest volume strikes (no delta history yet)'}
-                          </div>
-                        </>
-                      ) : (
-                        <p className="yahoo-muted">No volume data available.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Key Trading Levels */}
-                  <div className="insight-card">
-                    <div className="insight-header">
-                      <span className="insight-icon">🎯</span>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
-                        <span className="insight-title">Key Trading Levels</span>
-                        {symbol && effectiveSpot && (
-                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>
-                            {symbol} • ${effectiveSpot.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="insight-content">
-                      <div className="trading-levels">
-                        <div className="trading-level-item">
-                          <span className="level-label">Max Pain / Pinning Risk:</span>
-                          <span className="level-value">${Math.max(stats.callWall, stats.putWall).toFixed(2)}</span>
-                        </div>
-                        <div className="trading-level-item">
-                          <span className="level-label">Call Wall (Resistance):</span>
-                          <span className="level-value call">${stats.callWall.toFixed(2)}</span>
-                        </div>
-                        <div className="trading-level-item">
-                          <span className="level-label">Put Wall (Support):</span>
-                          <span className="level-value put">${stats.putWall.toFixed(2)}</span>
-                        </div>
-                        <div className="trading-level-item">
-                          <span className="level-label">Expected Move (±):</span>
-                          <span className="level-value">${stats.expectedMove.toFixed(2)} ({stats.expectedMovePct.toFixed(1)}%)</span>
-                        </div>
-                        <div className="trading-level-item">
-                          <span className="level-label">Breakout Targets:</span>
-                          <span className="level-value">
-                            ${downTarget.toFixed(2)} / ${upTarget.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
       {error && <p className="chain-inline-error">{error}</p>}
 
       <section className="yahoo-table-section" style={{ gridColumn: '1 / -1' }}>
@@ -1775,6 +1532,251 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         </div>
 
       </section>
+
+      {/* Four Insight Cards - Full Width Section */}
+      {effectiveSpot && parsed.rows.length > 0 && (() => {
+          const rows = parsed.rows;
+          
+          // Find top volume and OI strikes
+          const topCallVolumeStrikes = [...rows]
+            .sort((a, b) => b.callVolume - a.callVolume)
+            .slice(0, 5);
+          
+          const topPutVolumeStrikes = [...rows]
+            .sort((a, b) => b.putVolume - a.putVolume)
+            .slice(0, 5);
+          
+          const topCallOiStrikes = [...rows]
+            .sort((a, b) => b.callOi - a.callOi)
+            .slice(0, 5);
+          
+          const topPutOiStrikes = [...rows]
+            .sort((a, b) => b.putOi - a.putOi)
+            .slice(0, 5);
+          
+          // Find hot strikes (where volume is being added)
+          const hotStrikes = dataHistory.length > 0 
+            ? rows
+                .map(r => {
+                  const callVolDeltas = getDeltas(r.strike, 'callVolume');
+                  const putVolDeltas = getDeltas(r.strike, 'putVolume');
+                  const recentCallChange = callVolDeltas[0] || 0;
+                  const recentPutChange = putVolDeltas[0] || 0;
+                  const totalRecentChange = recentCallChange + recentPutChange;
+
+                  return {
+                    strike: r.strike,
+                    callChange: recentCallChange,
+                    putChange: recentPutChange,
+                    totalChange: totalRecentChange,
+                    type: recentCallChange > recentPutChange ? 'CALL' : 'PUT',
+                    row: r
+                  };
+                })
+                .filter(s => Math.abs(s.totalChange) > 0)
+                .sort((a, b) => Math.abs(b.totalChange) - Math.abs(a.totalChange))
+                .slice(0, 5)
+            : rows
+                .map(r => {
+                  const totalVolume = r.callVolume + r.putVolume;
+                  return {
+                    strike: r.strike,
+                    callChange: r.callVolume,
+                    putChange: r.putVolume,
+                    totalChange: totalVolume,
+                    type: r.callVolume > r.putVolume ? 'CALL' : 'PUT',
+                    row: r
+                  };
+                })
+                .filter(s => s.totalChange > 0)
+                .sort((a, b) => b.totalChange - a.totalChange)
+                .slice(0, 5);
+
+          return (
+            <div className="insight-cards-container">
+              <div className={`decision-insights ${isRefreshing ? 'updating' : ''}`}>
+                  {/* Top Volume Strikes */}
+                  <div className="insight-card">
+                    <div className="insight-header">
+                      <span className="insight-icon">📈</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                        <span className="insight-title">Highest Volume Strikes</span>
+                        {symbol && effectiveSpot && (
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>
+                            {symbol} • ${effectiveSpot.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="insight-content">
+                      <div className="strike-list-section">
+                        <div className="strike-list-header call">Call Options</div>
+                        {topCallVolumeStrikes.map((row, idx) => (
+                          <div key={`call-vol-${row.strike}`} className="strike-list-item">
+                            <span className="strike-rank">#{idx + 1}</span>
+                            <span className="strike-price">${row.strike.toFixed(2)}</span>
+                            <span className="strike-metric call">
+                              Vol: {row.callVolume.toLocaleString()}
+                            </span>
+                            <span className="strike-premium">${row.callLast.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="strike-list-section">
+                        <div className="strike-list-header put">Put Options</div>
+                        {topPutVolumeStrikes.map((row, idx) => (
+                          <div key={`put-vol-${row.strike}`} className="strike-list-item">
+                            <span className="strike-rank">#{idx + 1}</span>
+                            <span className="strike-price">${row.strike.toFixed(2)}</span>
+                            <span className="strike-metric put">
+                              Vol: {row.putVolume.toLocaleString()}
+                            </span>
+                            <span className="strike-premium">${row.putLast.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Top OI Strikes */}
+                  <div className="insight-card">
+                    <div className="insight-header">
+                      <span className="insight-icon">💼</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                        <span className="insight-title">Highest Open Interest</span>
+                        {symbol && effectiveSpot && (
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>
+                            {symbol} • ${effectiveSpot.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="insight-content">
+                      <div className="strike-list-section">
+                        <div className="strike-list-header call">Call Options</div>
+                        {topCallOiStrikes.map((row, idx) => (
+                          <div key={`call-oi-${row.strike}`} className="strike-list-item">
+                            <span className="strike-rank">#{idx + 1}</span>
+                            <span className="strike-price">${row.strike.toFixed(2)}</span>
+                            <span className="strike-metric call">
+                              OI: {row.callOi.toLocaleString()}
+                            </span>
+                            <span className="strike-premium">${row.callLast.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="strike-list-section">
+                        <div className="strike-list-header put">Put Options</div>
+                        {topPutOiStrikes.map((row, idx) => (
+                          <div key={`put-oi-${row.strike}`} className="strike-list-item">
+                            <span className="strike-rank">#{idx + 1}</span>
+                            <span className="strike-price">${row.strike.toFixed(2)}</span>
+                            <span className="strike-metric put">
+                              OI: {row.putOi.toLocaleString()}
+                            </span>
+                            <span className="strike-premium">${row.putLast.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Hot Strikes - Volume Being Added */}
+                  <div className="insight-card">
+                    <div className="insight-header">
+                      <span className="insight-icon">🔥</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                        <span className="insight-title">Hot Strikes (Volume Added Recently)</span>
+                        {symbol && effectiveSpot && (
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>
+                            {symbol} • ${effectiveSpot.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="insight-content">
+                      {hotStrikes.length > 0 ? (
+                        <>
+                          <div className="hot-strikes-list">
+                            {hotStrikes.map((hs, idx) => (
+                              <div key={hs.strike} className="hot-strike-item">
+                                <div className="hot-strike-main">
+                                  <span className="strike-rank hot">#{idx + 1}</span>
+                                  <span className="strike-price">${hs.strike.toFixed(2)}</span>
+                                  <span className={`hot-strike-type ${hs.type.toLowerCase()}`}>
+                                    {hs.type}
+                                  </span>
+                                </div>
+                                <div className="hot-strike-details">
+                                  <span className="hot-strike-change call">
+                                    C: {hs.callChange > 0 ? '+' : ''}{hs.callChange.toLocaleString()}
+                                  </span>
+                                  <span className="hot-strike-change put">
+                                    P: {hs.putChange > 0 ? '+' : ''}{hs.putChange.toLocaleString()}
+                                  </span>
+                                  <span className="hot-strike-current">
+                                    Total: {(hs.row.callVolume + hs.row.putVolume).toLocaleString()}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="hot-strikes-note">
+                            {dataHistory.length > 0 
+                              ? '⚡ These strikes are attracting the most new volume in recent updates'
+                              : '📊 Showing highest volume strikes (no delta history yet)'}
+                          </div>
+                        </>
+                      ) : (
+                        <p className="yahoo-muted">No volume data available.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Key Trading Levels */}
+                  <div className="insight-card">
+                    <div className="insight-header">
+                      <span className="insight-icon">🎯</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flex: 1 }}>
+                        <span className="insight-title">Key Trading Levels</span>
+                        {symbol && effectiveSpot && (
+                          <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 400 }}>
+                            {symbol} • ${effectiveSpot.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="insight-content">
+                      <div className="trading-levels">
+                        <div className="trading-level-item">
+                          <span className="level-label">Max Pain / Pinning Risk:</span>
+                          <span className="level-value">${Math.max(stats.callWall, stats.putWall).toFixed(2)}</span>
+                        </div>
+                        <div className="trading-level-item">
+                          <span className="level-label">Call Wall (Resistance):</span>
+                          <span className="level-value call">${stats.callWall.toFixed(2)}</span>
+                        </div>
+                        <div className="trading-level-item">
+                          <span className="level-label">Put Wall (Support):</span>
+                          <span className="level-value put">${stats.putWall.toFixed(2)}</span>
+                        </div>
+                        <div className="trading-level-item">
+                          <span className="level-label">Expected Move (±):</span>
+                          <span className="level-value">${stats.expectedMove.toFixed(2)} ({stats.expectedMovePct.toFixed(1)}%)</span>
+                        </div>
+                        <div className="trading-level-item">
+                          <span className="level-label">Breakout Targets:</span>
+                          <span className="level-value">
+                            ${downTarget.toFixed(2)} / ${upTarget.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
     </div>
   );
 };
