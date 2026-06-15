@@ -455,105 +455,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       .sort((a, b) => a.strike - b.strike);
   }, [parsed.rows, effectiveSpot]);
 
-  const strikeVolumeBalanceRows = useMemo(() => {
-    if (parsed.rows.length === 0) return [];
-
-    const sorted = [...parsed.rows].sort((a, b) => a.strike - b.strike);
-    const previousRowsByStrike = new Map<number, ChainRow>();
-    const previousSnapshot = dataHistory[0];
-    if (previousSnapshot) {
-      previousSnapshot.rows.forEach((r) => previousRowsByStrike.set(r.strike, r));
-    }
-
-    const spot = effectiveSpot ?? sorted[Math.floor(sorted.length / 2)].strike;
-    const centerIndex = sorted.reduce(
-      (bestIdx, row, idx) =>
-        Math.abs(row.strike - spot) < Math.abs(sorted[bestIdx].strike - spot) ? idx : bestIdx,
-      0
-    );
-
-    const start = Math.max(0, centerIndex - 10);
-    const end = Math.min(sorted.length, centerIndex + 11); // 10 below + ATM + 10 above
-    const atmStrike = sorted[centerIndex]?.strike ?? null;
-
-    return sorted.slice(start, end).map((row) => {
-      const totalVolume = row.callVolume + row.putVolume;
-      const callPct = totalVolume > 0 ? (row.callVolume / totalVolume) * 100 : 50;
-      const putPct = 100 - callPct;
-      const previousRow = previousRowsByStrike.get(row.strike);
-      const prevCallVolume = previousRow?.callVolume ?? row.callVolume;
-      const prevPutVolume = previousRow?.putVolume ?? row.putVolume;
-      const prevTotalVolume = prevCallVolume + prevPutVolume;
-      const prevCallPct = prevTotalVolume > 0 ? (prevCallVolume / prevTotalVolume) * 100 : 50;
-
-      return {
-        row,
-        totalVolume,
-        callPct,
-        putPct,
-        callVolumeDelta: row.callVolume - prevCallVolume,
-        putVolumeDelta: row.putVolume - prevPutVolume,
-        totalVolumeDelta: totalVolume - prevTotalVolume,
-        callPctDelta: callPct - prevCallPct,
-        isAtm: atmStrike != null && row.strike === atmStrike
-      };
-    });
-  }, [parsed.rows, effectiveSpot, dataHistory]);
-
-  const strikeVolumeMaxDelta = useMemo(
-    () => Math.max(1, ...strikeVolumeBalanceRows.map((r) => Math.abs(r.totalVolumeDelta))),
-    [strikeVolumeBalanceRows]
-  );
-
-  const strikeOiBalanceRows = useMemo(() => {
-    if (parsed.rows.length === 0) return [];
-
-    const sorted = [...parsed.rows].sort((a, b) => a.strike - b.strike);
-    const previousRowsByStrike = new Map<number, ChainRow>();
-    const previousSnapshot = dataHistory[0];
-    if (previousSnapshot) {
-      previousSnapshot.rows.forEach((r) => previousRowsByStrike.set(r.strike, r));
-    }
-
-    const spot = effectiveSpot ?? sorted[Math.floor(sorted.length / 2)].strike;
-    const centerIndex = sorted.reduce(
-      (bestIdx, row, idx) =>
-        Math.abs(row.strike - spot) < Math.abs(sorted[bestIdx].strike - spot) ? idx : bestIdx,
-      0
-    );
-
-    const start = Math.max(0, centerIndex - 10);
-    const end = Math.min(sorted.length, centerIndex + 11);
-    const atmStrike = sorted[centerIndex]?.strike ?? null;
-
-    return sorted.slice(start, end).map((row) => {
-      const totalOi = row.callOi + row.putOi;
-      const callPct = totalOi > 0 ? (row.callOi / totalOi) * 100 : 50;
-      const putPct = 100 - callPct;
-      const previousRow = previousRowsByStrike.get(row.strike);
-      const prevCallOi = previousRow?.callOi ?? row.callOi;
-      const prevPutOi = previousRow?.putOi ?? row.putOi;
-      const prevTotalOi = prevCallOi + prevPutOi;
-      const prevCallPct = prevTotalOi > 0 ? (prevCallOi / prevTotalOi) * 100 : 50;
-
-      return {
-        row,
-        callPct,
-        putPct,
-        callOiDelta: row.callOi - prevCallOi,
-        putOiDelta: row.putOi - prevPutOi,
-        totalOiDelta: totalOi - prevTotalOi,
-        callPctDelta: callPct - prevCallPct,
-        isAtm: atmStrike != null && row.strike === atmStrike
-      };
-    });
-  }, [parsed.rows, effectiveSpot, dataHistory]);
-
-  const strikeOiMaxDelta = useMemo(
-    () => Math.max(1, ...strikeOiBalanceRows.map((r) => Math.abs(r.totalOiDelta))),
-    [strikeOiBalanceRows]
-  );
-
   const maxOi = Math.max(1, ...visibleRows.map((r) => Math.max(r.callOi, r.putOi)));
   const maxVol = Math.max(1, ...visibleRows.map((r) => Math.max(r.callVolume, r.putVolume)));
   const downTarget = effectiveSpot ? Math.max(0, effectiveSpot - stats.expectedMove) : 0;
@@ -910,6 +811,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     
     return deltas.slice(0, 5); // Return max 5 changes
   };
+
+  const formatSignedDelta = (delta: number) => `${delta > 0 ? '+' : ''}${delta.toLocaleString()}`;
 
   // Calculate total absolute change for a strike (across all fields, most recent change only)
   const getTotalAbsoluteChange = (strike: number): number => {
@@ -1509,170 +1412,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       {error && <p className="chain-inline-error">{error}</p>}
 
       <section className="yahoo-table-section" style={{ gridColumn: '1 / -1' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <div style={{ border: '1px solid rgba(148, 163, 184, 0.18)', borderRadius: '10px', padding: '10px' }}>
-            <div className="yahoo-table-title">
-              <BarChart3 size={18} />
-              <h3>
-                {symbol && <span style={{ color: '#60a5fa', fontWeight: 700 }}>{symbol}</span>}
-                {effectiveSpot && <span style={{ marginLeft: '8px', color: '#94a3b8', fontSize: '0.9em' }}>${effectiveSpot.toFixed(2)}</span>}
-                {(symbol || effectiveSpot) && <span style={{ margin: '0 8px', color: '#475569' }}>•</span>}
-                Strike Volume Balance
-              </h3>
-            </div>
-            <p className="yahoo-muted" style={{ marginTop: '-4px', marginBottom: '10px', fontSize: '0.78rem' }}>
-              10 below + ATM + 10 above. Delta and tint show change vs previous update.
-            </p>
-
-            {strikeVolumeBalanceRows.length === 0 ? (
-              <p className="yahoo-muted">Load chain data to view strike-level Call vs Put volume balance.</p>
-            ) : (
-              <div style={{ display: 'grid', gap: '6px' }}>
-                {strikeVolumeBalanceRows.map(({ row, callPct, putPct, callVolumeDelta, putVolumeDelta, totalVolumeDelta, callPctDelta, isAtm }) => (
-                  <div
-                    key={`strike-volume-balance-${row.strike}`}
-                    style={{
-                      border: isAtm ? '1px solid rgba(56, 189, 248, 0.6)' : '1px solid rgba(148, 163, 184, 0.16)',
-                      borderRadius: '7px',
-                      padding: '6px 8px',
-                      background: totalVolumeDelta > 0
-                        ? `rgba(34, 197, 94, ${Math.min(0.16, (Math.abs(totalVolumeDelta) / strikeVolumeMaxDelta) * 0.16)})`
-                        : totalVolumeDelta < 0
-                          ? `rgba(239, 68, 68, ${Math.min(0.16, (Math.abs(totalVolumeDelta) / strikeVolumeMaxDelta) * 0.16)})`
-                          : isAtm
-                            ? 'rgba(56, 189, 248, 0.08)'
-                            : 'rgba(15, 23, 42, 0.3)'
-                    }}
-                  >
-                    <div style={{ display: 'grid', gridTemplateColumns: '104px 1fr 192px', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ fontWeight: 600, color: '#e2e8f0', fontSize: '0.82rem' }}>
-                        {row.strike.toFixed(2)}
-                        {isAtm && (
-                          <span style={{ marginLeft: '6px', padding: '1px 5px', borderRadius: '999px', fontSize: '0.64rem', fontWeight: 700, color: '#082f49', background: '#38bdf8' }}>
-                            ATM
-                          </span>
-                        )}
-                      </div>
-
-                      <div
-                        style={{
-                          display: 'flex',
-                          width: '100%',
-                          height: '7px',
-                          borderRadius: '999px',
-                          overflow: 'hidden',
-                          background: 'rgba(148, 163, 184, 0.18)'
-                        }}
-                        title={`Call ${row.callVolume.toLocaleString()} (${callPct.toFixed(1)}%) vs Put ${row.putVolume.toLocaleString()} (${putPct.toFixed(1)}%)`}
-                      >
-                        <div style={{ width: `${callPct}%`, background: 'linear-gradient(90deg, #16a34a, #4ade80)' }} />
-                        <div style={{ width: `${putPct}%`, background: 'linear-gradient(90deg, #ef4444, #f87171)' }} />
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', gap: '6px' }}>
-                        <span style={{ color: '#4ade80', minWidth: '54px', textAlign: 'right' }}>
-                          C {callPct.toFixed(0)}%{callVolumeDelta !== 0 ? ` ${callVolumeDelta > 0 ? '+' : ''}${callVolumeDelta.toLocaleString()}` : ''}
-                        </span>
-                        <span style={{ color: '#94a3b8', minWidth: '58px', textAlign: 'right' }}>
-                          Δ {totalVolumeDelta > 0 ? '+' : ''}{totalVolumeDelta.toLocaleString()}
-                        </span>
-                        <span style={{ color: callPctDelta > 0 ? '#4ade80' : callPctDelta < 0 ? '#f87171' : '#94a3b8', minWidth: '50px', textAlign: 'right' }}>
-                          {callPctDelta > 0 ? 'C↑' : callPctDelta < 0 ? 'P↑' : 'Flat'} {Math.abs(callPctDelta).toFixed(1)}%
-                        </span>
-                        <span style={{ color: '#f87171', minWidth: '54px', textAlign: 'right' }}>
-                          P {putPct.toFixed(0)}%{putVolumeDelta !== 0 ? ` ${putVolumeDelta > 0 ? '+' : ''}${putVolumeDelta.toLocaleString()}` : ''}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div style={{ border: '1px solid rgba(148, 163, 184, 0.18)', borderRadius: '10px', padding: '10px' }}>
-            <div className="yahoo-table-title">
-              <BarChart3 size={18} />
-              <h3>
-                {symbol && <span style={{ color: '#60a5fa', fontWeight: 700 }}>{symbol}</span>}
-                {effectiveSpot && <span style={{ marginLeft: '8px', color: '#94a3b8', fontSize: '0.9em' }}>${effectiveSpot.toFixed(2)}</span>}
-                {(symbol || effectiveSpot) && <span style={{ margin: '0 8px', color: '#475569' }}>•</span>}
-                Strike OI Balance
-              </h3>
-            </div>
-            <p className="yahoo-muted" style={{ marginTop: '-4px', marginBottom: '10px', fontSize: '0.78rem' }}>
-              10 below + ATM + 10 above. Same compact view using Open Interest.
-            </p>
-
-            {strikeOiBalanceRows.length === 0 ? (
-              <p className="yahoo-muted">Load chain data to view strike-level Call vs Put OI balance.</p>
-            ) : (
-              <div style={{ display: 'grid', gap: '6px' }}>
-                {strikeOiBalanceRows.map(({ row, callPct, putPct, callOiDelta, putOiDelta, totalOiDelta, callPctDelta, isAtm }) => (
-                  <div
-                    key={`strike-oi-balance-${row.strike}`}
-                    style={{
-                      border: isAtm ? '1px solid rgba(56, 189, 248, 0.6)' : '1px solid rgba(148, 163, 184, 0.16)',
-                      borderRadius: '7px',
-                      padding: '6px 8px',
-                      background: totalOiDelta > 0
-                        ? `rgba(34, 197, 94, ${Math.min(0.16, (Math.abs(totalOiDelta) / strikeOiMaxDelta) * 0.16)})`
-                        : totalOiDelta < 0
-                          ? `rgba(239, 68, 68, ${Math.min(0.16, (Math.abs(totalOiDelta) / strikeOiMaxDelta) * 0.16)})`
-                          : isAtm
-                            ? 'rgba(56, 189, 248, 0.08)'
-                            : 'rgba(15, 23, 42, 0.3)'
-                    }}
-                  >
-                    <div style={{ display: 'grid', gridTemplateColumns: '104px 1fr 192px', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ fontWeight: 600, color: '#e2e8f0', fontSize: '0.82rem' }}>
-                        {row.strike.toFixed(2)}
-                        {isAtm && (
-                          <span style={{ marginLeft: '6px', padding: '1px 5px', borderRadius: '999px', fontSize: '0.64rem', fontWeight: 700, color: '#082f49', background: '#38bdf8' }}>
-                            ATM
-                          </span>
-                        )}
-                      </div>
-
-                      <div
-                        style={{
-                          display: 'flex',
-                          width: '100%',
-                          height: '7px',
-                          borderRadius: '999px',
-                          overflow: 'hidden',
-                          background: 'rgba(148, 163, 184, 0.18)'
-                        }}
-                        title={`Call OI ${row.callOi.toLocaleString()} (${callPct.toFixed(1)}%) vs Put OI ${row.putOi.toLocaleString()} (${putPct.toFixed(1)}%)`}
-                      >
-                        <div style={{ width: `${callPct}%`, background: 'linear-gradient(90deg, #16a34a, #4ade80)' }} />
-                        <div style={{ width: `${putPct}%`, background: 'linear-gradient(90deg, #ef4444, #f87171)' }} />
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', gap: '6px' }}>
-                        <span style={{ color: '#4ade80', minWidth: '54px', textAlign: 'right' }}>
-                          C {callPct.toFixed(0)}%{callOiDelta !== 0 ? ` ${callOiDelta > 0 ? '+' : ''}${callOiDelta.toLocaleString()}` : ''}
-                        </span>
-                        <span style={{ color: '#94a3b8', minWidth: '58px', textAlign: 'right' }}>
-                          Δ {totalOiDelta > 0 ? '+' : ''}{totalOiDelta.toLocaleString()}
-                        </span>
-                        <span style={{ color: callPctDelta > 0 ? '#4ade80' : callPctDelta < 0 ? '#f87171' : '#94a3b8', minWidth: '50px', textAlign: 'right' }}>
-                          {callPctDelta > 0 ? 'C↑' : callPctDelta < 0 ? 'P↑' : 'Flat'} {Math.abs(callPctDelta).toFixed(1)}%
-                        </span>
-                        <span style={{ color: '#f87171', minWidth: '54px', textAlign: 'right' }}>
-                          P {putPct.toFixed(0)}%{putOiDelta !== 0 ? ` ${putOiDelta > 0 ? '+' : ''}${putOiDelta.toLocaleString()}` : ''}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="yahoo-table-section" style={{ gridColumn: '1 / -1' }}>
         <div className="yahoo-table-title">
           <BarChart3 size={18} />
           <h3>
@@ -1768,82 +1507,86 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                       </td>
                       <td style={{ background: `rgba(34,197,94,${0.1 + cv * 0.7})` }}>
                         {r.callVolume.toLocaleString()}
-                        {callVolDeltas.length > 0 && callVolDeltas.map((delta, idx) => (
-                          delta !== 0 && (
-                            <span 
-                              key={idx}
-                              style={{ 
-                                marginLeft: '4px', 
-                                fontSize: '0.8em', 
-                                color: delta > 0 ? '#4ade80' : '#f87171',
-                                fontWeight: 500,
-                                opacity: 1 - (idx * 0.15) // Fade older changes
-                              }}
-                            >
-                              ({delta > 0 ? '+' : ''}{delta.toLocaleString()})
-                            </span>
-                          )
-                        ))}
+                        {callVolDeltas.length > 0 && (
+                          <span
+                            style={{
+                              marginLeft: '4px',
+                              fontSize: '0.8em',
+                              color: callVolDeltas[0] > 0 ? '#4ade80' : '#f87171',
+                              fontWeight: 600
+                            }}
+                          >
+                            ({formatSignedDelta(callVolDeltas[0])})
+                          </span>
+                        )}
+                        {callVolDeltas.length > 1 && (
+                          <div style={{ marginTop: '1px', fontSize: '0.68em', color: '#94a3b8' }}>
+                            prev: {callVolDeltas.slice(1, 4).map(formatSignedDelta).join(' ')}
+                          </div>
+                        )}
                       </td>
                       <td style={{ background: `rgba(34,197,94,${0.1 + co * 0.7})` }}>
                         {r.callOi.toLocaleString()}
-                        {callOiDeltas.length > 0 && callOiDeltas.map((delta, idx) => (
-                          delta !== 0 && (
-                            <span 
-                              key={idx}
-                              style={{ 
-                                marginLeft: '4px', 
-                                fontSize: '0.8em', 
-                                color: delta > 0 ? '#4ade80' : '#f87171',
-                                fontWeight: 500,
-                                opacity: 1 - (idx * 0.15)
-                              }}
-                            >
-                              ({delta > 0 ? '+' : ''}{delta.toLocaleString()})
-                            </span>
-                          )
-                        ))}
+                        {callOiDeltas.length > 0 && (
+                          <span
+                            style={{
+                              marginLeft: '4px',
+                              fontSize: '0.8em',
+                              color: callOiDeltas[0] > 0 ? '#4ade80' : '#f87171',
+                              fontWeight: 600
+                            }}
+                          >
+                            ({formatSignedDelta(callOiDeltas[0])})
+                          </span>
+                        )}
+                        {callOiDeltas.length > 1 && (
+                          <div style={{ marginTop: '1px', fontSize: '0.68em', color: '#94a3b8' }}>
+                            prev: {callOiDeltas.slice(1, 4).map(formatSignedDelta).join(' ')}
+                          </div>
+                        )}
                       </td>
                       <td style={{ background: 'rgba(34,197,94,0.1)', fontWeight: 500, color: '#22c55e' }}>
                         ${r.callLast > 0 ? r.callLast.toFixed(2) : '-'}
                       </td>
                       <td style={{ background: `rgba(239,68,68,${0.1 + pv * 0.7})` }}>
                         {r.putVolume.toLocaleString()}
-                        {putVolDeltas.length > 0 && putVolDeltas.map((delta, idx) => (
-                          delta !== 0 && (
-                            <span 
-                              key={idx}
-                              style={{ 
-                                marginLeft: '4px', 
-                                fontSize: '0.8em', 
-                                color: delta > 0 ? '#4ade80' : '#f87171',
-                                fontWeight: 500,
-                                opacity: 1 - (idx * 0.15)
-                              }}
-                            >
-                              ({delta > 0 ? '+' : ''}{delta.toLocaleString()})
-                            </span>
-                          )
-                        ))}
+                        {putVolDeltas.length > 0 && (
+                          <span
+                            style={{
+                              marginLeft: '4px',
+                              fontSize: '0.8em',
+                              color: putVolDeltas[0] > 0 ? '#4ade80' : '#f87171',
+                              fontWeight: 600
+                            }}
+                          >
+                            ({formatSignedDelta(putVolDeltas[0])})
+                          </span>
+                        )}
+                        {putVolDeltas.length > 1 && (
+                          <div style={{ marginTop: '1px', fontSize: '0.68em', color: '#94a3b8' }}>
+                            prev: {putVolDeltas.slice(1, 4).map(formatSignedDelta).join(' ')}
+                          </div>
+                        )}
                       </td>
                       <td style={{ background: `rgba(239,68,68,${0.1 + po * 0.7})` }}>
                         {r.putOi.toLocaleString()}
-                        {putOiDeltas.length > 0 && putOiDeltas.map((delta, idx) => (
-                          delta !== 0 && (
-                            <span 
-                              key={idx}
-                              style={{ 
-                                marginLeft: '4px', 
-                                fontSize: '0.8em', 
-                                color: delta > 0 ? '#4ade80' : '#f87171',
-                                fontWeight: 500,
-                                opacity: 1 - (idx * 0.15)
-                              }}
-                            >
-                              ({delta > 0 ? '+' : ''}{delta.toLocaleString()})
-                            </span>
-                          )
-                        ))}
+                        {putOiDeltas.length > 0 && (
+                          <span
+                            style={{
+                              marginLeft: '4px',
+                              fontSize: '0.8em',
+                              color: putOiDeltas[0] > 0 ? '#4ade80' : '#f87171',
+                              fontWeight: 600
+                            }}
+                          >
+                            ({formatSignedDelta(putOiDeltas[0])})
+                          </span>
+                        )}
+                        {putOiDeltas.length > 1 && (
+                          <div style={{ marginTop: '1px', fontSize: '0.68em', color: '#94a3b8' }}>
+                            prev: {putOiDeltas.slice(1, 4).map(formatSignedDelta).join(' ')}
+                          </div>
+                        )}
                       </td>
                       <td style={{ background: 'rgba(239,68,68,0.1)', fontWeight: 500, color: '#ef4444' }}>
                         ${r.putLast > 0 ? r.putLast.toFixed(2) : '-'}
