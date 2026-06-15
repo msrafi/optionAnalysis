@@ -813,6 +813,21 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   };
 
   const formatSignedDelta = (delta: number) => `${delta > 0 ? '+' : ''}${delta.toLocaleString()}`;
+  const renderRecentDeltas = (deltas: number[]) =>
+    deltas.slice(0, 5).map((delta, idx) => (
+      <span
+        key={`delta-${idx}-${delta}`}
+        style={{
+          marginLeft: '4px',
+          fontSize: '0.8em',
+          color: delta > 0 ? '#4ade80' : '#f87171',
+          fontWeight: 600,
+          opacity: 1 - (idx * 0.15)
+        }}
+      >
+        ({formatSignedDelta(delta)})
+      </span>
+    ));
 
   // Calculate total absolute change for a strike (across all fields, most recent change only)
   const getTotalAbsoluteChange = (strike: number): number => {
@@ -1507,86 +1522,22 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                       </td>
                       <td style={{ background: `rgba(34,197,94,${0.1 + cv * 0.7})` }}>
                         {r.callVolume.toLocaleString()}
-                        {callVolDeltas.length > 0 && (
-                          <span
-                            style={{
-                              marginLeft: '4px',
-                              fontSize: '0.8em',
-                              color: callVolDeltas[0] > 0 ? '#4ade80' : '#f87171',
-                              fontWeight: 600
-                            }}
-                          >
-                            ({formatSignedDelta(callVolDeltas[0])})
-                          </span>
-                        )}
-                        {callVolDeltas.length > 1 && (
-                          <div style={{ marginTop: '1px', fontSize: '0.68em', color: '#94a3b8' }}>
-                            prev: {callVolDeltas.slice(1, 4).map(formatSignedDelta).join(' ')}
-                          </div>
-                        )}
+                        {renderRecentDeltas(callVolDeltas)}
                       </td>
                       <td style={{ background: `rgba(34,197,94,${0.1 + co * 0.7})` }}>
                         {r.callOi.toLocaleString()}
-                        {callOiDeltas.length > 0 && (
-                          <span
-                            style={{
-                              marginLeft: '4px',
-                              fontSize: '0.8em',
-                              color: callOiDeltas[0] > 0 ? '#4ade80' : '#f87171',
-                              fontWeight: 600
-                            }}
-                          >
-                            ({formatSignedDelta(callOiDeltas[0])})
-                          </span>
-                        )}
-                        {callOiDeltas.length > 1 && (
-                          <div style={{ marginTop: '1px', fontSize: '0.68em', color: '#94a3b8' }}>
-                            prev: {callOiDeltas.slice(1, 4).map(formatSignedDelta).join(' ')}
-                          </div>
-                        )}
+                        {renderRecentDeltas(callOiDeltas)}
                       </td>
                       <td style={{ background: 'rgba(34,197,94,0.1)', fontWeight: 500, color: '#22c55e' }}>
                         ${r.callLast > 0 ? r.callLast.toFixed(2) : '-'}
                       </td>
                       <td style={{ background: `rgba(239,68,68,${0.1 + pv * 0.7})` }}>
                         {r.putVolume.toLocaleString()}
-                        {putVolDeltas.length > 0 && (
-                          <span
-                            style={{
-                              marginLeft: '4px',
-                              fontSize: '0.8em',
-                              color: putVolDeltas[0] > 0 ? '#4ade80' : '#f87171',
-                              fontWeight: 600
-                            }}
-                          >
-                            ({formatSignedDelta(putVolDeltas[0])})
-                          </span>
-                        )}
-                        {putVolDeltas.length > 1 && (
-                          <div style={{ marginTop: '1px', fontSize: '0.68em', color: '#94a3b8' }}>
-                            prev: {putVolDeltas.slice(1, 4).map(formatSignedDelta).join(' ')}
-                          </div>
-                        )}
+                        {renderRecentDeltas(putVolDeltas)}
                       </td>
                       <td style={{ background: `rgba(239,68,68,${0.1 + po * 0.7})` }}>
                         {r.putOi.toLocaleString()}
-                        {putOiDeltas.length > 0 && (
-                          <span
-                            style={{
-                              marginLeft: '4px',
-                              fontSize: '0.8em',
-                              color: putOiDeltas[0] > 0 ? '#4ade80' : '#f87171',
-                              fontWeight: 600
-                            }}
-                          >
-                            ({formatSignedDelta(putOiDeltas[0])})
-                          </span>
-                        )}
-                        {putOiDeltas.length > 1 && (
-                          <div style={{ marginTop: '1px', fontSize: '0.68em', color: '#94a3b8' }}>
-                            prev: {putOiDeltas.slice(1, 4).map(formatSignedDelta).join(' ')}
-                          </div>
-                        )}
+                        {renderRecentDeltas(putOiDeltas)}
                       </td>
                       <td style={{ background: 'rgba(239,68,68,0.1)', fontWeight: 500, color: '#ef4444' }}>
                         ${r.putLast > 0 ? r.putLast.toFixed(2) : '-'}
