@@ -1949,17 +1949,17 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             );
           }
 
-          const maxCurrent = Math.max(
+          const maxCurrentTotal = Math.max(
             1,
             ...strikes.map((strike) => {
               const current = currentByStrike.get(strike);
-              return Math.max(current?.callValue ?? 0, current?.putValue ?? 0);
+              return (current?.callValue ?? 0) + (current?.putValue ?? 0);
             })
           );
-          const maxAdded = Math.max(
+          const maxAddedTotal = Math.max(
             1,
             ...strikes.flatMap((strike) =>
-              (updatesByStrike.get(strike) || []).map((x) => Math.max(Math.abs(x.callAdded), Math.abs(x.putAdded)))
+              (updatesByStrike.get(strike) || []).map((x) => Math.abs(x.callAdded) + Math.abs(x.putAdded))
             )
           );
 
@@ -2011,8 +2011,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                 {strikes.map((strike) => {
                   const current = currentByStrike.get(strike);
                   const updates = (updatesByStrike.get(strike) || []).slice(0, 6);
-                  const callCurrentWidth = current ? (current.callValue / maxCurrent) * 50 : 0;
-                  const putCurrentWidth = current ? (current.putValue / maxCurrent) * 50 : 0;
+                  const currentCall = current?.callValue ?? 0;
+                  const currentPut = current?.putValue ?? 0;
+                  const currentTotal = currentCall + currentPut;
+                  const currentStrength = currentTotal > 0 ? currentTotal / maxCurrentTotal : 0;
+                  const currentCallShare = currentTotal > 0 ? currentCall / currentTotal : 0;
+                  const currentPutShare = currentTotal > 0 ? currentPut / currentTotal : 0;
+                  const callCurrentWidth = currentStrength * currentCallShare * 50;
+                  const putCurrentWidth = currentStrength * currentPutShare * 50;
 
                   return (
                     <div
@@ -2046,8 +2052,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                       {updates.length > 0 && (
                         <div style={{ display: 'grid', gap: '4px', marginLeft: '62px' }}>
                           {updates.map((entry) => {
-                            const callWidth = (Math.abs(entry.callAdded) / maxAdded) * 50;
-                            const putWidth = (Math.abs(entry.putAdded) / maxAdded) * 50;
+                            const absCall = Math.abs(entry.callAdded);
+                            const absPut = Math.abs(entry.putAdded);
+                            const updateTotal = absCall + absPut;
+                            const updateStrength = updateTotal > 0 ? updateTotal / maxAddedTotal : 0;
+                            const callShare = updateTotal > 0 ? absCall / updateTotal : 0;
+                            const putShare = updateTotal > 0 ? absPut / updateTotal : 0;
+                            const callWidth = updateStrength * callShare * 50;
+                            const putWidth = updateStrength * putShare * 50;
                             return (
                               <div key={`${entry.id}-${strike}`} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 120px', alignItems: 'center', gap: '8px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.66rem' }}>
