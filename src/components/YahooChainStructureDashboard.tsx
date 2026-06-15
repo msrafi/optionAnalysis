@@ -287,6 +287,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   setActiveDashboard
 }) => {
   const [symbol, setSymbol] = useState('NVDA');
+  const [debouncedChartSymbol, setDebouncedChartSymbol] = useState('NVDA');
   const [daysToExpiry, setDaysToExpiry] = useState(7);
   const [spotOverride, setSpotOverride] = useState('');
   const [parsed, setParsed] = useState<ParsedChainData>({ rows: [], spotPrice: null });
@@ -330,6 +331,15 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       setVolumeFlowHistory([]);
     }
   }, [flowStorageKey]);
+
+  // Debounce chart symbol updates to avoid reloading iframe on every keystroke.
+  useEffect(() => {
+    const normalized = symbol.trim().toUpperCase();
+    const timer = setTimeout(() => {
+      setDebouncedChartSymbol(normalized);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [symbol]);
 
   const mostActiveTopByVolume = useMemo(
     () => [...mostActiveRows].sort((a, b) => b.volume - a.volume).slice(0, 15),
@@ -1272,16 +1282,16 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
 
           {/* TradingView Chart */}
           <div className="decision-chart-panel">
-            {symbol && (
+            {debouncedChartSymbol && (
               <div className="tradingview-widget-container" style={{ height: '100%', width: '100%' }}>
                 <iframe
-                  src={`https://www.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${encodeURIComponent(symbol)}&interval=D&hidesidetoolbar=1&symboledit=1&saveimage=0&toolbarbg=0e1621&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&studies_overrides={}&overrides={}&enabled_features=[]&disabled_features=[]&locale=en&utm_source=localhost&utm_medium=widget_new&utm_campaign=chart&utm_term=${encodeURIComponent(symbol)}`}
+                  src={`https://www.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${encodeURIComponent(debouncedChartSymbol)}&interval=D&hidesidetoolbar=1&symboledit=1&saveimage=0&toolbarbg=0e1621&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&withdateranges=1&studies_overrides={}&overrides={}&enabled_features=[]&disabled_features=[]&locale=en&utm_source=localhost&utm_medium=widget_new&utm_campaign=chart&utm_term=${encodeURIComponent(debouncedChartSymbol)}`}
                   style={{ width: '100%', height: '100%', border: 'none' }}
                   title="TradingView Chart"
                 />
               </div>
             )}
-            {!symbol && (
+            {!debouncedChartSymbol && (
               <div className="chart-placeholder">
                 <p>Enter a symbol to view the chart</p>
               </div>
