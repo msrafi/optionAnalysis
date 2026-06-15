@@ -314,6 +314,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const butterflyAtmRowRef = useRef<HTMLDivElement>(null);
   const didInitialHeatmapScrollRef = useRef(false);
   const didInitialButterflyScrollRef = useRef(false);
+  const latestLoadChainRequestRef = useRef(0);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -784,6 +785,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   };
 
   const loadChain = async (isRefresh = false) => {
+    const requestId = ++latestLoadChainRequestRef.current;
     const ticker = symbol.trim().toUpperCase();
     if (!ticker) {
       setError('Enter a symbol first.');
@@ -799,6 +801,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       ]);
       if (chainResult.status !== 'fulfilled') {
         throw chainResult.reason;
+      }
+      if (requestId !== latestLoadChainRequestRef.current) {
+        return;
       }
       const chain = chainResult.value;
       const detectedSpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
@@ -896,10 +901,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         setNextRefreshIn(300); // Start 5-minute countdown
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load Yahoo chain.');
+      if (requestId === latestLoadChainRequestRef.current) {
+        setError(err instanceof Error ? err.message : 'Failed to load Yahoo chain.');
+      }
     } finally {
-      setLoadingChain(false);
-      setIsRefreshing(false);
+      if (requestId === latestLoadChainRequestRef.current) {
+        setLoadingChain(false);
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -928,7 +937,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         previousValue = historicalRow[field];
       }
     }
-    
+
     return deltas.slice(0, 5); // Return max 5 changes
   };
 
