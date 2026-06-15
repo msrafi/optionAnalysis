@@ -501,29 +501,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const maxVol = Math.max(1, ...visibleRows.map((r) => Math.max(r.callVolume, r.putVolume)));
   const downTarget = effectiveSpot ? Math.max(0, effectiveSpot - stats.expectedMove) : 0;
   const upTarget = effectiveSpot ? effectiveSpot + stats.expectedMove : 0;
-  const currentVolumeFlowSnapshot = useMemo(() => {
-    if (parsed.rows.length === 0) {
-      return {
-        totalCallVolume: 0,
-        totalPutVolume: 0,
-        dominant: 'BALANCED' as 'CALL' | 'PUT' | 'BALANCED',
-        strikes: [] as Array<{ strike: number; callValue: number; putValue: number }>
-      };
-    }
-
-    const totalCallVolume = parsed.rows.reduce((sum, row) => sum + row.callVolume, 0);
-    const totalPutVolume = parsed.rows.reduce((sum, row) => sum + row.putVolume, 0);
-    const dominant: 'CALL' | 'PUT' | 'BALANCED' =
-      totalCallVolume > totalPutVolume * 1.05 ? 'CALL' : totalPutVolume > totalCallVolume * 1.05 ? 'PUT' : 'BALANCED';
-    const strikes = [...parsed.rows]
-      .map((row) => ({ strike: row.strike, callValue: row.callVolume, putValue: row.putVolume }))
-      .filter((item) => item.callValue > 0 || item.putValue > 0)
-      .sort((a, b) => Math.max(b.callValue, b.putValue) - Math.max(a.callValue, a.putValue))
-      .slice(0, 10);
-
-    return { totalCallVolume, totalPutVolume, dominant, strikes };
-  }, [parsed.rows]);
-
   const deltaPresets = useMemo(() => {
     if (!effectiveSpot || parsed.rows.length === 0) return [];
     const spot = effectiveSpot;
@@ -1454,10 +1431,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         </p>
 
         {(() => {
-          const currentByStrike = new Map(
-            currentVolumeFlowSnapshot.strikes.map((entry) => [entry.strike, entry] as const)
-          );
-
           const updatesByStrike = new Map<number, Array<{ id: string; timestamp: string; callAdded: number; putAdded: number }>>();
           volumeFlowHistory.forEach((update) => {
             update.strikes.forEach((entry) => {
@@ -1483,7 +1456,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               );
           const start = centerIndex >= 0 ? Math.max(0, centerIndex - 10) : 0;
           const end = centerIndex >= 0 ? Math.min(sortedRows.length, centerIndex + 11) : 0;
-          const strikes = sortedRows.slice(start, end).map((row) => row.strike);
+          const windowRows = sortedRows.slice(start, end);
+          const strikes = windowRows.map((row) => row.strike);
+          const currentByStrike = new Map(
+            windowRows.map((row) => [
+              row.strike,
+              { strike: row.strike, callValue: row.callVolume, putValue: row.putVolume }
+            ] as const)
+          );
 
           if (strikes.length === 0) {
             return (
@@ -1492,6 +1472,15 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               </p>
             );
           }
+
+          const windowCallTotal = windowRows.reduce((sum, row) => sum + row.callVolume, 0);
+          const windowPutTotal = windowRows.reduce((sum, row) => sum + row.putVolume, 0);
+          const windowDominant: 'CALL' | 'PUT' | 'BALANCED' =
+            windowCallTotal > windowPutTotal * 1.05
+              ? 'CALL'
+              : windowPutTotal > windowCallTotal * 1.05
+                ? 'PUT'
+                : 'BALANCED';
 
           const maxCurrentTotal = Math.max(
             1,
@@ -1525,30 +1514,30 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                     padding: '2px 8px',
                     borderRadius: '999px',
                     color:
-                      currentVolumeFlowSnapshot.dominant === 'CALL'
+                      windowDominant === 'CALL'
                         ? '#bfdbfe'
-                        : currentVolumeFlowSnapshot.dominant === 'PUT'
+                        : windowDominant === 'PUT'
                           ? '#fde68a'
                           : '#e2e8f0',
                     background:
-                      currentVolumeFlowSnapshot.dominant === 'CALL'
+                      windowDominant === 'CALL'
                         ? 'rgba(59,130,246,0.25)'
-                        : currentVolumeFlowSnapshot.dominant === 'PUT'
+                        : windowDominant === 'PUT'
                           ? 'rgba(245,158,11,0.25)'
                           : 'rgba(100,116,139,0.25)'
                   }}
                 >
-                  {currentVolumeFlowSnapshot.dominant === 'CALL'
+                  {windowDominant === 'CALL'
                     ? 'CALLS DOMINATING'
-                    : currentVolumeFlowSnapshot.dominant === 'PUT'
+                    : windowDominant === 'PUT'
                       ? 'PUTS DOMINATING'
                       : 'BALANCED'}
                 </span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '10px' }}>
-                <span style={{ color: '#60a5fa' }}>Call Vol {currentVolumeFlowSnapshot.totalCallVolume.toLocaleString()}</span>
-                <span style={{ color: '#fbbf24' }}>Put Vol {currentVolumeFlowSnapshot.totalPutVolume.toLocaleString()}</span>
+                <span style={{ color: '#60a5fa' }}>Call Vol {windowCallTotal.toLocaleString()}</span>
+                <span style={{ color: '#fbbf24' }}>Put Vol {windowPutTotal.toLocaleString()}</span>
               </div>
 
               <div style={{ display: 'grid', gap: '8px' }}>
