@@ -102,6 +102,8 @@ interface VolumeFlowStrikeDelta {
   strike: number;
   callAdded: number;
   putAdded: number;
+  callOiAdded?: number;
+  putOiAdded?: number;
 }
 
 interface VolumeFlowUpdate {
@@ -805,9 +807,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             const prev = prevByStrike.get(row.strike);
             const callAdded = row.callVolume - (prev?.callVolume ?? 0);
             const putAdded = row.putVolume - (prev?.putVolume ?? 0);
-            return { strike: row.strike, callAdded, putAdded };
+            const callOiAdded = row.callOi - (prev?.callOi ?? 0);
+            const putOiAdded = row.putOi - (prev?.putOi ?? 0);
+            return { strike: row.strike, callAdded, putAdded, callOiAdded, putOiAdded };
           })
-          .filter((item) => item.callAdded !== 0 || item.putAdded !== 0)
+          .filter((item) => item.callAdded !== 0 || item.putAdded !== 0 || item.callOiAdded !== 0 || item.putOiAdded !== 0)
           .sort(
             (a, b) =>
               Math.max(Math.abs(b.callAdded), Math.abs(b.putAdded)) -
@@ -1441,7 +1445,17 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         </p>
 
         {(() => {
-          const updatesByStrike = new Map<number, Array<{ id: string; timestamp: string; callAdded: number; putAdded: number }>>();
+          const updatesByStrike = new Map<
+            number,
+            Array<{
+              id: string;
+              timestamp: string;
+              callAdded: number;
+              putAdded: number;
+              callOiAdded: number;
+              putOiAdded: number;
+            }>
+          >();
           volumeFlowHistory.forEach((update) => {
             update.strikes.forEach((entry) => {
               const list = updatesByStrike.get(entry.strike) || [];
@@ -1449,7 +1463,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                 id: update.id,
                 timestamp: update.timestamp,
                 callAdded: entry.callAdded,
-                putAdded: entry.putAdded
+                putAdded: entry.putAdded,
+                callOiAdded: entry.callOiAdded ?? 0,
+                putOiAdded: entry.putOiAdded ?? 0
               });
               updatesByStrike.set(entry.strike, list);
             });
@@ -1471,7 +1487,13 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
           const currentByStrike = new Map(
             windowRows.map((row) => [
               row.strike,
-              { strike: row.strike, callValue: row.callVolume, putValue: row.putVolume }
+              {
+                strike: row.strike,
+                callValue: row.callVolume,
+                putValue: row.putVolume,
+                callOiValue: row.callOi,
+                putOiValue: row.putOi
+              }
             ] as const)
           );
 
@@ -1499,10 +1521,23 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               return (current?.callValue ?? 0) + (current?.putValue ?? 0);
             })
           );
+          const maxCurrentOiTotal = Math.max(
+            1,
+            ...strikes.map((strike) => {
+              const current = currentByStrike.get(strike);
+              return (current?.callOiValue ?? 0) + (current?.putOiValue ?? 0);
+            })
+          );
           const maxAddedTotal = Math.max(
             1,
             ...strikes.flatMap((strike) =>
               (updatesByStrike.get(strike) || []).map((x) => Math.abs(x.callAdded) + Math.abs(x.putAdded))
+            )
+          );
+          const maxAddedOiTotal = Math.max(
+            1,
+            ...strikes.flatMap((strike) =>
+              (updatesByStrike.get(strike) || []).map((x) => Math.abs(x.callOiAdded ?? 0) + Math.abs(x.putOiAdded ?? 0))
             )
           );
 
@@ -1562,6 +1597,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   const currentPutShare = currentTotal > 0 ? currentPut / currentTotal : 0;
                   const callCurrentWidth = currentStrength * currentCallShare * 50;
                   const putCurrentWidth = currentStrength * currentPutShare * 50;
+                  const currentCallOi = current?.callOiValue ?? 0;
+                  const currentPutOi = current?.putOiValue ?? 0;
+                  const currentOiTotal = currentCallOi + currentPutOi;
+                  const currentOiStrength = currentOiTotal > 0 ? currentOiTotal / maxCurrentOiTotal : 0;
+                  const currentCallOiShare = currentOiTotal > 0 ? currentCallOi / currentOiTotal : 0;
+                  const currentPutOiShare = currentOiTotal > 0 ? currentPutOi / currentOiTotal : 0;
+                  const callCurrentOiWidth = currentOiStrength * currentCallOiShare * 50;
+                  const putCurrentOiWidth = currentOiStrength * currentPutOiShare * 50;
 
                   return (
                     <div
@@ -1586,6 +1629,34 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                           {putCurrentWidth > 0 && (
                             <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: `${putCurrentWidth}%`, background: 'rgba(245,158,11,0.9)' }} />
                           )}
+                          {callCurrentOiWidth > 0 && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                right: '50%',
+                                top: '50%',
+                                height: '3px',
+                                marginTop: '-1.5px',
+                                width: `${callCurrentOiWidth}%`,
+                                border: '1px solid black',
+                                background: 'rgba(74, 222, 128, 0.95)'
+                              }}
+                            />
+                          )}
+                          {putCurrentOiWidth > 0 && (
+                            <div
+                              style={{
+                                position: 'absolute',
+                                left: '50%',
+                                top: '50%',
+                                height: '3px',
+                                marginTop: '-1.5px',
+                                width: `${putCurrentOiWidth}%`,
+                                border: '1px solid black',
+                                background: 'rgba(251, 113, 133, 0.95)'
+                              }}
+                            />
+                          )}
                         </div>
                         <div style={{ fontSize: '0.72rem', color: '#fbbf24', textAlign: 'right', fontWeight: 600 }}>
                           P {current?.putValue.toLocaleString() ?? '-'}
@@ -1603,6 +1674,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                             const putShare = updateTotal > 0 ? absPut / updateTotal : 0;
                             const callWidth = updateStrength * callShare * 50;
                             const putWidth = updateStrength * putShare * 50;
+                            const absCallOi = Math.abs(entry.callOiAdded ?? 0);
+                            const absPutOi = Math.abs(entry.putOiAdded ?? 0);
+                            const updateOiTotal = absCallOi + absPutOi;
+                            const updateOiStrength = updateOiTotal > 0 ? updateOiTotal / maxAddedOiTotal : 0;
+                            const callOiShare = updateOiTotal > 0 ? absCallOi / updateOiTotal : 0;
+                            const putOiShare = updateOiTotal > 0 ? absPutOi / updateOiTotal : 0;
+                            const callOiWidth = updateOiStrength * callOiShare * 50;
+                            const putOiWidth = updateOiStrength * putOiShare * 50;
                             return (
                               <div key={`${entry.id}-${strike}`} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 120px', alignItems: 'center', gap: '8px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.66rem' }}>
@@ -1636,6 +1715,32 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                                         bottom: 0,
                                         width: `${putWidth}%`,
                                         background: entry.putAdded >= 0 ? 'rgba(245,158,11,0.7)' : 'rgba(239,68,68,0.75)'
+                                      }}
+                                    />
+                                  )}
+                                  {callOiWidth > 0 && (
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        right: '50%',
+                                        top: '50%',
+                                        height: '2px',
+                                        marginTop: '-1px',
+                                        width: `${callOiWidth}%`,
+                                        background: 'rgba(74, 222, 128, 0.9)'
+                                      }}
+                                    />
+                                  )}
+                                  {putOiWidth > 0 && (
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        left: '50%',
+                                        top: '50%',
+                                        height: '2px',
+                                        marginTop: '-1px',
+                                        width: `${putOiWidth}%`,
+                                        background: 'rgba(251, 113, 133, 0.9)'
                                       }}
                                     />
                                   )}
