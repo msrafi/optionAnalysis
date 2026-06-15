@@ -1906,217 +1906,200 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
           </h3>
         </div>
         <p className="yahoo-muted" style={{ marginTop: '-2px', marginBottom: '8px', fontSize: '0.8rem' }}>
-          Compact per-update profile. Persisted in local storage per symbol + expiry.
+          Compact per-update profile for 10 strikes below + ATM + 10 above. Persisted in local storage per symbol + expiry.
         </p>
 
-        {currentVolumeFlowSnapshot.strikes.length > 0 && (
-          <div
-            style={{
-              border: '1px solid rgba(148, 163, 184, 0.2)',
-              borderRadius: '10px',
-              padding: '10px',
-              marginBottom: '10px',
-              background: 'rgba(15, 23, 42, 0.45)'
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', gap: '10px' }}>
-              <strong style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>Current Available Volumes</strong>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  padding: '2px 8px',
-                  borderRadius: '999px',
-                  color:
-                    currentVolumeFlowSnapshot.dominant === 'CALL'
-                      ? '#bfdbfe'
-                      : currentVolumeFlowSnapshot.dominant === 'PUT'
-                        ? '#fde68a'
-                        : '#e2e8f0',
-                  background:
-                    currentVolumeFlowSnapshot.dominant === 'CALL'
-                      ? 'rgba(59,130,246,0.25)'
-                      : currentVolumeFlowSnapshot.dominant === 'PUT'
-                        ? 'rgba(245,158,11,0.25)'
-                        : 'rgba(100,116,139,0.25)'
-                }}
-              >
-                {currentVolumeFlowSnapshot.dominant === 'CALL'
-                  ? 'CALLS DOMINATING'
-                  : currentVolumeFlowSnapshot.dominant === 'PUT'
-                    ? 'PUTS DOMINATING'
-                    : 'BALANCED'}
-              </span>
-            </div>
+        {(() => {
+          const currentByStrike = new Map(
+            currentVolumeFlowSnapshot.strikes.map((entry) => [entry.strike, entry] as const)
+          );
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '8px' }}>
-              <span style={{ color: '#60a5fa' }}>Call Vol {currentVolumeFlowSnapshot.totalCallVolume.toLocaleString()}</span>
-              <span style={{ color: '#fbbf24' }}>Put Vol {currentVolumeFlowSnapshot.totalPutVolume.toLocaleString()}</span>
-            </div>
+          const updatesByStrike = new Map<number, Array<{ id: string; timestamp: string; callAdded: number; putAdded: number }>>();
+          volumeFlowHistory.forEach((update) => {
+            update.strikes.forEach((entry) => {
+              const list = updatesByStrike.get(entry.strike) || [];
+              list.push({
+                id: update.id,
+                timestamp: update.timestamp,
+                callAdded: entry.callAdded,
+                putAdded: entry.putAdded
+              });
+              updatesByStrike.set(entry.strike, list);
+            });
+          });
 
-            <div style={{ display: 'grid', gap: '6px' }}>
-              {(() => {
-                const maxCurrent = Math.max(
-                  1,
-                  ...currentVolumeFlowSnapshot.strikes.map((entry) => Math.max(entry.callValue, entry.putValue))
-                );
-                return currentVolumeFlowSnapshot.strikes.map((entry) => {
-                  const callWidth = (entry.callValue / maxCurrent) * 50;
-                  const putWidth = (entry.putValue / maxCurrent) * 50;
-                  return (
-                    <div
-                      key={`current-flow-${entry.strike}`}
-                      style={{ display: 'grid', gridTemplateColumns: '54px 1fr 130px', alignItems: 'center', gap: '8px' }}
-                    >
-                      <span style={{ fontSize: '0.74rem', color: '#cbd5e1', textAlign: 'right' }}>{entry.strike.toFixed(0)}</span>
-                      <div style={{ position: 'relative', height: '12px', borderRadius: '999px', background: 'rgba(15,23,42,0.65)', overflow: 'hidden' }}>
-                        <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', background: 'rgba(148,163,184,0.45)' }} />
-                        {putWidth > 0 && (
-                          <div style={{ position: 'absolute', right: '50%', top: 0, bottom: 0, width: `${putWidth}%`, background: 'rgba(245,158,11,0.9)' }} />
-                        )}
-                        {callWidth > 0 && (
-                          <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: `${callWidth}%`, background: 'rgba(59,130,246,0.9)' }} />
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.72rem' }}>
-                        <span style={{ color: '#60a5fa', minWidth: '58px', textAlign: 'right' }}>C {entry.callValue.toLocaleString()}</span>
-                        <span style={{ color: '#fbbf24', minWidth: '58px', textAlign: 'right' }}>P {entry.putValue.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-          </div>
-        )}
-
-        {volumeFlowHistory.length === 0 ? (
-          <p className="yahoo-muted">
-            {currentVolumeFlowSnapshot.strikes.length > 0
-              ? 'Update again to start building per-fetch flow history for this symbol/expiry.'
-              : 'Run analysis to load current volumes, then update again to build flow history.'}
-          </p>
-        ) : (
-          <div style={{ display: 'grid', gap: '10px' }}>
-            {volumeFlowHistory.map((update, idx) => {
-              const maxAdded = Math.max(
-                1,
-                ...update.strikes.map((entry) => Math.max(Math.abs(entry.callAdded), Math.abs(entry.putAdded)))
+          const sortedRows = [...parsed.rows].sort((a, b) => a.strike - b.strike);
+          const spotForWindow = effectiveSpot ?? sortedRows[Math.floor(sortedRows.length / 2)]?.strike ?? 0;
+          const centerIndex = sortedRows.length === 0
+            ? -1
+            : sortedRows.reduce(
+                (bestIdx, row, idx) =>
+                  Math.abs(row.strike - spotForWindow) < Math.abs(sortedRows[bestIdx].strike - spotForWindow) ? idx : bestIdx,
+                0
               );
+          const start = centerIndex >= 0 ? Math.max(0, centerIndex - 10) : 0;
+          const end = centerIndex >= 0 ? Math.min(sortedRows.length, centerIndex + 11) : 0;
+          const strikes = sortedRows.slice(start, end).map((row) => row.strike);
 
-              return (
-                <div
-                  key={update.id}
+          if (strikes.length === 0) {
+            return (
+              <p className="yahoo-muted">
+                Run analysis to load current volumes, then updates will accumulate per strike here.
+              </p>
+            );
+          }
+
+          const maxCurrent = Math.max(
+            1,
+            ...strikes.map((strike) => {
+              const current = currentByStrike.get(strike);
+              return Math.max(current?.callValue ?? 0, current?.putValue ?? 0);
+            })
+          );
+          const maxAdded = Math.max(
+            1,
+            ...strikes.flatMap((strike) =>
+              (updatesByStrike.get(strike) || []).map((x) => Math.max(Math.abs(x.callAdded), Math.abs(x.putAdded)))
+            )
+          );
+
+          return (
+            <div
+              style={{
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                borderRadius: '10px',
+                padding: '10px',
+                background: 'rgba(15, 23, 42, 0.45)'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', gap: '10px' }}>
+                <strong style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>Current Available Volumes + Update Timeline</strong>
+                <span
                   style={{
-                    border: '1px solid rgba(148, 163, 184, 0.18)',
-                    borderTop: idx > 0 ? '2px dashed rgba(148, 163, 184, 0.35)' : '1px solid rgba(148, 163, 184, 0.18)',
-                    borderRadius: '10px',
-                    padding: '10px'
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    color:
+                      currentVolumeFlowSnapshot.dominant === 'CALL'
+                        ? '#bfdbfe'
+                        : currentVolumeFlowSnapshot.dominant === 'PUT'
+                          ? '#fde68a'
+                          : '#e2e8f0',
+                    background:
+                      currentVolumeFlowSnapshot.dominant === 'CALL'
+                        ? 'rgba(59,130,246,0.25)'
+                        : currentVolumeFlowSnapshot.dominant === 'PUT'
+                          ? 'rgba(245,158,11,0.25)'
+                          : 'rgba(100,116,139,0.25)'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: '#cbd5e1' }}>
-                      <span style={{ color: '#94a3b8' }}>
-                        {new Date(update.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                      </span>
-                      <span style={{ color: '#64748b' }}>|</span>
-                      <span>{update.expiryLabel}</span>
-                      <span style={{ color: '#64748b' }}>|</span>
-                      <span style={{ color: '#60a5fa' }}>
-                        {update.spot ? `Spot ${update.spot.toFixed(2)}` : 'Spot -'}
-                      </span>
-                    </div>
+                  {currentVolumeFlowSnapshot.dominant === 'CALL'
+                    ? 'CALLS DOMINATING'
+                    : currentVolumeFlowSnapshot.dominant === 'PUT'
+                      ? 'PUTS DOMINATING'
+                      : 'BALANCED'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '10px' }}>
+                <span style={{ color: '#60a5fa' }}>Call Vol {currentVolumeFlowSnapshot.totalCallVolume.toLocaleString()}</span>
+                <span style={{ color: '#fbbf24' }}>Put Vol {currentVolumeFlowSnapshot.totalPutVolume.toLocaleString()}</span>
+              </div>
+
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {strikes.map((strike) => {
+                  const current = currentByStrike.get(strike);
+                  const updates = (updatesByStrike.get(strike) || []).slice(0, 6);
+                  const callCurrentWidth = current ? (current.callValue / maxCurrent) * 50 : 0;
+                  const putCurrentWidth = current ? (current.putValue / maxCurrent) * 50 : 0;
+
+                  return (
                     <div
+                      key={`flow-strike-${strike}`}
                       style={{
-                        fontSize: '0.74rem',
-                        fontWeight: 700,
-                        padding: '2px 8px',
-                        borderRadius: '999px',
-                        color:
-                          update.dominant === 'CALL' ? '#bfdbfe' : update.dominant === 'PUT' ? '#fde68a' : '#e2e8f0',
-                        background:
-                          update.dominant === 'CALL'
-                            ? 'rgba(59,130,246,0.25)'
-                            : update.dominant === 'PUT'
-                              ? 'rgba(245,158,11,0.25)'
-                              : 'rgba(100,116,139,0.25)'
+                        borderTop: '1px dashed rgba(148, 163, 184, 0.25)',
+                        paddingTop: '6px'
                       }}
                     >
-                      {update.dominant === 'CALL' ? 'CALLS ADDING MORE' : update.dominant === 'PUT' ? 'PUTS ADDING MORE' : 'BALANCED FLOW'}
-                    </div>
-                  </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '54px 120px 1fr 120px', alignItems: 'center', gap: '8px', marginBottom: updates.length > 0 ? '4px' : 0 }}>
+                        <span style={{ fontSize: '0.74rem', color: '#cbd5e1', textAlign: 'right', fontWeight: 600 }}>
+                          {strike.toFixed(0)}
+                        </span>
+                        <div style={{ fontSize: '0.72rem', color: '#60a5fa', textAlign: 'left', fontWeight: 600 }}>
+                          C {current?.callValue.toLocaleString() ?? '-'}
+                        </div>
+                        <div style={{ position: 'relative', height: '12px', borderRadius: '999px', background: 'rgba(15,23,42,0.65)', overflow: 'hidden' }}>
+                          <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', background: 'rgba(148,163,184,0.45)' }} />
+                          {callCurrentWidth > 0 && (
+                            <div style={{ position: 'absolute', right: '50%', top: 0, bottom: 0, width: `${callCurrentWidth}%`, background: 'rgba(59,130,246,0.9)' }} />
+                          )}
+                          {putCurrentWidth > 0 && (
+                            <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: `${putCurrentWidth}%`, background: 'rgba(245,158,11,0.9)' }} />
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: '#fbbf24', textAlign: 'right', fontWeight: 600 }}>
+                          P {current?.putValue.toLocaleString() ?? '-'}
+                        </div>
+                      </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '8px' }}>
-                    <span style={{ color: '#60a5fa' }}>
-                      Call Δ {update.totalCallAdded > 0 ? '+' : ''}{update.totalCallAdded.toLocaleString()}
-                    </span>
-                    <span style={{ color: '#fbbf24' }}>
-                      Put Δ {update.totalPutAdded > 0 ? '+' : ''}{update.totalPutAdded.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {update.strikes.length === 0 ? (
-                    <p className="yahoo-muted" style={{ margin: 0 }}>No strike-level volume change on this update.</p>
-                  ) : (
-                    <div style={{ display: 'grid', gap: '6px' }}>
-                      {update.strikes.map((entry) => {
-                        const callWidth = (Math.abs(entry.callAdded) / maxAdded) * 50;
-                        const putWidth = (Math.abs(entry.putAdded) / maxAdded) * 50;
-                        return (
-                          <div
-                            key={`${update.id}-${entry.strike}`}
-                            style={{ display: 'grid', gridTemplateColumns: '54px 1fr 130px', alignItems: 'center', gap: '8px' }}
-                          >
-                            <span style={{ fontSize: '0.74rem', color: '#cbd5e1', textAlign: 'right' }}>
-                              {entry.strike.toFixed(0)}
-                            </span>
-                            <div style={{ position: 'relative', height: '12px', borderRadius: '999px', background: 'rgba(15,23,42,0.65)', overflow: 'hidden' }}>
-                              <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', background: 'rgba(148,163,184,0.45)' }} />
-                              {putWidth > 0 && (
-                                <div
-                                  style={{
-                                    position: 'absolute',
-                                    right: '50%',
-                                    top: 0,
-                                    bottom: 0,
-                                    width: `${putWidth}%`,
-                                    background: entry.putAdded >= 0 ? 'rgba(245,158,11,0.9)' : 'rgba(239,68,68,0.85)'
-                                  }}
-                                  title={`Put Δ ${entry.putAdded > 0 ? '+' : ''}${entry.putAdded.toLocaleString()}`}
-                                />
-                              )}
-                              {callWidth > 0 && (
-                                <div
-                                  style={{
-                                    position: 'absolute',
-                                    left: '50%',
-                                    top: 0,
-                                    bottom: 0,
-                                    width: `${callWidth}%`,
-                                    background: entry.callAdded >= 0 ? 'rgba(59,130,246,0.9)' : 'rgba(239,68,68,0.85)'
-                                  }}
-                                  title={`Call Δ ${entry.callAdded > 0 ? '+' : ''}${entry.callAdded.toLocaleString()}`}
-                                />
-                              )}
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.72rem' }}>
-                              <span style={{ color: '#60a5fa', minWidth: '58px', textAlign: 'right' }}>
-                                C {entry.callAdded > 0 ? '+' : ''}{entry.callAdded.toLocaleString()}
-                              </span>
-                              <span style={{ color: '#fbbf24', minWidth: '58px', textAlign: 'right' }}>
-                                P {entry.putAdded > 0 ? '+' : ''}{entry.putAdded.toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {updates.length > 0 && (
+                        <div style={{ display: 'grid', gap: '4px', marginLeft: '62px' }}>
+                          {updates.map((entry) => {
+                            const callWidth = (Math.abs(entry.callAdded) / maxAdded) * 50;
+                            const putWidth = (Math.abs(entry.putAdded) / maxAdded) * 50;
+                            return (
+                              <div key={`${entry.id}-${strike}`} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 120px', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.66rem' }}>
+                                  <span style={{ color: '#94a3b8', minWidth: '38px' }}>
+                                    {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                  <span style={{ color: '#60a5fa', textAlign: 'left' }}>
+                                    C {entry.callAdded > 0 ? '+' : ''}{entry.callAdded.toLocaleString()}
+                                  </span>
+                                </div>
+                                <div style={{ position: 'relative', height: '8px', borderRadius: '999px', background: 'rgba(15,23,42,0.45)', overflow: 'hidden' }}>
+                                  <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', background: 'rgba(148,163,184,0.3)' }} />
+                                  {callWidth > 0 && (
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        right: '50%',
+                                        top: 0,
+                                        bottom: 0,
+                                        width: `${callWidth}%`,
+                                        background: entry.callAdded >= 0 ? 'rgba(59,130,246,0.7)' : 'rgba(239,68,68,0.75)'
+                                      }}
+                                    />
+                                  )}
+                                  {putWidth > 0 && (
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        left: '50%',
+                                        top: 0,
+                                        bottom: 0,
+                                        width: `${putWidth}%`,
+                                        background: entry.putAdded >= 0 ? 'rgba(245,158,11,0.7)' : 'rgba(239,68,68,0.75)'
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                                <div style={{ fontSize: '0.66rem', color: '#fbbf24', textAlign: 'right' }}>
+                                  P {entry.putAdded > 0 ? '+' : ''}{entry.putAdded.toLocaleString()}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
       </section>
     </div>
   );
