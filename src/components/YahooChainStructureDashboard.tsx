@@ -312,6 +312,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   // Refs for auto-scrolling to ATM strike
   const heatmapAtmRowRef = useRef<HTMLTableRowElement>(null);
   const butterflyAtmRowRef = useRef<HTMLDivElement>(null);
+  const didInitialHeatmapScrollRef = useRef(false);
+  const didInitialButterflyScrollRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1047,24 +1049,28 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
 
   // Auto-scroll to ATM strike in Volume/OI Heatmap
   useEffect(() => {
+    if (didInitialHeatmapScrollRef.current) return;
     if (heatmapAtmRowRef.current && effectiveSpot) {
       setTimeout(() => {
         heatmapAtmRowRef.current?.scrollIntoView({
           behavior: 'smooth',
           block: 'center'
         });
+        didInitialHeatmapScrollRef.current = true;
       }, 100);
     }
   }, [effectiveSpot, parsed.rows]);
 
   // Auto-scroll to ATM strike in Butterfly Workspace
   useEffect(() => {
+    if (didInitialButterflyScrollRef.current) return;
     if (butterflyAtmRowRef.current && effectiveSpot) {
       setTimeout(() => {
         butterflyAtmRowRef.current?.scrollIntoView({
           behavior: 'smooth',
           block: 'center'
         });
+        didInitialButterflyScrollRef.current = true;
       }, 100);
     }
   }, [effectiveSpot, parsed.rows]);
