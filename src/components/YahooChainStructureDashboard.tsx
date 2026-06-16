@@ -65,6 +65,19 @@ interface ParsedChainData {
   spotPrice: number | null;
 }
 
+function getAtmWindowRows(rows: ChainRow[], spot: number, below = 10, above = 10): ChainRow[] {
+  const sortedRows = [...rows].sort((a, b) => a.strike - b.strike);
+  if (sortedRows.length === 0) return [];
+  const centerIndex = sortedRows.reduce(
+    (bestIdx, row, idx) =>
+      Math.abs(row.strike - spot) < Math.abs(sortedRows[bestIdx].strike - spot) ? idx : bestIdx,
+    0
+  );
+  const start = Math.max(0, centerIndex - below);
+  const end = Math.min(sortedRows.length, centerIndex + above + 1);
+  return sortedRows.slice(start, end);
+}
+
 interface DeltaPresetRow {
   preset: string;
   side: string;
@@ -308,7 +321,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [volumeFlowHistory, setVolumeFlowHistory] = useState<VolumeFlowUpdate[]>([]);
   const selectedExpiryDays = selectedExpiry ? daysUntilExpiry(selectedExpiry) : null;
   const flowStorageKey = useMemo(
-    () => `chain-structure-flow:${symbol.trim().toUpperCase() || 'UNKNOWN'}:${selectedExpiry ?? 'nearest'}`,
+    () => `chain-structure-flow:v2:${symbol.trim().toUpperCase() || 'UNKNOWN'}:${selectedExpiry ?? 'nearest'}`,
     [symbol, selectedExpiry]
   );
 
@@ -318,6 +331,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const didInitialHeatmapScrollRef = useRef(false);
   const didInitialButterflyScrollRef = useRef(false);
   const latestLoadChainRequestRef = useRef(0);
+  const parsedRef = useRef(parsed);
+
+  useEffect(() => {
+    parsedRef.current = parsed;
+  }, [parsed]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -798,35 +816,27 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       const detectedSpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
       const normalized = buildChainFromYahoo(chain.contracts, detectedSpot);
 
-      // Build a compact per-update flow snapshot so users can see
-      // where fresh call/put volume is being added on each fetch.
-      if (parsed.rows.length > 0) {
-        const prevByStrike = new Map<number, ChainRow>(parsed.rows.map((row) => [row.strike, row]));
-        const strikeDiffs: VolumeFlowStrikeDelta[] = normalized.rows
-          .map((row) => {
-            const prev = prevByStrike.get(row.strike);
-            const callAdded = row.callVolume - (prev?.callVolume ?? 0);
-            const putAdded = row.putVolume - (prev?.putVolume ?? 0);
-            const callOiAdded = row.callOi - (prev?.callOi ?? 0);
-            const putOiAdded = row.putOi - (prev?.putOi ?? 0);
-            return { strike: row.strike, callAdded, putAdded, callOiAdded, putOiAdded };
-          })
-          .filter((item) => item.callAdded !== 0 || item.putAdded !== 0 || item.callOiAdded !== 0 || item.putOiAdded !== 0)
-          .sort(
-            (a, b) =>
-              Math.max(Math.abs(b.callAdded), Math.abs(b.putAdded)) -
-              Math.max(Math.abs(a.callAdded), Math.abs(a.putAdded))
-          )
-          .slice(0, 10);
+      // Build a per-update flow snapshot: store the delta from the immediately
+      // previous fetch (not cumulative). Use parsedRef so auto-refresh intervals
+      // always compare against the latest snapshot, not a stale closure value.
+      const previousParsed = parsedRef.current;
+      if (previousParsed.rows.length > 0) {
+        const prevByStrike = new Map<number, ChainRow>(previousParsed.rows.map((row) => [row.strike, row]));
+        const spotForWindow = detectedSpot ?? normalized.spotPrice ?? previousParsed.spotPrice ?? 0;
+        const windowRows = getAtmWindowRows(normalized.rows, spotForWindow);
+        const strikeDiffs: VolumeFlowStrikeDelta[] = windowRows.map((row) => {
+          const prev = prevByStrike.get(row.strike);
+          return {
+            strike: row.strike,
+            callAdded: row.callVolume - (prev?.callVolume ?? 0),
+            putAdded: row.putVolume - (prev?.putVolume ?? 0),
+            callOiAdded: row.callOi - (prev?.callOi ?? 0),
+            putOiAdded: row.putOi - (prev?.putOi ?? 0)
+          };
+        });
 
-        const totalCallAdded = normalized.rows.reduce((sum, row) => {
-          const prev = prevByStrike.get(row.strike);
-          return sum + (row.callVolume - (prev?.callVolume ?? 0));
-        }, 0);
-        const totalPutAdded = normalized.rows.reduce((sum, row) => {
-          const prev = prevByStrike.get(row.strike);
-          return sum + (row.putVolume - (prev?.putVolume ?? 0));
-        }, 0);
+        const totalCallAdded = strikeDiffs.reduce((sum, row) => sum + row.callAdded, 0);
+        const totalPutAdded = strikeDiffs.reduce((sum, row) => sum + row.putAdded, 0);
 
         const positiveCall = Math.max(0, totalCallAdded);
         const positivePut = Math.max(0, totalPutAdded);
@@ -858,13 +868,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       // Save current data to history before updating (for delta calculation)
       // Keep history for every successful fetch (manual + auto refresh),
       // so heatmap deltas reflect each update cycle.
-      if (parsed.rows.length > 0) {
+      if (previousParsed.rows.length > 0) {
         setDataHistory(prev => {
-          const newHistory = [parsed, ...prev].slice(0, 5); // Keep last 5 snapshots
+          const newHistory = [previousParsed, ...prev].slice(0, 5); // Keep last 5 snapshots
           return newHistory;
         });
       }
-      
+
+      parsedRef.current = normalized;
       setParsed(normalized);
       if (mostActiveResult.status === 'fulfilled') {
         setMostActiveRows(mostActiveResult.value);
@@ -1441,7 +1452,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
           </h3>
         </div>
         <p className="yahoo-muted" style={{ marginTop: '-2px', marginBottom: '8px', fontSize: '0.8rem' }}>
-          Compact per-update profile for 10 strikes below + ATM + 10 above. Persisted in local storage per symbol + expiry.
+          Top row shows current volumes. Each update below shows only the change since the previous fetch (0 if unchanged).
         </p>
 
         {(() => {
@@ -1473,16 +1484,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
 
           const sortedRows = [...parsed.rows].sort((a, b) => a.strike - b.strike);
           const spotForWindow = effectiveSpot ?? sortedRows[Math.floor(sortedRows.length / 2)]?.strike ?? 0;
-          const centerIndex = sortedRows.length === 0
-            ? -1
-            : sortedRows.reduce(
-                (bestIdx, row, idx) =>
-                  Math.abs(row.strike - spotForWindow) < Math.abs(sortedRows[bestIdx].strike - spotForWindow) ? idx : bestIdx,
-                0
-              );
-          const start = centerIndex >= 0 ? Math.max(0, centerIndex - 10) : 0;
-          const end = centerIndex >= 0 ? Math.min(sortedRows.length, centerIndex + 11) : 0;
-          const windowRows = sortedRows.slice(start, end);
+          const windowRows = getAtmWindowRows(sortedRows, spotForWindow);
           const strikes = windowRows.map((row) => row.strike);
           const currentByStrike = new Map(
             windowRows.map((row) => [
@@ -1528,19 +1530,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               return (current?.callOiValue ?? 0) + (current?.putOiValue ?? 0);
             })
           );
-          const maxAddedTotal = Math.max(
-            1,
-            ...strikes.flatMap((strike) =>
-              (updatesByStrike.get(strike) || []).map((x) => Math.abs(x.callAdded) + Math.abs(x.putAdded))
-            )
-          );
-          const maxAddedOiTotal = Math.max(
-            1,
-            ...strikes.flatMap((strike) =>
-              (updatesByStrike.get(strike) || []).map((x) => Math.abs(x.callOiAdded ?? 0) + Math.abs(x.putOiAdded ?? 0))
-            )
-          );
-
           return (
             <div
               style={{
@@ -1591,20 +1580,12 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   const updates = (updatesByStrike.get(strike) || []).slice(0, 6);
                   const currentCall = current?.callValue ?? 0;
                   const currentPut = current?.putValue ?? 0;
-                  const currentTotal = currentCall + currentPut;
-                  const currentStrength = currentTotal > 0 ? currentTotal / maxCurrentTotal : 0;
-                  const currentCallShare = currentTotal > 0 ? currentCall / currentTotal : 0;
-                  const currentPutShare = currentTotal > 0 ? currentPut / currentTotal : 0;
-                  const callCurrentWidth = currentStrength * currentCallShare * 50;
-                  const putCurrentWidth = currentStrength * currentPutShare * 50;
+                  const callCurrentWidth = (currentCall / maxCurrentTotal) * 50;
+                  const putCurrentWidth = (currentPut / maxCurrentTotal) * 50;
                   const currentCallOi = current?.callOiValue ?? 0;
                   const currentPutOi = current?.putOiValue ?? 0;
-                  const currentOiTotal = currentCallOi + currentPutOi;
-                  const currentOiStrength = currentOiTotal > 0 ? currentOiTotal / maxCurrentOiTotal : 0;
-                  const currentCallOiShare = currentOiTotal > 0 ? currentCallOi / currentOiTotal : 0;
-                  const currentPutOiShare = currentOiTotal > 0 ? currentPutOi / currentOiTotal : 0;
-                  const callCurrentOiWidth = currentOiStrength * currentCallOiShare * 50;
-                  const putCurrentOiWidth = currentOiStrength * currentPutOiShare * 50;
+                  const callCurrentOiWidth = (currentCallOi / maxCurrentOiTotal) * 50;
+                  const putCurrentOiWidth = (currentPutOi / maxCurrentOiTotal) * 50;
 
                   return (
                     <div
@@ -1669,27 +1650,32 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                             const absCall = Math.abs(entry.callAdded);
                             const absPut = Math.abs(entry.putAdded);
                             const updateTotal = absCall + absPut;
-                            const updateStrength = updateTotal > 0 ? updateTotal / maxAddedTotal : 0;
-                            const callShare = updateTotal > 0 ? absCall / updateTotal : 0;
-                            const putShare = updateTotal > 0 ? absPut / updateTotal : 0;
-                            const callWidth = updateStrength * callShare * 50;
-                            const putWidth = updateStrength * putShare * 50;
+                            const isZeroUpdate = updateTotal === 0;
+                            // Scale delta bars against the same baseline as current volume bars
+                            // so +34 renders much smaller than a 7,393 total.
+                            const callWidth = (absCall / maxCurrentTotal) * 50;
+                            const putWidth = (absPut / maxCurrentTotal) * 50;
                             const absCallOi = Math.abs(entry.callOiAdded ?? 0);
                             const absPutOi = Math.abs(entry.putOiAdded ?? 0);
-                            const updateOiTotal = absCallOi + absPutOi;
-                            const updateOiStrength = updateOiTotal > 0 ? updateOiTotal / maxAddedOiTotal : 0;
-                            const callOiShare = updateOiTotal > 0 ? absCallOi / updateOiTotal : 0;
-                            const putOiShare = updateOiTotal > 0 ? absPutOi / updateOiTotal : 0;
-                            const callOiWidth = updateOiStrength * callOiShare * 50;
-                            const putOiWidth = updateOiStrength * putOiShare * 50;
+                            const callOiWidth = (absCallOi / maxCurrentOiTotal) * 50;
+                            const putOiWidth = (absPutOi / maxCurrentOiTotal) * 50;
                             return (
-                              <div key={`${entry.id}-${strike}`} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 120px', alignItems: 'center', gap: '8px' }}>
+                              <div
+                                key={`${entry.id}-${strike}`}
+                                style={{
+                                  display: 'grid',
+                                  gridTemplateColumns: '120px 1fr 120px',
+                                  alignItems: 'center',
+                                  gap: '8px',
+                                  opacity: isZeroUpdate ? 0.55 : 1
+                                }}
+                              >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.66rem' }}>
                                   <span style={{ color: '#94a3b8', minWidth: '38px' }}>
                                     {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                   </span>
-                                  <span style={{ color: '#60a5fa', textAlign: 'left' }}>
-                                    C {entry.callAdded > 0 ? '+' : ''}{entry.callAdded.toLocaleString()}
+                                  <span style={{ color: isZeroUpdate ? '#64748b' : '#60a5fa', textAlign: 'left' }}>
+                                    C {entry.callAdded > 0 ? '+' : entry.callAdded < 0 ? '' : ''}{entry.callAdded.toLocaleString()}
                                   </span>
                                 </div>
                                 <div style={{ position: 'relative', height: '8px', borderRadius: '999px', background: 'rgba(15,23,42,0.45)', overflow: 'hidden' }}>
@@ -1745,7 +1731,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                                     />
                                   )}
                                 </div>
-                                <div style={{ fontSize: '0.66rem', color: '#fbbf24', textAlign: 'right' }}>
+                                <div style={{ fontSize: '0.66rem', color: isZeroUpdate ? '#64748b' : '#fbbf24', textAlign: 'right' }}>
                                   P {entry.putAdded > 0 ? '+' : ''}{entry.putAdded.toLocaleString()}
                                 </div>
                               </div>
