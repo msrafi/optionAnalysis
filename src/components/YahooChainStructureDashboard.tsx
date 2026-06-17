@@ -2,7 +2,13 @@ import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { BarChart3, RefreshCw } from 'lucide-react';
 import { fetchYahooMostActiveOptions, fetchYahooOptionChain, YahooMostActiveOptionRow } from '../utils/yahooOptions';
 
-type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'chainStructure' | 'chainStructureYahoo';
+type DashboardType =
+  | 'options'
+  | 'darkpool'
+  | 'psychology'
+  | 'chainStructure'
+  | 'chainStructureYahoo'
+  | 'yahooExpiryHighlights';
 
 interface YahooChainStructureDashboardProps {
   activeDashboard: DashboardType;
@@ -1127,8 +1133,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         </div>
         <div className="header-right">
           <div className="nav-buttons">
-            <button className={`nav-button ${activeDashboard === 'yahoo' ? 'active' : ''}`} onClick={() => setActiveDashboard('yahoo')}>Yahoo Options</button>
             <button className={`nav-button ${activeDashboard === 'chainStructureYahoo' ? 'active' : ''}`} onClick={() => setActiveDashboard('chainStructureYahoo')}>Chain Structure (Yahoo)</button>
+            <button className={`nav-button ${activeDashboard === 'yahooExpiryHighlights' ? 'active' : ''}`} onClick={() => setActiveDashboard('yahooExpiryHighlights')}>High Vol &amp; OI</button>
           </div>
         </div>
       </header>

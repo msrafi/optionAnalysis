@@ -2,14 +2,20 @@ import { useState } from 'react';
 import OptionsDashboard from './components/OptionsDashboard';
 import DarkPoolDashboard from './components/DarkPoolDashboard';
 import OverallAnalysisDashboard from './components/OverallAnalysisDashboard';
-import YahooOptionsDashboard from './components/YahooOptionsDashboard';
 import OptionChainStructureDashboard from './components/OptionChainStructureDashboard';
 import YahooChainStructureDashboard from './components/YahooChainStructureDashboard';
+import YahooExpiryHighlightsDashboard from './components/YahooExpiryHighlightsDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 import PasskeyGate from './components/PasskeyGate';
 import './App.css';
 
-type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'chainStructure' | 'chainStructureYahoo';
+type DashboardType =
+  | 'options'
+  | 'darkpool'
+  | 'psychology'
+  | 'chainStructure'
+  | 'chainStructureYahoo'
+  | 'yahooExpiryHighlights';
 
 function App() {
   const [activeDashboard, setActiveDashboard] = useState<DashboardType>('chainStructureYahoo');
@@ -29,11 +35,6 @@ function App() {
               activeDashboard={activeDashboard}
               setActiveDashboard={setActiveDashboard}
             />
-          ) : activeDashboard === 'yahoo' ? (
-            <YahooOptionsDashboard
-              activeDashboard={activeDashboard}
-              setActiveDashboard={setActiveDashboard}
-            />
           ) : activeDashboard === 'chainStructure' ? (
             <OptionChainStructureDashboard
               activeDashboard={activeDashboard}
@@ -41,6 +42,11 @@ function App() {
             />
           ) : activeDashboard === 'chainStructureYahoo' ? (
             <YahooChainStructureDashboard
+              activeDashboard={activeDashboard}
+              setActiveDashboard={setActiveDashboard}
+            />
+          ) : activeDashboard === 'yahooExpiryHighlights' ? (
+            <YahooExpiryHighlightsDashboard
               activeDashboard={activeDashboard}
               setActiveDashboard={setActiveDashboard}
             />

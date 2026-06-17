@@ -6,7 +6,14 @@ import {
   YahooOptionContract
 } from '../utils/yahooOptions';
 
-type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'chainStructure' | 'chainStructureYahoo';
+type DashboardType =
+  | 'options'
+  | 'darkpool'
+  | 'psychology'
+  | 'yahoo'
+  | 'chainStructure'
+  | 'chainStructureYahoo'
+  | 'yahooExpiryHighlights';
 
 interface YahooOptionsDashboardProps {
   activeDashboard: DashboardType;
@@ -367,6 +374,12 @@ const YahooOptionsDashboard: React.FC<YahooOptionsDashboardProps> = ({ activeDas
               onClick={() => setActiveDashboard('chainStructureYahoo')}
             >
               Chain Structure (Yahoo)
+            </button>
+            <button
+              className={`nav-button ${activeDashboard === 'yahooExpiryHighlights' ? 'active' : ''}`}
+              onClick={() => setActiveDashboard('yahooExpiryHighlights')}
+            >
+              High Vol &amp; OI
             </button>
           </div>
         </div>

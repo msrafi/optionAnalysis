@@ -15,8 +15,8 @@ import { loadAllDarkPoolDataFiles, clearDarkPoolFileCache } from '../utils/fileL
 import { getCurrentPrice, clearPriceCache } from '../utils/stockPrice';
 
 export interface DarkPoolDashboardProps {
-  activeDashboard: 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'chainStructure' | 'chainStructureYahoo';
-  setActiveDashboard: (dashboard: 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'chainStructure' | 'chainStructureYahoo') => void;
+  activeDashboard: 'options' | 'darkpool' | 'psychology' | 'chainStructure' | 'chainStructureYahoo' | 'yahooExpiryHighlights';
+  setActiveDashboard: (dashboard: 'options' | 'darkpool' | 'psychology' | 'chainStructure' | 'chainStructureYahoo' | 'yahooExpiryHighlights') => void;
 }
 
 const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, setActiveDashboard }) => {
@@ -311,12 +311,6 @@ const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, 
           )}
           
           <div className="nav-buttons">
-            <button
-              className={`nav-button ${activeDashboard === 'yahoo' ? 'active' : ''}`}
-              onClick={() => setActiveDashboard('yahoo')}
-            >
-              Yahoo Options
-            </button>
             <button
               className={`nav-button ${activeDashboard === 'chainStructureYahoo' ? 'active' : ''}`}
               onClick={() => setActiveDashboard('chainStructureYahoo')}

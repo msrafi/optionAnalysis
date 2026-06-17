@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { BarChart3, RefreshCw } from 'lucide-react';
 
-type DashboardType = 'options' | 'darkpool' | 'psychology' | 'yahoo' | 'chainStructure' | 'chainStructureYahoo';
+type DashboardType = 'options' | 'darkpool' | 'psychology' | 'chainStructure' | 'chainStructureYahoo' | 'yahooExpiryHighlights';
 
 interface OptionChainStructureDashboardProps {
   activeDashboard: DashboardType;
@@ -361,7 +361,6 @@ const OptionChainStructureDashboard: React.FC<OptionChainStructureDashboardProps
         </div>
         <div className="header-right">
           <div className="nav-buttons">
-            <button className={`nav-button ${activeDashboard === 'yahoo' ? 'active' : ''}`} onClick={() => setActiveDashboard('yahoo')}>Yahoo Options</button>
             <button className={`nav-button ${activeDashboard === 'chainStructureYahoo' ? 'active' : ''}`} onClick={() => setActiveDashboard('chainStructureYahoo')}>Chain Structure (Yahoo)</button>
           </div>
         </div>
