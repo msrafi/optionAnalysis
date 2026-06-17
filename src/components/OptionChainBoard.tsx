@@ -188,7 +188,7 @@ const OptionChainBoard: React.FC<OptionChainBoardProps> = ({ symbol, spot, contr
   }
 
   return (
-    <div className="option-chain-board">
+    <div className="option-chain-board option-chain-board--compact">
       <div className="option-chain-scroll">
         <table className="option-chain-table">
           <thead>
@@ -206,13 +206,13 @@ const OptionChainBoard: React.FC<OptionChainBoardProps> = ({ symbol, spot, contr
               <th>Last</th>
               <th>Bid</th>
               <th>Ask</th>
-              <th>% Change</th>
-              <th>Open Int</th>
-              <th>Volume</th>
+              <th>%</th>
+              <th>OI</th>
+              <th>Vol</th>
               <th className="chain-strike-header">Strike</th>
-              <th>Volume</th>
-              <th>Open Int</th>
-              <th>% Change</th>
+              <th>Vol</th>
+              <th>OI</th>
+              <th>%</th>
               <th>Ask</th>
               <th>Bid</th>
               <th>Last</th>
@@ -266,7 +266,7 @@ const OptionChainBoard: React.FC<OptionChainBoardProps> = ({ symbol, spot, contr
                         />
                         <td className="chain-strike-cell">
                           <span className="chain-strike-value">{row.strike.toFixed(2)}</span>
-                          <span className="chain-strike-dte">{group.daysToExpiry} D</span>
+                          <span className="chain-strike-dte">{group.daysToExpiry}D</span>
                         </td>
                         <ContractSideCells
                           contract={row.put}

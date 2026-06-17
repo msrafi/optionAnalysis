@@ -373,7 +373,7 @@ const YahooOptionsDashboard: React.FC<YahooOptionsDashboardProps> = ({ activeDas
               className={`nav-button ${activeDashboard === 'chainStructureYahoo' ? 'active' : ''}`}
               onClick={() => setActiveDashboard('chainStructureYahoo')}
             >
-              Chain Structure (Yahoo)
+              Chain Structure
             </button>
             <button
               className={`nav-button ${activeDashboard === 'yahooExpiryHighlights' ? 'active' : ''}`}

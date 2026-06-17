@@ -1304,9 +1304,17 @@
   overflow: hidden;
 }
 
+.option-chain-board--compact {
+  margin: 0 0.75rem 0.75rem;
+}
+
 .option-chain-scroll {
   overflow: auto;
   max-height: 72vh;
+}
+
+.option-chain-board--compact .option-chain-scroll {
+  overflow-x: auto;
 }
 
 .option-chain-table {
@@ -1315,6 +1323,12 @@
   border-collapse: collapse;
   font-size: 0.78rem;
   font-variant-numeric: tabular-nums;
+}
+
+.option-chain-board--compact .option-chain-table {
+  table-layout: fixed;
+  min-width: 960px;
+  font-size: 0.7rem;
 }
 
 .option-chain-table thead {
@@ -1481,6 +1495,182 @@
   color: #4ade80;
   font-weight: 700;
   font-size: 0.9rem;
+}
+
+/* High Vol & OI page — compact horizontal layout */
+.yahoo-expiry-highlights-dashboard .yahoo-controls--compact {
+  display: block;
+  padding: 0.65rem 0.75rem;
+  gap: 0.45rem;
+}
+
+.yahoo-expiry-highlights-dashboard .yahoo-filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.45rem 0.65rem;
+  flex-direction: row;
+  padding: 0.55rem 0.7rem;
+}
+
+.yahoo-expiry-highlights-dashboard .yahoo-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.yahoo-expiry-highlights-dashboard .yahoo-filter-field label {
+  display: block;
+  font-size: 0.7rem;
+  margin: 0;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.yahoo-expiry-highlights-dashboard .yahoo-filter-field .search-input {
+  width: 100%;
+  padding: 0.38rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.yahoo-expiry-highlights-dashboard .yahoo-filter-field--symbol {
+  flex: 0 0 92px;
+}
+
+.yahoo-expiry-highlights-dashboard .yahoo-filter-field--number {
+  flex: 0 0 78px;
+}
+
+.yahoo-expiry-highlights-dashboard .yahoo-filter-field--mode {
+  flex: 0 0 118px;
+}
+
+.yahoo-expiry-highlights-dashboard .yahoo-filter-select {
+  width: 100%;
+  background: rgba(12, 18, 34, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 8px;
+  color: #e5edff;
+  padding: 0.38rem 0.45rem;
+  font-size: 0.78rem;
+}
+
+.yahoo-expiry-highlights-dashboard .yahoo-filter-action {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0.42rem 0.75rem;
+  font-size: 0.78rem;
+}
+
+.yahoo-expiry-highlights-dashboard .yahoo-filter-hint {
+  margin: 0;
+  padding: 0 0.15rem;
+  font-size: 0.74rem;
+}
+
+.option-chain-board--compact .option-chain-side-row th,
+.option-chain-board--compact .option-chain-columns-row th {
+  padding: 0.28rem 0.2rem;
+  font-size: 0.66rem;
+}
+
+.option-chain-board--compact .chain-strike-header {
+  min-width: 52px;
+  width: 4.5%;
+}
+
+.option-chain-board--compact .chain-strike-cell {
+  padding: 0.18rem 0.15rem;
+  min-width: 52px;
+  line-height: 1.15;
+}
+
+.option-chain-board--compact .chain-strike-value {
+  font-size: 0.72rem;
+}
+
+.option-chain-board--compact .chain-strike-dte {
+  display: inline;
+  margin-top: 0;
+  margin-left: 0.2rem;
+  font-size: 0.62rem;
+}
+
+.option-chain-board--compact .chain-cell {
+  padding: 0.16rem 0.18rem;
+  font-size: 0.68rem;
+}
+
+.option-chain-board--compact .chain-expiry-row td {
+  padding: 0.32rem 0.55rem;
+}
+
+.option-chain-board--compact .chain-expiry-label {
+  font-size: 0.74rem;
+}
+
+.option-chain-board--compact .chain-expiry-meta {
+  font-size: 0.68rem;
+}
+
+.option-chain-board--compact .chain-spot-divider-row td {
+  padding: 0.28rem 0.55rem;
+}
+
+.option-chain-board--compact .chain-spot-price {
+  font-size: 0.78rem;
+}
+
+@media (min-width: 1280px) {
+  .yahoo-expiry-highlights-dashboard .yahoo-controls--compact {
+    padding: 0.55rem 1rem;
+  }
+
+  .yahoo-expiry-highlights-dashboard .yahoo-filter-toolbar {
+    flex-wrap: nowrap;
+  }
+
+  .yahoo-expiry-highlights-dashboard .yahoo-filter-hint {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .option-chain-board--compact {
+    margin: 0 1rem 0.75rem;
+  }
+
+  .option-chain-board--compact .option-chain-scroll {
+    max-height: calc(100vh - 210px);
+    overflow-x: hidden;
+  }
+
+  .option-chain-board--compact .option-chain-table {
+    min-width: 0;
+    width: 100%;
+    font-size: 0.66rem;
+  }
+
+  .option-chain-board--compact .chain-cell {
+    padding: 0.14rem 0.12rem;
+    font-size: 0.64rem;
+  }
+
+  .option-chain-board--compact .option-chain-columns-row th {
+    font-size: 0.62rem;
+    letter-spacing: 0.01em;
+  }
+}
+
+@media (min-width: 1600px) {
+  .option-chain-board--compact .option-chain-table {
+    font-size: 0.68rem;
+  }
+
+  .option-chain-board--compact .chain-cell {
+    padding: 0.16rem 0.14rem;
+    font-size: 0.66rem;
+  }
 }
 
 .chain-move-bar-chart {

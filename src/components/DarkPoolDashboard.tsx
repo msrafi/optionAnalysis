@@ -315,7 +315,7 @@ const DarkPoolDashboard: React.FC<DarkPoolDashboardProps> = ({ activeDashboard, 
               className={`nav-button ${activeDashboard === 'chainStructureYahoo' ? 'active' : ''}`}
               onClick={() => setActiveDashboard('chainStructureYahoo')}
             >
-              Chain Structure (Yahoo)
+              Chain Structure
             </button>
           </div>
           

@@ -510,7 +510,7 @@ const OptionsDashboard: React.FC<OptionsDashboardProps> = ({ activeDashboard, se
               className={`nav-button ${activeDashboard === 'chainStructureYahoo' ? 'active' : ''}`}
               onClick={() => setActiveDashboard('chainStructureYahoo')}
             >
-              Chain Structure (Yahoo)
+              Chain Structure
             </button>
           </div>
           

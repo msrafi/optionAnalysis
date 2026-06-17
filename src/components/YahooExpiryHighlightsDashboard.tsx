@@ -23,8 +23,28 @@ const EXPIRY_COUNT = 10;
 const DEFAULT_MIN_VOLUME = 2500;
 const DEFAULT_MIN_OI = 2500;
 
+type FilterMode = 'either' | 'volume' | 'oi';
+
 interface ScanRow extends YahooOptionContract {
   daysToExpiry: number;
+}
+
+function getFilterSummary(mode: FilterMode, minVolume: number, minOi: number): string {
+  if (mode === 'volume') return `Vol ≥ ${minVolume.toLocaleString()}`;
+  if (mode === 'oi') return `OI ≥ ${minOi.toLocaleString()}`;
+  return `Vol ≥ ${minVolume.toLocaleString()} or OI ≥ ${minOi.toLocaleString()}`;
+}
+
+function matchesFilter(
+  row: ScanRow,
+  mode: FilterMode,
+  minVolume: number,
+  minOi: number
+): boolean {
+  if (row.bid <= 0) return false;
+  if (mode === 'volume') return row.volume >= minVolume;
+  if (mode === 'oi') return row.openInterest >= minOi;
+  return row.volume >= minVolume || row.openInterest >= minOi;
 }
 
 function daysUntilExpiry(expiration: number): number {
@@ -53,14 +73,16 @@ const YahooExpiryHighlightsDashboard: React.FC<YahooExpiryHighlightsDashboardPro
   const [lastRunAt, setLastRunAt] = useState<Date | null>(null);
   const [minVolume, setMinVolume] = useState(DEFAULT_MIN_VOLUME);
   const [minOi, setMinOi] = useState(DEFAULT_MIN_OI);
+  const [filterMode, setFilterMode] = useState<FilterMode>('either');
+
+  const filterSummary = useMemo(
+    () => getFilterSummary(filterMode, minVolume, minOi),
+    [filterMode, minVolume, minOi]
+  );
 
   const filteredRows = useMemo(
-    () =>
-      allContracts.filter(
-        (row) =>
-          row.bid > 0 && (row.volume >= minVolume || row.openInterest >= minOi)
-      ),
-    [allContracts, minVolume, minOi]
+    () => allContracts.filter((row) => matchesFilter(row, filterMode, minVolume, minOi)),
+    [allContracts, filterMode, minVolume, minOi]
   );
 
   const runScan = async () => {
@@ -116,7 +138,7 @@ const YahooExpiryHighlightsDashboard: React.FC<YahooExpiryHighlightsDashboardPro
   };
 
   return (
-    <div className="options-dashboard yahoo-options-dashboard">
+    <div className="options-dashboard yahoo-options-dashboard yahoo-expiry-highlights-dashboard">
       <header className="dashboard-header">
         <div className="header-left">
           <h1>High Volume &amp; OI Strikes</h1>
@@ -131,9 +153,7 @@ const YahooExpiryHighlightsDashboard: React.FC<YahooExpiryHighlightsDashboardPro
             <span className="stat-separator">•</span>
             <span className="header-stat">{scannedExpiries.length} expiries scanned</span>
             <span className="stat-separator">•</span>
-            <span className="header-stat">
-              Vol ≥ {minVolume.toLocaleString()} or OI ≥ {minOi.toLocaleString()}
-            </span>
+            <span className="header-stat">{filterSummary}</span>
             <span className="stat-separator">•</span>
             <span className="header-stat">{filteredRows.length.toLocaleString()} matches</span>
             {lastRunAt && (
@@ -150,7 +170,7 @@ const YahooExpiryHighlightsDashboard: React.FC<YahooExpiryHighlightsDashboardPro
               className={`nav-button ${activeDashboard === 'chainStructureYahoo' ? 'active' : ''}`}
               onClick={() => setActiveDashboard('chainStructureYahoo')}
             >
-              Chain Structure (Yahoo)
+              Chain Structure
             </button>
             <button
               className={`nav-button ${activeDashboard === 'yahooExpiryHighlights' ? 'active' : ''}`}
@@ -162,56 +182,72 @@ const YahooExpiryHighlightsDashboard: React.FC<YahooExpiryHighlightsDashboardPro
         </div>
       </header>
 
-      <section className="yahoo-controls">
-        <div className="yahoo-filter-panel">
-          <label htmlFor="highlights-symbol">Stock Symbol</label>
-          <input
-            id="highlights-symbol"
-            value={symbol}
-            onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-            className="search-input"
-            style={{ maxWidth: 220 }}
-            placeholder="e.g. NVDA"
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !loading) {
-                runScan();
-              }
-            }}
-          />
+      <section className="yahoo-controls yahoo-controls--compact">
+        <div className="yahoo-filter-panel yahoo-filter-toolbar">
+          <div className="yahoo-filter-field yahoo-filter-field--symbol">
+            <label htmlFor="highlights-symbol">Symbol</label>
+            <input
+              id="highlights-symbol"
+              value={symbol}
+              onChange={(event) => setSymbol(event.target.value.toUpperCase())}
+              className="search-input"
+              placeholder="NVDA"
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !loading) {
+                  runScan();
+                }
+              }}
+            />
+          </div>
 
-          <label htmlFor="min-volume">Min Volume</label>
-          <input
-            id="min-volume"
-            type="number"
-            min={0}
-            step={100}
-            value={minVolume}
-            onChange={(event) => setMinVolume(Math.max(0, Number(event.target.value) || 0))}
-            className="search-input"
-            style={{ maxWidth: 140 }}
-          />
+          <div className="yahoo-filter-field yahoo-filter-field--number">
+            <label htmlFor="min-volume">Min Vol</label>
+            <input
+              id="min-volume"
+              type="number"
+              min={0}
+              step={100}
+              value={minVolume}
+              onChange={(event) => setMinVolume(Math.max(0, Number(event.target.value) || 0))}
+              className="search-input"
+            />
+          </div>
 
-          <label htmlFor="min-oi">Min Open Interest</label>
-          <input
-            id="min-oi"
-            type="number"
-            min={0}
-            step={100}
-            value={minOi}
-            onChange={(event) => setMinOi(Math.max(0, Number(event.target.value) || 0))}
-            className="search-input"
-            style={{ maxWidth: 140 }}
-          />
+          <div className="yahoo-filter-field yahoo-filter-field--number">
+            <label htmlFor="min-oi">Min OI</label>
+            <input
+              id="min-oi"
+              type="number"
+              min={0}
+              step={100}
+              value={minOi}
+              onChange={(event) => setMinOi(Math.max(0, Number(event.target.value) || 0))}
+              className="search-input"
+            />
+          </div>
 
-          <button className="refresh-button-compact" onClick={runScan} disabled={loading}>
+          <div className="yahoo-filter-field yahoo-filter-field--mode">
+            <label htmlFor="filter-mode">Match</label>
+            <select
+              id="filter-mode"
+              className="yahoo-filter-select"
+              value={filterMode}
+              onChange={(event) => setFilterMode(event.target.value as FilterMode)}
+            >
+              <option value="either">Vol or OI</option>
+              <option value="volume">Volume only</option>
+              <option value="oi">OI only</option>
+            </select>
+          </div>
+
+          <button className="refresh-button-compact yahoo-filter-action" onClick={runScan} disabled={loading}>
             {loading ? <Loader2 className="refresh-icon spinning" /> : <RefreshCw className="refresh-icon" />}
-            Scan Next 10 Expiries
+            Scan 10 Expiries
           </button>
         </div>
 
-        <p className="yahoo-muted" style={{ margin: 0 }}>
-          Shows contracts where <strong>either</strong> volume or open interest meets your minimum and bid is greater than 0.
-          Adjust thresholds above — results update instantly after a scan without re-fetching.
+        <p className="yahoo-muted yahoo-filter-hint">
+          Bid &gt; 0 required. Choose volume only, OI only, or either. Thresholds apply instantly after scan.
         </p>
       </section>
 
@@ -221,7 +257,7 @@ const YahooExpiryHighlightsDashboard: React.FC<YahooExpiryHighlightsDashboardPro
       {filteredRows.length === 0 ? (
         <p className="yahoo-muted" style={{ margin: '0 1.5rem 1.5rem' }}>
           {allContracts.length > 0
-            ? `No contracts match volume ≥ ${minVolume.toLocaleString()} or OI ≥ ${minOi.toLocaleString()} with bid > 0. Try lowering the thresholds.`
+            ? `No contracts match ${filterSummary} with bid > 0. Try lowering the thresholds or changing the match mode.`
             : 'Enter a symbol, set minimum volume and OI (default 2500 each), then scan the next 10 expiries.'}
         </p>
       ) : (
