@@ -1327,7 +1327,7 @@
 
 .option-chain-board--compact .option-chain-table {
   table-layout: fixed;
-  min-width: 960px;
+  min-width: 640px;
   font-size: 0.7rem;
 }
 
@@ -1497,11 +1497,108 @@
   font-size: 0.9rem;
 }
 
-/* High Vol & OI page — compact horizontal layout */
-.yahoo-expiry-highlights-dashboard .yahoo-controls--compact {
-  display: block;
-  padding: 0.65rem 0.75rem;
-  gap: 0.45rem;
+/* High Vol & OI page — 3-column scanners */
+.highlights-3col-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  padding: 0.65rem 0.75rem 0.75rem;
+  align-items: start;
+}
+
+.highlights-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: rgba(18, 26, 48, 0.75);
+  border: 1px solid rgba(96, 165, 250, 0.25);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.highlights-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(12, 18, 34, 0.65);
+}
+
+.highlights-column-header h3 {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #dbeafe;
+}
+
+.highlights-column-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.35rem;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.highlights-column-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  padding: 0.55rem 0.65rem;
+  border-bottom: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.highlights-column-hint,
+.highlights-column-status,
+.highlights-column-empty,
+.highlights-column-footer {
+  margin: 0;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+}
+
+.highlights-column-results {
+  flex: 1;
+  min-height: 0;
+}
+
+.highlights-column-footer {
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+  color: #64748b;
+}
+
+.highlights-column .yahoo-filter-field--symbol,
+.highlights-column .yahoo-filter-field--number,
+.highlights-column .yahoo-filter-field--mode {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
+.highlights-column .yahoo-filter-action {
+  margin-left: 0;
+  width: 100%;
+  justify-content: center;
+}
+
+.highlights-column .option-chain-board--compact {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.highlights-column .option-chain-board--compact .option-chain-scroll {
+  max-height: calc(100vh - 300px);
+  overflow-x: auto;
+}
+
+.highlights-column .option-chain-board--compact .option-chain-table {
+  min-width: 520px;
 }
 
 .yahoo-expiry-highlights-dashboard .yahoo-filter-toolbar {
@@ -1621,26 +1718,22 @@
   font-size: 0.78rem;
 }
 
+@media (max-width: 1400px) {
+  .highlights-3col-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .highlights-column .option-chain-board--compact .option-chain-scroll {
+    max-height: 65vh;
+  }
+}
+
 @media (min-width: 1280px) {
-  .yahoo-expiry-highlights-dashboard .yahoo-controls--compact {
-    padding: 0.55rem 1rem;
-  }
-
-  .yahoo-expiry-highlights-dashboard .yahoo-filter-toolbar {
-    flex-wrap: nowrap;
-  }
-
-  .yahoo-expiry-highlights-dashboard .yahoo-filter-hint {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .option-chain-board--compact {
+  .option-chain-board--compact:not(.highlights-column .option-chain-board--compact) {
     margin: 0 1rem 0.75rem;
   }
 
-  .option-chain-board--compact .option-chain-scroll {
+  .option-chain-board--compact:not(.highlights-column .option-chain-board--compact) .option-chain-scroll {
     max-height: calc(100vh - 210px);
     overflow-x: hidden;
   }
@@ -1649,6 +1742,11 @@
     min-width: 0;
     width: 100%;
     font-size: 0.66rem;
+  }
+
+  .highlights-column .option-chain-board--compact .option-chain-table {
+    min-width: 520px;
+    width: 100%;
   }
 
   .option-chain-board--compact .chain-cell {

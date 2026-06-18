@@ -22,11 +22,53 @@ interface YahooExpiryHighlightsDashboardProps {
 const EXPIRY_COUNT = 10;
 const DEFAULT_MIN_VOLUME = 2500;
 const DEFAULT_MIN_OI = 2500;
+const COLUMN_COUNT = 3;
 
 type FilterMode = 'either' | 'volume' | 'oi';
 
 interface ScanRow extends YahooOptionContract {
   daysToExpiry: number;
+}
+
+interface ColumnConfig {
+  id: string;
+  defaultSymbol: string;
+}
+
+interface ColumnState {
+  symbol: string;
+  allContracts: ScanRow[];
+  underlyingPrice: number | null;
+  scannedExpiries: number[];
+  loading: boolean;
+  fetchProgress: string;
+  error: string | null;
+  lastRunAt: Date | null;
+  minVolume: number;
+  minOi: number;
+  filterMode: FilterMode;
+}
+
+const COLUMN_CONFIGS: ColumnConfig[] = [
+  { id: 'col-1', defaultSymbol: 'NVDA' },
+  { id: 'col-2', defaultSymbol: 'AMD' },
+  { id: 'col-3', defaultSymbol: 'PLTR' }
+];
+
+function createInitialColumnState(defaultSymbol: string): ColumnState {
+  return {
+    symbol: defaultSymbol,
+    allContracts: [],
+    underlyingPrice: null,
+    scannedExpiries: [],
+    loading: false,
+    fetchProgress: '',
+    error: null,
+    lastRunAt: null,
+    minVolume: DEFAULT_MIN_VOLUME,
+    minOi: DEFAULT_MIN_OI,
+    filterMode: 'either'
+  };
 }
 
 function getFilterSummary(mode: FilterMode, minVolume: number, minOi: number): string {
@@ -59,56 +101,64 @@ function toScanRows(contracts: YahooOptionContract[]): ScanRow[] {
   }));
 }
 
-const YahooExpiryHighlightsDashboard: React.FC<YahooExpiryHighlightsDashboardProps> = ({
-  activeDashboard,
-  setActiveDashboard
-}) => {
-  const [symbol, setSymbol] = useState('NVDA');
-  const [allContracts, setAllContracts] = useState<ScanRow[]>([]);
-  const [underlyingPrice, setUnderlyingPrice] = useState<number | null>(null);
-  const [scannedExpiries, setScannedExpiries] = useState<number[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [fetchProgress, setFetchProgress] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [lastRunAt, setLastRunAt] = useState<Date | null>(null);
-  const [minVolume, setMinVolume] = useState(DEFAULT_MIN_VOLUME);
-  const [minOi, setMinOi] = useState(DEFAULT_MIN_OI);
-  const [filterMode, setFilterMode] = useState<FilterMode>('either');
+interface HighlightsSearchColumnProps {
+  columnId: string;
+  columnIndex: number;
+  state: ColumnState;
+  onUpdate: (patch: Partial<ColumnState>) => void;
+}
 
+const HighlightsSearchColumn: React.FC<HighlightsSearchColumnProps> = ({
+  columnId,
+  columnIndex,
+  state,
+  onUpdate
+}) => {
   const filterSummary = useMemo(
-    () => getFilterSummary(filterMode, minVolume, minOi),
-    [filterMode, minVolume, minOi]
+    () => getFilterSummary(state.filterMode, state.minVolume, state.minOi),
+    [state.filterMode, state.minVolume, state.minOi]
   );
 
   const filteredRows = useMemo(
-    () => allContracts.filter((row) => matchesFilter(row, filterMode, minVolume, minOi)),
-    [allContracts, filterMode, minVolume, minOi]
+    () =>
+      state.allContracts.filter((row) =>
+        matchesFilter(row, state.filterMode, state.minVolume, state.minOi)
+      ),
+    [state.allContracts, state.filterMode, state.minVolume, state.minOi]
   );
 
   const runScan = async () => {
-    const ticker = symbol.trim().toUpperCase();
+    const ticker = state.symbol.trim().toUpperCase();
     if (!ticker) {
-      setError('Please enter a stock symbol.');
+      onUpdate({ error: 'Please enter a stock symbol.' });
       return;
     }
 
     try {
-      setLoading(true);
-      setError(null);
-      setAllContracts([]);
-      setScannedExpiries([]);
-      setFetchProgress('Loading available expiries...');
+      onUpdate({
+        loading: true,
+        error: null,
+        allContracts: [],
+        scannedExpiries: [],
+        fetchProgress: 'Loading available expiries...'
+      });
 
       const initial = await fetchYahooOptionChain(ticker);
       const nextExpiries = initial.expirations.slice(0, EXPIRY_COUNT);
 
       if (nextExpiries.length === 0) {
-        setError(`No expiries found for ${ticker}.`);
+        onUpdate({
+          loading: false,
+          fetchProgress: '',
+          error: `No expiries found for ${ticker}.`
+        });
         return;
       }
 
-      setUnderlyingPrice(initial.underlyingPrice);
-      setScannedExpiries(nextExpiries);
+      onUpdate({
+        underlyingPrice: initial.underlyingPrice,
+        scannedExpiries: nextExpiries
+      });
 
       const collected: ScanRow[] = [];
 
@@ -120,21 +170,164 @@ const YahooExpiryHighlightsDashboard: React.FC<YahooExpiryHighlightsDashboardPro
           year: 'numeric',
           timeZone: 'UTC'
         });
-        setFetchProgress(`Scanning expiry ${index + 1}/${nextExpiries.length}: ${expiryLabel}`);
+        onUpdate({
+          fetchProgress: `Scanning expiry ${index + 1}/${nextExpiries.length}: ${expiryLabel}`
+        });
 
         const chain = await fetchYahooOptionChain(ticker, expiry);
         collected.push(...toScanRows(chain.contracts));
       }
 
-      setAllContracts(collected);
-      setLastRunAt(new Date());
-      setError(null);
+      onUpdate({
+        allContracts: collected,
+        lastRunAt: new Date(),
+        error: null,
+        loading: false,
+        fetchProgress: ''
+      });
     } catch (scanError) {
-      setError(scanError instanceof Error ? scanError.message : 'Failed to scan expiries');
-    } finally {
-      setLoading(false);
-      setFetchProgress('');
+      onUpdate({
+        error: scanError instanceof Error ? scanError.message : 'Failed to scan expiries',
+        loading: false,
+        fetchProgress: ''
+      });
     }
+  };
+
+  const displaySymbol = state.symbol.trim().toUpperCase() || '—';
+
+  return (
+    <section className="highlights-column">
+      <div className="highlights-column-header">
+        <h3>Search {columnIndex + 1}</h3>
+        <div className="highlights-column-stats">
+          <span>{displaySymbol}</span>
+          {state.underlyingPrice !== null && (
+            <>
+              <span className="stat-separator">•</span>
+              <span>${state.underlyingPrice.toFixed(2)}</span>
+            </>
+          )}
+          <span className="stat-separator">•</span>
+          <span>{filteredRows.length} matches</span>
+        </div>
+      </div>
+
+      <div className="yahoo-filter-panel yahoo-filter-toolbar highlights-column-toolbar">
+        <div className="yahoo-filter-field yahoo-filter-field--symbol">
+          <label htmlFor={`${columnId}-symbol`}>Symbol</label>
+          <input
+            id={`${columnId}-symbol`}
+            value={state.symbol}
+            onChange={(event) => onUpdate({ symbol: event.target.value.toUpperCase() })}
+            className="search-input"
+            placeholder="NVDA"
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' && !state.loading) {
+                runScan();
+              }
+            }}
+          />
+        </div>
+
+        <div className="yahoo-filter-field yahoo-filter-field--number">
+          <label htmlFor={`${columnId}-min-volume`}>Min Vol</label>
+          <input
+            id={`${columnId}-min-volume`}
+            type="number"
+            min={0}
+            step={100}
+            value={state.minVolume}
+            onChange={(event) =>
+              onUpdate({ minVolume: Math.max(0, Number(event.target.value) || 0) })
+            }
+            className="search-input"
+          />
+        </div>
+
+        <div className="yahoo-filter-field yahoo-filter-field--number">
+          <label htmlFor={`${columnId}-min-oi`}>Min OI</label>
+          <input
+            id={`${columnId}-min-oi`}
+            type="number"
+            min={0}
+            step={100}
+            value={state.minOi}
+            onChange={(event) => onUpdate({ minOi: Math.max(0, Number(event.target.value) || 0) })}
+            className="search-input"
+          />
+        </div>
+
+        <div className="yahoo-filter-field yahoo-filter-field--mode">
+          <label htmlFor={`${columnId}-filter-mode`}>Match</label>
+          <select
+            id={`${columnId}-filter-mode`}
+            className="yahoo-filter-select"
+            value={state.filterMode}
+            onChange={(event) => onUpdate({ filterMode: event.target.value as FilterMode })}
+          >
+            <option value="either">Vol or OI</option>
+            <option value="volume">Volume only</option>
+            <option value="oi">OI only</option>
+          </select>
+        </div>
+
+        <button
+          className="refresh-button-compact yahoo-filter-action"
+          onClick={runScan}
+          disabled={state.loading}
+        >
+          {state.loading ? <Loader2 className="refresh-icon spinning" /> : <RefreshCw className="refresh-icon" />}
+          Scan
+        </button>
+      </div>
+
+      <p className="yahoo-muted highlights-column-hint">{filterSummary} • bid &gt; 0</p>
+
+      {state.loading && state.fetchProgress && (
+        <p className="yahoo-muted highlights-column-status">{state.fetchProgress}</p>
+      )}
+      {state.error && <p className="yahoo-error highlights-column-status">{state.error}</p>}
+
+      <div className="highlights-column-results">
+        {filteredRows.length === 0 ? (
+          <p className="yahoo-muted highlights-column-empty">
+            {state.allContracts.length > 0
+              ? `No contracts match ${filterSummary} with bid > 0.`
+              : 'Set filters and scan the next 10 expiries.'}
+          </p>
+        ) : (
+          <OptionChainBoard
+            symbol={displaySymbol}
+            spot={state.underlyingPrice}
+            contracts={filteredRows}
+          />
+        )}
+      </div>
+
+      {state.lastRunAt && (
+        <p className="yahoo-muted highlights-column-footer">
+          Updated {state.lastRunAt.toLocaleTimeString()} • {state.scannedExpiries.length} expiries
+        </p>
+      )}
+    </section>
+  );
+};
+
+const YahooExpiryHighlightsDashboard: React.FC<YahooExpiryHighlightsDashboardProps> = ({
+  activeDashboard,
+  setActiveDashboard
+}) => {
+  const [columns, setColumns] = useState<ColumnState[]>(() =>
+    COLUMN_CONFIGS.map((config) => createInitialColumnState(config.defaultSymbol))
+  );
+
+  const updateColumn = (index: number, patch: Partial<ColumnState>) => {
+    setColumns((prev) =>
+      prev.map((column, columnIndex) =>
+        columnIndex === index ? { ...column, ...patch } : column
+      )
+    );
   };
 
   return (
@@ -143,25 +336,9 @@ const YahooExpiryHighlightsDashboard: React.FC<YahooExpiryHighlightsDashboardPro
         <div className="header-left">
           <h1>High Volume &amp; OI Strikes</h1>
           <div className="header-stats">
-            <span className="header-stat">{symbol.trim().toUpperCase() || '—'}</span>
-            {underlyingPrice !== null && (
-              <>
-                <span className="stat-separator">•</span>
-                <span className="header-stat">Spot: ${underlyingPrice.toFixed(2)}</span>
-              </>
-            )}
+            <span className="header-stat">{COLUMN_COUNT} symbol scanners</span>
             <span className="stat-separator">•</span>
-            <span className="header-stat">{scannedExpiries.length} expiries scanned</span>
-            <span className="stat-separator">•</span>
-            <span className="header-stat">{filterSummary}</span>
-            <span className="stat-separator">•</span>
-            <span className="header-stat">{filteredRows.length.toLocaleString()} matches</span>
-            {lastRunAt && (
-              <>
-                <span className="stat-separator">•</span>
-                <span className="header-stat">Updated: {lastRunAt.toLocaleTimeString()}</span>
-              </>
-            )}
+            <span className="header-stat">Next {EXPIRY_COUNT} expiries each</span>
           </div>
         </div>
         <div className="header-right">
@@ -182,91 +359,17 @@ const YahooExpiryHighlightsDashboard: React.FC<YahooExpiryHighlightsDashboardPro
         </div>
       </header>
 
-      <section className="yahoo-controls yahoo-controls--compact">
-        <div className="yahoo-filter-panel yahoo-filter-toolbar">
-          <div className="yahoo-filter-field yahoo-filter-field--symbol">
-            <label htmlFor="highlights-symbol">Symbol</label>
-            <input
-              id="highlights-symbol"
-              value={symbol}
-              onChange={(event) => setSymbol(event.target.value.toUpperCase())}
-              className="search-input"
-              placeholder="NVDA"
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !loading) {
-                  runScan();
-                }
-              }}
-            />
-          </div>
-
-          <div className="yahoo-filter-field yahoo-filter-field--number">
-            <label htmlFor="min-volume">Min Vol</label>
-            <input
-              id="min-volume"
-              type="number"
-              min={0}
-              step={100}
-              value={minVolume}
-              onChange={(event) => setMinVolume(Math.max(0, Number(event.target.value) || 0))}
-              className="search-input"
-            />
-          </div>
-
-          <div className="yahoo-filter-field yahoo-filter-field--number">
-            <label htmlFor="min-oi">Min OI</label>
-            <input
-              id="min-oi"
-              type="number"
-              min={0}
-              step={100}
-              value={minOi}
-              onChange={(event) => setMinOi(Math.max(0, Number(event.target.value) || 0))}
-              className="search-input"
-            />
-          </div>
-
-          <div className="yahoo-filter-field yahoo-filter-field--mode">
-            <label htmlFor="filter-mode">Match</label>
-            <select
-              id="filter-mode"
-              className="yahoo-filter-select"
-              value={filterMode}
-              onChange={(event) => setFilterMode(event.target.value as FilterMode)}
-            >
-              <option value="either">Vol or OI</option>
-              <option value="volume">Volume only</option>
-              <option value="oi">OI only</option>
-            </select>
-          </div>
-
-          <button className="refresh-button-compact yahoo-filter-action" onClick={runScan} disabled={loading}>
-            {loading ? <Loader2 className="refresh-icon spinning" /> : <RefreshCw className="refresh-icon" />}
-            Scan 10 Expiries
-          </button>
-        </div>
-
-        <p className="yahoo-muted yahoo-filter-hint">
-          Bid &gt; 0 required. Choose volume only, OI only, or either. Thresholds apply instantly after scan.
-        </p>
-      </section>
-
-      {loading && fetchProgress && <p className="yahoo-muted">{fetchProgress}</p>}
-      {error && <p className="yahoo-error">{error}</p>}
-
-      {filteredRows.length === 0 ? (
-        <p className="yahoo-muted" style={{ margin: '0 1.5rem 1.5rem' }}>
-          {allContracts.length > 0
-            ? `No contracts match ${filterSummary} with bid > 0. Try lowering the thresholds or changing the match mode.`
-            : 'Enter a symbol, set minimum volume and OI (default 2500 each), then scan the next 10 expiries.'}
-        </p>
-      ) : (
-        <OptionChainBoard
-          symbol={symbol.trim().toUpperCase()}
-          spot={underlyingPrice}
-          contracts={filteredRows}
-        />
-      )}
+      <div className="highlights-3col-grid">
+        {COLUMN_CONFIGS.map((config, index) => (
+          <HighlightsSearchColumn
+            key={config.id}
+            columnId={config.id}
+            columnIndex={index}
+            state={columns[index]}
+            onUpdate={(patch) => updateColumn(index, patch)}
+          />
+        ))}
+      </div>
     </div>
   );
 };

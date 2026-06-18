@@ -25,7 +25,7 @@ interface OptionChainBoardProps {
   contracts: ChainBoardRow[];
 }
 
-const SIDE_COLUMN_COUNT = 7;
+const SIDE_COLUMN_COUNT = 5;
 const TOTAL_COLUMN_COUNT = SIDE_COLUMN_COUNT * 2 + 1;
 
 function formatExpiryHeader(expiration: number, daysToExpiry: number): string {
@@ -43,20 +43,9 @@ function formatPrice(value: number | null | undefined): string {
   return value.toFixed(2);
 }
 
-function formatMid(bid: number, ask: number): string {
-  if (!Number.isFinite(bid) || !Number.isFinite(ask) || (bid <= 0 && ask <= 0)) return '—';
-  return ((bid + ask) / 2).toFixed(2);
-}
-
 function formatVolume(value: number | null | undefined): string {
   if (value == null || value <= 0) return '—';
   return value.toLocaleString();
-}
-
-function formatPctChange(value: number | null | undefined): string {
-  if (value == null || !Number.isFinite(value)) return '—';
-  const sign = value >= 0 ? '+' : '';
-  return `${sign}${value.toFixed(2)}%`;
 }
 
 function buildExpiryGroups(contracts: ChainBoardRow[]): ExpiryGroup[] {
@@ -128,17 +117,7 @@ const ContractSideCells: React.FC<{
     return <>{reverse ? emptyCells.reverse() : emptyCells}</>;
   }
 
-  const pctClass =
-    contract.percentChange > 0
-      ? 'chain-cell-up'
-      : contract.percentChange < 0
-        ? 'chain-cell-down'
-        : '';
-
   const cells = [
-    <td key="mid" className={`chain-cell chain-cell-mid ${itmClass}`}>
-      {formatMid(contract.bid, contract.ask)}
-    </td>,
     <td key="last" className={`chain-cell chain-cell-last ${itmClass}`}>
       {formatPrice(contract.lastPrice)}
     </td>,
@@ -147,9 +126,6 @@ const ContractSideCells: React.FC<{
     </td>,
     <td key="ask" className={`chain-cell chain-cell-ask ${itmClass}`}>
       {formatPrice(contract.ask)}
-    </td>,
-    <td key="chg" className={`chain-cell chain-cell-chg ${pctClass} ${itmClass}`}>
-      {formatPctChange(contract.percentChange)}
     </td>,
     <td key="oi" className={`chain-cell chain-cell-oi ${itmClass}`}>
       {formatVolume(contract.openInterest)}
@@ -202,21 +178,17 @@ const OptionChainBoard: React.FC<OptionChainBoardProps> = ({ symbol, spot, contr
               </th>
             </tr>
             <tr className="option-chain-columns-row">
-              <th>Mid</th>
               <th>Last</th>
               <th>Bid</th>
               <th>Ask</th>
-              <th>%</th>
               <th>OI</th>
               <th>Vol</th>
               <th className="chain-strike-header">Strike</th>
               <th>Vol</th>
               <th>OI</th>
-              <th>%</th>
               <th>Ask</th>
               <th>Bid</th>
               <th>Last</th>
-              <th>Mid</th>
             </tr>
           </thead>
 
