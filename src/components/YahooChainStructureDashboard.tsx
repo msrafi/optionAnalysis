@@ -71,6 +71,36 @@ interface ParsedChainData {
   spotPrice: number | null;
 }
 
+function readStoredJson<T>(key: string): T | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredJson(key: string, value: unknown): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+function readStoredChainSnapshot(key: string): ParsedChainData | null {
+  const snapshot = readStoredJson<ParsedChainData>(key);
+  if (!snapshot || !Array.isArray(snapshot.rows)) return null;
+  return snapshot;
+}
+
+function getChainStorageBase(symbol: string, expiry: number | null): string {
+  return `chain-structure:v2:${symbol.trim().toUpperCase() || 'UNKNOWN'}:${expiry ?? 'nearest'}`;
+}
+
 function getAtmWindowRows(rows: ChainRow[], spot: number, below = 10, above = 10): ChainRow[] {
   const sortedRows = [...rows].sort((a, b) => a.strike - b.strike);
   if (sortedRows.length === 0) return [];
@@ -326,10 +356,12 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
   const [volumeFlowHistory, setVolumeFlowHistory] = useState<VolumeFlowUpdate[]>([]);
   const selectedExpiryDays = selectedExpiry ? daysUntilExpiry(selectedExpiry) : null;
-  const flowStorageKey = useMemo(
-    () => `chain-structure-flow:v2:${symbol.trim().toUpperCase() || 'UNKNOWN'}:${selectedExpiry ?? 'nearest'}`,
+  const chainStorageBase = useMemo(
+    () => getChainStorageBase(symbol, selectedExpiry),
     [symbol, selectedExpiry]
   );
+  const flowStorageKey = `${chainStorageBase}:flow`;
+  const snapshotStorageKey = `${chainStorageBase}:snapshot`;
 
   // Refs for auto-scrolling to ATM strike
   const heatmapAtmRowRef = useRef<HTMLTableRowElement>(null);
@@ -345,18 +377,12 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try {
-      const raw = window.localStorage.getItem(flowStorageKey);
-      if (!raw) {
-        setVolumeFlowHistory([]);
-        return;
-      }
-      const parsedValue = JSON.parse(raw);
-      setVolumeFlowHistory(Array.isArray(parsedValue) ? parsedValue.slice(0, 25) : []);
-    } catch {
-      setVolumeFlowHistory([]);
-    }
-  }, [flowStorageKey]);
+    const storedFlow = readStoredJson<VolumeFlowUpdate[]>(flowStorageKey);
+    setVolumeFlowHistory(Array.isArray(storedFlow) ? storedFlow.slice(0, 25) : []);
+
+    const storedSnapshot = readStoredChainSnapshot(snapshotStorageKey);
+    parsedRef.current = storedSnapshot ?? { rows: [], spotPrice: null };
+  }, [flowStorageKey, snapshotStorageKey]);
 
   // Debounce chart symbol updates to avoid reloading iframe on every keystroke.
   useEffect(() => {
@@ -822,10 +848,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       const detectedSpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
       const normalized = buildChainFromYahoo(chain.contracts, detectedSpot);
 
-      // Build a per-update flow snapshot: store the delta from the immediately
-      // previous fetch (not cumulative). Use parsedRef so auto-refresh intervals
-      // always compare against the latest snapshot, not a stale closure value.
-      const previousParsed = parsedRef.current;
+      // Compare against in-memory chain, or restore the last saved snapshot after reload.
+      const previousParsed =
+        parsedRef.current.rows.length > 0
+          ? parsedRef.current
+          : readStoredChainSnapshot(snapshotStorageKey) ?? parsedRef.current;
       if (previousParsed.rows.length > 0) {
         const prevByStrike = new Map<number, ChainRow>(previousParsed.rows.map((row) => [row.strike, row]));
         const spotForWindow = detectedSpot ?? normalized.spotPrice ?? previousParsed.spotPrice ?? 0;
@@ -864,12 +891,12 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
 
         setVolumeFlowHistory((prev) => {
           const next = [flowUpdate, ...prev].slice(0, 25);
-          if (typeof window !== 'undefined') {
-            window.localStorage.setItem(flowStorageKey, JSON.stringify(next));
-          }
+          writeStoredJson(flowStorageKey, next);
           return next;
         });
       }
+
+      writeStoredJson(snapshotStorageKey, normalized);
       
       // Save current data to history before updating (for delta calculation)
       // Keep history for every successful fetch (manual + auto refresh),
@@ -1047,21 +1074,21 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       return;
     }
 
-    // Wait 5 minutes before starting the refresh cycle
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
     const initialTimer = setTimeout(() => {
-      // Then refresh every 5 minutes
-      const intervalId = setInterval(() => {
-        loadChain(true);
-      }, 5 * 60 * 1000); // 5 minutes
-
-      // Do the first refresh
       loadChain(true);
+      intervalId = setInterval(() => {
+        loadChain(true);
+      }, 5 * 60 * 1000);
+    }, 5 * 60 * 1000);
 
-      // Cleanup interval on unmount or when dependencies change
-      return () => clearInterval(intervalId);
-    }, 5 * 60 * 1000); // Initial 5-minute delay
-
-    return () => clearTimeout(initialTimer);
+    return () => {
+      clearTimeout(initialTimer);
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, [autoRefreshActive, symbol, selectedExpiry]);
 
   // Auto-scroll to ATM strike in Volume/OI Heatmap
@@ -1098,6 +1125,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     setAvailableExpiries([]);
     setSelectedExpiry(null);
     setParsed({ rows: [], spotPrice: null });
+    parsedRef.current = { rows: [], spotPrice: null };
     setDataHistory([]);
     setVolumeFlowHistory([]);
     setMostActiveRows([]);
@@ -1179,6 +1207,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                 onChange={(e) => {
                   const next = e.target.value ? Number(e.target.value) : null;
                   setSelectedExpiry(next);
+                  setParsed({ rows: [], spotPrice: null });
+                  parsedRef.current = { rows: [], spotPrice: null };
+                  setDataHistory([]);
                   if (next) setDaysToExpiry(daysUntilExpiry(next));
                 }}
               >
