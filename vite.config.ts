@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
   // Load .env.local so proxy port matches the yahoo server port
   const env = loadEnv(mode, process.cwd(), '');
   const YAHOO_PORT = env.YAHOO_API_PORT || env.PORT || '8788';
+  const WEBULL_PORT = env.WEBULL_API_PORT || '8789';
 
   return {
   base: '/optionAnalysis/',
@@ -97,6 +98,11 @@ export default defineConfig(({ mode }) => {
     proxy: {
       '/api/yahoo': {
         target: `http://localhost:${YAHOO_PORT}`,
+        changeOrigin: true,
+        secure: false
+      },
+      '/api/webull': {
+        target: `http://localhost:${WEBULL_PORT}`,
         changeOrigin: true,
         secure: false
       }

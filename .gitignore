@@ -26,6 +26,9 @@ dist-ssr
 # Environment variables
 .env
 .env.local
+
+# Local Webull token cache
+server/.webull-token.json
 .env.development.local
 .env.test.local
 .env.production.local
