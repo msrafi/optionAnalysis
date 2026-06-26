@@ -871,29 +871,32 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         const totalCallAdded = strikeDiffs.reduce((sum, row) => sum + row.callAdded, 0);
         const totalPutAdded = strikeDiffs.reduce((sum, row) => sum + row.putAdded, 0);
 
-        const positiveCall = Math.max(0, totalCallAdded);
-        const positivePut = Math.max(0, totalPutAdded);
-        const dominant: 'CALL' | 'PUT' | 'BALANCED' =
-          positiveCall > positivePut * 1.1 ? 'CALL' : positivePut > positiveCall * 1.1 ? 'PUT' : 'BALANCED';
+        const changedStrikes = strikeDiffs.filter((row) => row.callAdded !== 0 || row.putAdded !== 0);
+        if (changedStrikes.length > 0) {
+          const positiveCall = Math.max(0, totalCallAdded);
+          const positivePut = Math.max(0, totalPutAdded);
+          const dominant: 'CALL' | 'PUT' | 'BALANCED' =
+            positiveCall > positivePut * 1.1 ? 'CALL' : positivePut > positiveCall * 1.1 ? 'PUT' : 'BALANCED';
 
-        const flowUpdate: VolumeFlowUpdate = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-          timestamp: new Date().toISOString(),
-          symbol: ticker,
-          expiry: selectedExpiry ?? null,
-          expiryLabel: selectedExpiry ? toExpiryLabel(selectedExpiry) : 'Nearest expiry',
-          spot: detectedSpot ?? normalized.spotPrice,
-          totalCallAdded,
-          totalPutAdded,
-          dominant,
-          strikes: strikeDiffs
-        };
+          const flowUpdate: VolumeFlowUpdate = {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            timestamp: new Date().toISOString(),
+            symbol: ticker,
+            expiry: selectedExpiry ?? null,
+            expiryLabel: selectedExpiry ? toExpiryLabel(selectedExpiry) : 'Nearest expiry',
+            spot: detectedSpot ?? normalized.spotPrice,
+            totalCallAdded,
+            totalPutAdded,
+            dominant,
+            strikes: changedStrikes
+          };
 
-        setVolumeFlowHistory((prev) => {
-          const next = [flowUpdate, ...prev].slice(0, 25);
-          writeStoredJson(flowStorageKey, next);
-          return next;
-        });
+          setVolumeFlowHistory((prev) => {
+            const next = [flowUpdate, ...prev].slice(0, 25);
+            writeStoredJson(flowStorageKey, next);
+            return next;
+          });
+        }
       }
 
       writeStoredJson(snapshotStorageKey, normalized);
@@ -1506,6 +1509,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
           >();
           volumeFlowHistory.forEach((update) => {
             update.strikes.forEach((entry) => {
+              if (entry.callAdded === 0 && entry.putAdded === 0) return;
               const list = updatesByStrike.get(entry.strike) || [];
               list.push({
                 id: update.id,
@@ -1614,7 +1618,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
               <div style={{ display: 'grid', gap: '8px' }}>
                 {strikes.map((strike) => {
                   const current = currentByStrike.get(strike);
-                  const updates = (updatesByStrike.get(strike) || []).slice(0, 6);
+                  const updates = (updatesByStrike.get(strike) || [])
+                    .filter((entry) => entry.callAdded !== 0 || entry.putAdded !== 0)
+                    .slice(0, 6);
                   const currentCall = current?.callValue ?? 0;
                   const currentPut = current?.putValue ?? 0;
                   const callCurrentWidth = (currentCall / maxCurrentTotal) * 50;
