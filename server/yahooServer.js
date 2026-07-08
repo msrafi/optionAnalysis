@@ -57,6 +57,133 @@ function unwrapNumeric(field, fallback = 0) {
   return fallback;
 }
 
+const CACHE_TTL_MS = parseInt(process.env.YAHOO_CACHE_TTL_MS || '120000', 10);
+const STALE_MAX_MS = parseInt(process.env.YAHOO_STALE_MAX_MS || '900000', 10);
+const YAHOO_MIN_GAP_MS = parseInt(process.env.YAHOO_MIN_GAP_MS || '1500', 10);
+
+/** @type {Map<string, { data: object, fetchedAt: number }>} */
+const optionsCache = new Map();
+/** @type {Map<string, Promise<object>>} */
+const inFlightOptions = new Map();
+let lastYahooRequestAt = 0;
+
+function cacheKey(symbol, date) {
+  return `${symbol}:${date ?? 'nearest'}`;
+}
+
+function getCachedOptions(key, allowStale = false) {
+  const entry = optionsCache.get(key);
+  if (!entry) return null;
+  const age = Date.now() - entry.fetchedAt;
+  if (age <= CACHE_TTL_MS) return { data: entry.data, stale: false, ageMs: age };
+  if (allowStale && age <= STALE_MAX_MS) return { data: entry.data, stale: true, ageMs: age };
+  return null;
+}
+
+function setCachedOptions(key, data) {
+  optionsCache.set(key, { data, fetchedAt: Date.now() });
+  if (optionsCache.size > 200) {
+    const oldestKey = optionsCache.keys().next().value;
+    if (oldestKey) optionsCache.delete(oldestKey);
+  }
+}
+
+function isRateLimitError(error) {
+  const message = error instanceof Error ? error.message : String(error);
+  return /429|too many requests|rate.?limit|crumb/i.test(message);
+}
+
+async function waitForYahooSlot() {
+  const waitMs = Math.max(0, YAHOO_MIN_GAP_MS - (Date.now() - lastYahooRequestAt));
+  if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+  lastYahooRequestAt = Date.now();
+}
+
+async function fetchWithTimeout(promise, timeoutMs = 15000) {
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+  );
+  return Promise.race([promise, timeout]);
+}
+
+async function fetchYahooOptions(symbol, date, attempt = 1) {
+  const maxAttempts = 4;
+  try {
+    await waitForYahooSlot();
+    const initial = await fetchWithTimeout(
+      yahooFinance.options(symbol, date ? { date } : undefined)
+    );
+
+    const expirationDates = (initial.expirationDates || [])
+      .map((expiry) => {
+        const ms = new Date(expiry).getTime();
+        return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
+      })
+      .filter((expiry) => expiry !== null);
+
+    let result = initial;
+    const initialOptionBucket = initial.options?.[0] || {};
+    const hasContracts = (initialOptionBucket.calls?.length || 0) + (initialOptionBucket.puts?.length || 0) > 0;
+
+    if (!hasContracts && expirationDates.length > 0) {
+      const fallbackDate = date
+        ? expirationDates.reduce((closest, current) =>
+            Math.abs(current - date) < Math.abs(closest - date) ? current : closest, expirationDates[0])
+        : expirationDates[0];
+      await waitForYahooSlot();
+      result = await fetchWithTimeout(yahooFinance.options(symbol, { date: fallbackDate }));
+    }
+
+    const bucket = result.options?.[0] || {};
+    return {
+      optionChain: {
+        result: [
+          {
+            quote: {
+              symbol: result.quote?.symbol || symbol,
+              regularMarketPrice: result.quote?.regularMarketPrice ?? null,
+            },
+            expirationDates,
+            options: [{ calls: bucket.calls || [], puts: bucket.puts || [] }],
+          },
+        ],
+      },
+    };
+  } catch (error) {
+    if (attempt < maxAttempts && isRateLimitError(error)) {
+      const backoffMs = attempt * attempt * 2000;
+      console.warn(`[options] Rate limited for ${symbol}, retry ${attempt}/${maxAttempts - 1} in ${backoffMs}ms`);
+      await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      return fetchYahooOptions(symbol, date, attempt + 1);
+    }
+    throw error;
+  }
+}
+
+async function getOptionsPayload(symbol, date) {
+  const key = cacheKey(symbol, date);
+  const fresh = getCachedOptions(key, false);
+  if (fresh) {
+    return { payload: fresh.data, cache: 'HIT' };
+  }
+
+  let pending = inFlightOptions.get(key);
+  if (!pending) {
+    pending = fetchYahooOptions(symbol, date)
+      .then((payload) => {
+        setCachedOptions(key, payload);
+        return payload;
+      })
+      .finally(() => {
+        inFlightOptions.delete(key);
+      });
+    inFlightOptions.set(key, pending);
+  }
+
+  const payload = await pending;
+  return { payload, cache: 'MISS' };
+}
+
 // Root endpoint
 app.get('/', (_req, res) => {
   res.json({ 
@@ -96,80 +223,35 @@ app.get('/api/yahoo/options/:symbol', async (req, res) => {
     return;
   }
 
+  const key = cacheKey(symbol, date);
+
   try {
     console.log(`[options] Fetching options for ${symbol}${date ? ` (date: ${date})` : ''}`);
-    
-    // Add timeout and better error handling
-    const fetchWithTimeout = async (promise, timeoutMs = 10000) => {
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
-      );
-      return Promise.race([promise, timeout]);
-    };
-    
-    const initial = await fetchWithTimeout(
-      yahooFinance.options(symbol, date ? { date } : undefined)
-    );
-
-    const expirationDates = (initial.expirationDates || [])
-      .map((expiry) => {
-        const ms = new Date(expiry).getTime();
-        return Number.isFinite(ms) ? Math.floor(ms / 1000) : null;
-      })
-      .filter((expiry) => expiry !== null);
-
-    let result = initial;
-    const initialOptionBucket = initial.options?.[0] || {};
-    const hasContracts = (initialOptionBucket.calls?.length || 0) + (initialOptionBucket.puts?.length || 0) > 0;
-
-    // Yahoo often returns expiration dates first and requires a second call with date.
-    if (!hasContracts && expirationDates.length > 0) {
-      const fallbackDate = date
-        ? expirationDates.reduce((closest, current) => {
-            return Math.abs(current - date) < Math.abs(closest - date) ? current : closest;
-          }, expirationDates[0])
-        : expirationDates[0];
-      result = await fetchWithTimeout(
-        yahooFinance.options(symbol, { date: fallbackDate })
-      );
-    }
-
-    const bucket = result.options?.[0] || {};
-    const normalized = {
-      optionChain: {
-        result: [
-          {
-            quote: {
-              symbol: result.quote?.symbol || symbol,
-              regularMarketPrice: result.quote?.regularMarketPrice ?? null
-            },
-            expirationDates,
-            options: [
-              {
-                calls: bucket.calls || [],
-                puts: bucket.puts || []
-              }
-            ]
-          }
-        ]
-      }
-    };
-
-    console.log(`[options] Successfully fetched options for ${symbol}`);
-    res.json(normalized);
+    const { payload, cache } = await getOptionsPayload(symbol, date);
+    res.setHeader('X-Cache', cache);
+    console.log(`[options] Successfully fetched options for ${symbol} (${cache})`);
+    res.json(payload);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown Yahoo options fetch error';
+    const rateLimited = isRateLimitError(error);
+    const stale = getCachedOptions(key, true);
+
+    if (stale) {
+      console.warn(`[options] Serving stale cache for ${symbol} after Yahoo error: ${message}`);
+      res.setHeader('X-Cache', 'STALE');
+      res.json(stale.data);
+      return;
+    }
+
     console.error(`[options] ❌ ERROR fetching ${symbol}:`, message);
-    console.error(`[options] Error type:`, error.constructor.name);
-    console.error(`[options] Error stack:`, error instanceof Error ? error.stack : 'No stack trace');
-    console.error(`[options] Environment:`, process.env.RAILWAY_ENVIRONMENT ? 'Railway' : 'Local');
-    
-    res.status(502).json({ 
-      error: 'fetch failed',
-      message: message,
+    res.status(rateLimited ? 503 : 502).json({
+      error: rateLimited ? 'yahoo_rate_limited' : 'fetch failed',
+      message: rateLimited
+        ? 'Yahoo Finance is rate-limiting this server. Wait a minute and retry.'
+        : message,
       symbol,
       timestamp: new Date().toISOString(),
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined,
     });
   }
 });
@@ -254,7 +336,8 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`[startup] Health check available at: http://0.0.0.0:${PORT}/health`);
   
   // More aggressive keep-alive strategy for Railway free tier
-  if (process.env.RAILWAY_ENVIRONMENT) {
+  const keepAliveEnabled = process.env.RAILWAY_ENVIRONMENT || process.env.RENDER;
+  if (keepAliveEnabled) {
     const KEEP_ALIVE_INTERVAL = 2 * 60 * 1000; // 2 minutes (more aggressive)
     
     // Function to ping self
@@ -272,8 +355,7 @@ app.listen(PORT, '0.0.0.0', () => {
       setInterval(keepAlive, KEEP_ALIVE_INTERVAL);
     }, 30000);
     
-    console.log('[startup] 💚 Aggressive keep-alive enabled (ping every 2min)');
-    console.log('[startup] 🔗 External ping URL: https://optionanalysis-production.up.railway.app/health');
+    console.log('[startup] 💚 Keep-alive enabled (ping every 2min)');
   }
 }).on('error', (err) => {
   console.error('[startup] ❌ Failed to bind port:', err);

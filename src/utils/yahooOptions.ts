@@ -161,13 +161,28 @@ export async function fetchYahooOptionChain(symbol: string, expiry?: number): Pr
   });
 
   if (!response.ok) {
-    if (response.status === 404 || response.status === 502 || response.status === 503 || response.status === 504) {
-      const baseUrl = API_BASE || 'local server';
+    let errorBody: { error?: string; message?: string } = {};
+    try {
+      errorBody = await response.json();
+    } catch {
+      // ignore parse errors
+    }
+
+    const backendMessage = errorBody.message || response.statusText;
+    const baseUrl = API_BASE || 'local server';
+
+    if (errorBody.error === 'yahoo_rate_limited' || /429|rate.?limit|too many requests/i.test(backendMessage)) {
       throw new Error(
-        `Failed to connect to Yahoo API backend (${response.status}). Backend URL: ${baseUrl}. Check if the server is running and accessible.`
+        `Yahoo is rate-limiting the data server (${response.status}). Wait 1–2 minutes and retry. For reliable access, run locally: npm start`
       );
     }
-    throw new Error(`Yahoo request failed for ${symbol}: ${response.status} ${response.statusText}`);
+
+    if (response.status === 404 || response.status === 502 || response.status === 503 || response.status === 504) {
+      throw new Error(
+        `Failed to reach Yahoo API backend (${response.status}). Backend URL: ${baseUrl}. ${backendMessage}`
+      );
+    }
+    throw new Error(`Yahoo request failed for ${symbol}: ${response.status} ${backendMessage}`);
   }
 
   const json = (await response.json()) as YahooApiResponse;
