@@ -333,6 +333,614 @@ function toExpiryLabel(expirySeconds: number): string {
   });
 }
 
+function getFlowExpiries(selectedExpiry: number | null, availableExpiries: number[], count = 3): number[] {
+  if (availableExpiries.length === 0) {
+    return selectedExpiry ? [selectedExpiry] : [];
+  }
+  if (!selectedExpiry) {
+    return availableExpiries.slice(0, count);
+  }
+  const selectedIndex = availableExpiries.indexOf(selectedExpiry);
+  const startIndex = selectedIndex >= 0 ? selectedIndex : 0;
+  return availableExpiries.slice(startIndex, startIndex + count);
+}
+
+interface FlowExpiryState {
+  parsed: ParsedChainData;
+  history: VolumeFlowUpdate[];
+}
+
+function buildVolumeFlowUpdate(
+  ticker: string,
+  expiry: number,
+  normalized: ParsedChainData,
+  previousParsed: ParsedChainData,
+  detectedSpot: number | null
+): VolumeFlowUpdate | null {
+  if (previousParsed.rows.length === 0) return null;
+
+  const prevByStrike = new Map<number, ChainRow>(previousParsed.rows.map((row) => [row.strike, row]));
+  const spotForWindow = detectedSpot ?? normalized.spotPrice ?? previousParsed.spotPrice ?? 0;
+  const windowRows = getAtmWindowRows(normalized.rows, spotForWindow);
+  const strikeDiffs: VolumeFlowStrikeDelta[] = windowRows.map((row) => {
+    const prev = prevByStrike.get(row.strike);
+    return {
+      strike: row.strike,
+      callAdded: row.callVolume - (prev?.callVolume ?? 0),
+      putAdded: row.putVolume - (prev?.putVolume ?? 0),
+      callOiAdded: row.callOi - (prev?.callOi ?? 0),
+      putOiAdded: row.putOi - (prev?.putOi ?? 0)
+    };
+  });
+
+  const totalCallAdded = strikeDiffs.reduce((sum, row) => sum + row.callAdded, 0);
+  const totalPutAdded = strikeDiffs.reduce((sum, row) => sum + row.putAdded, 0);
+  const changedStrikes = strikeDiffs.filter((row) => row.callAdded !== 0 || row.putAdded !== 0);
+  if (changedStrikes.length === 0) return null;
+
+  const positiveCall = Math.max(0, totalCallAdded);
+  const positivePut = Math.max(0, totalPutAdded);
+  const dominant: 'CALL' | 'PUT' | 'BALANCED' =
+    positiveCall > positivePut * 1.1 ? 'CALL' : positivePut > positiveCall * 1.1 ? 'PUT' : 'BALANCED';
+
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    timestamp: new Date().toISOString(),
+    symbol: ticker,
+    expiry,
+    expiryLabel: toExpiryLabel(expiry),
+    spot: detectedSpot ?? normalized.spotPrice,
+    totalCallAdded,
+    totalPutAdded,
+    dominant,
+    strikes: changedStrikes
+  };
+}
+
+type FlowStrikeUpdateEntry = {
+  id: string;
+  timestamp: string;
+  callAdded: number;
+  putAdded: number;
+  callOiAdded: number;
+  putOiAdded: number;
+};
+
+interface FlowColumnModel {
+  expiryLabel: string;
+  currentByStrike: Map<
+    number,
+    {
+      strike: number;
+      callValue: number;
+      putValue: number;
+      callOiValue: number;
+      putOiValue: number;
+    }
+  >;
+  updatesByStrike: Map<number, FlowStrikeUpdateEntry[]>;
+  windowCallTotal: number;
+  windowPutTotal: number;
+  windowDominant: 'CALL' | 'PUT' | 'BALANCED';
+  maxCurrentTotal: number;
+  maxCurrentOiTotal: number;
+  hasData: boolean;
+}
+
+const MAX_FLOW_UPDATES_PER_STRIKE = 6;
+const FLOW_UPDATE_SLOT_HEIGHT = 30;
+
+function buildFlowColumnModel(
+  expiryLabel: string,
+  chainRows: ChainRow[],
+  volumeFlowHistory: VolumeFlowUpdate[],
+  spot: number | null
+): FlowColumnModel {
+  const updatesByStrike = new Map<number, FlowStrikeUpdateEntry[]>();
+  volumeFlowHistory.forEach((update) => {
+    update.strikes.forEach((entry) => {
+      if (entry.callAdded === 0 && entry.putAdded === 0) return;
+      const list = updatesByStrike.get(entry.strike) || [];
+      list.push({
+        id: update.id,
+        timestamp: update.timestamp,
+        callAdded: entry.callAdded,
+        putAdded: entry.putAdded,
+        callOiAdded: entry.callOiAdded ?? 0,
+        putOiAdded: entry.putOiAdded ?? 0
+      });
+      updatesByStrike.set(entry.strike, list);
+    });
+  });
+
+  const sortedRows = [...chainRows].sort((a, b) => a.strike - b.strike);
+  const spotForWindow = spot ?? sortedRows[Math.floor(sortedRows.length / 2)]?.strike ?? 0;
+  const windowRows = getAtmWindowRows(sortedRows, spotForWindow);
+  const currentByStrike = new Map(
+    windowRows.map((row) => [
+      row.strike,
+      {
+        strike: row.strike,
+        callValue: row.callVolume,
+        putValue: row.putVolume,
+        callOiValue: row.callOi,
+        putOiValue: row.putOi
+      }
+    ] as const)
+  );
+
+  const strikes = windowRows.map((row) => row.strike);
+  const windowCallTotal = windowRows.reduce((sum, row) => sum + row.callVolume, 0);
+  const windowPutTotal = windowRows.reduce((sum, row) => sum + row.putVolume, 0);
+  const windowDominant: 'CALL' | 'PUT' | 'BALANCED' =
+    windowCallTotal > windowPutTotal * 1.05
+      ? 'CALL'
+      : windowPutTotal > windowCallTotal * 1.05
+        ? 'PUT'
+        : 'BALANCED';
+
+  const maxCurrentTotal = Math.max(
+    1,
+    ...strikes.map((strike) => {
+      const current = currentByStrike.get(strike);
+      return (current?.callValue ?? 0) + (current?.putValue ?? 0);
+    })
+  );
+  const maxCurrentOiTotal = Math.max(
+    1,
+    ...strikes.map((strike) => {
+      const current = currentByStrike.get(strike);
+      return (current?.callOiValue ?? 0) + (current?.putOiValue ?? 0);
+    })
+  );
+
+  return {
+    expiryLabel,
+    currentByStrike,
+    updatesByStrike,
+    windowCallTotal,
+    windowPutTotal,
+    windowDominant,
+    maxCurrentTotal,
+    maxCurrentOiTotal,
+    hasData: strikes.length > 0
+  };
+}
+
+function getFlowUpdatesForStrike(
+  updatesByStrike: Map<number, FlowStrikeUpdateEntry[]>,
+  strike: number
+): FlowStrikeUpdateEntry[] {
+  return (updatesByStrike.get(strike) || [])
+    .filter((entry) => entry.callAdded !== 0 || entry.putAdded !== 0)
+    .slice(0, MAX_FLOW_UPDATES_PER_STRIKE);
+}
+
+function getAtmStrike(strikes: number[], spot: number): number | null {
+  if (!spot || strikes.length === 0) return null;
+  return strikes.reduce((best, strike) =>
+    Math.abs(strike - spot) < Math.abs(best - spot) ? strike : best
+  );
+}
+
+function getSpotMarkerAfterStrike(strikes: number[], spot: number): number | null {
+  if (!spot || strikes.length === 0) return null;
+  const atmStrike = getAtmStrike(strikes, spot);
+  if (atmStrike != null && Math.abs(atmStrike - spot) < 0.005) return null;
+
+  for (let i = 0; i < strikes.length - 1; i++) {
+    if (spot > strikes[i] && spot < strikes[i + 1]) {
+      return strikes[i];
+    }
+  }
+  return null;
+}
+
+const SpotPriceMarkerRow: React.FC<{
+  spot: number;
+  gridTemplate: string;
+  columnCount: number;
+}> = ({ spot, gridTemplate, columnCount }) => (
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: gridTemplate,
+      gap: '8px 12px',
+      alignItems: 'center',
+      margin: '2px 0'
+    }}
+  >
+    <div style={{ textAlign: 'right', fontSize: '0.62rem', color: '#38bdf8', fontWeight: 700, lineHeight: 1.2 }}>
+      ●
+    </div>
+    <div style={{ gridColumn: `span ${columnCount}`, display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+      <div style={{ flex: 1, height: '2px', background: 'linear-gradient(90deg, transparent, #38bdf8)' }} />
+      <span
+        style={{
+          fontSize: '0.68rem',
+          color: '#38bdf8',
+          fontWeight: 700,
+          whiteSpace: 'nowrap',
+          padding: '2px 8px',
+          borderRadius: '999px',
+          background: 'rgba(56, 189, 248, 0.15)',
+          border: '1px solid rgba(56, 189, 248, 0.45)',
+          boxShadow: '0 0 8px rgba(56, 189, 248, 0.25)'
+        }}
+      >
+        Spot ${spot.toFixed(2)}
+      </span>
+      <div style={{ flex: 1, height: '2px', background: 'linear-gradient(90deg, #38bdf8, transparent)' }} />
+    </div>
+  </div>
+);
+
+const VolumeFlowStrikeCell: React.FC<{
+  strike: number;
+  model: FlowColumnModel;
+  updateSlots: number;
+}> = ({ strike, model, updateSlots }) => {
+  const current = model.currentByStrike.get(strike);
+  const updates = getFlowUpdatesForStrike(model.updatesByStrike, strike);
+  const paddedUpdates: Array<FlowStrikeUpdateEntry | null> = [
+    ...updates,
+    ...Array.from({ length: Math.max(0, updateSlots - updates.length) }, () => null)
+  ];
+
+  const currentCall = current?.callValue ?? 0;
+  const currentPut = current?.putValue ?? 0;
+  const callCurrentWidth = (currentCall / model.maxCurrentTotal) * 50;
+  const putCurrentWidth = (currentPut / model.maxCurrentTotal) * 50;
+  const currentCallOi = current?.callOiValue ?? 0;
+  const currentPutOi = current?.putOiValue ?? 0;
+  const callCurrentOiWidth = (currentCallOi / model.maxCurrentOiTotal) * 50;
+  const putCurrentOiWidth = (currentPutOi / model.maxCurrentOiTotal) * 50;
+
+  return (
+    <div style={{ minWidth: 0, height: '100%' }}>
+      <div style={{ position: 'relative', height: '12px', borderRadius: '999px', background: 'rgba(15,23,42,0.65)', overflow: 'hidden', marginBottom: '4px' }}>
+        <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', background: 'rgba(148,163,184,0.45)' }} />
+        {callCurrentWidth > 0 && (
+          <div style={{ position: 'absolute', right: '50%', top: 0, bottom: 0, width: `${callCurrentWidth}%`, background: 'rgba(59,130,246,0.9)' }} />
+        )}
+        {putCurrentWidth > 0 && (
+          <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: `${putCurrentWidth}%`, background: 'rgba(245,158,11,0.9)' }} />
+        )}
+        {callCurrentOiWidth > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              right: '50%',
+              top: '50%',
+              height: '3px',
+              marginTop: '-1.5px',
+              width: `${callCurrentOiWidth}%`,
+              border: '1px solid black',
+              background: 'rgba(74, 222, 128, 0.95)'
+            }}
+          />
+        )}
+        {putCurrentOiWidth > 0 && (
+          <div
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              height: '3px',
+              marginTop: '-1.5px',
+              width: `${putCurrentOiWidth}%`,
+              border: '1px solid black',
+              background: 'rgba(251, 113, 133, 0.95)'
+            }}
+          />
+        )}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', marginBottom: updateSlots > 0 ? '4px' : 0 }}>
+        <span style={{ color: '#60a5fa', fontWeight: 600 }}>C {current ? current.callValue.toLocaleString() : '-'}</span>
+        <span style={{ color: '#fbbf24', fontWeight: 600 }}>P {current ? current.putValue.toLocaleString() : '-'}</span>
+      </div>
+
+      {updateSlots > 0 && (
+        <div style={{ display: 'grid', gap: '4px' }}>
+          {paddedUpdates.map((entry, idx) => {
+            if (!entry) {
+              return (
+                <div
+                  key={`pad-${strike}-${idx}`}
+                  style={{ height: `${FLOW_UPDATE_SLOT_HEIGHT}px`, visibility: 'hidden' }}
+                  aria-hidden="true"
+                />
+              );
+            }
+
+            const absCall = Math.abs(entry.callAdded);
+            const absPut = Math.abs(entry.putAdded);
+            const updateTotal = absCall + absPut;
+            const isZeroUpdate = updateTotal === 0;
+            const callWidth = (absCall / model.maxCurrentTotal) * 50;
+            const putWidth = (absPut / model.maxCurrentTotal) * 50;
+            const absCallOi = Math.abs(entry.callOiAdded ?? 0);
+            const absPutOi = Math.abs(entry.putOiAdded ?? 0);
+            const callOiWidth = (absCallOi / model.maxCurrentOiTotal) * 50;
+            const putOiWidth = (absPutOi / model.maxCurrentOiTotal) * 50;
+
+            return (
+              <div
+                key={`${entry.id}-${strike}`}
+                style={{
+                  display: 'grid',
+                  gap: '2px',
+                  minHeight: `${FLOW_UPDATE_SLOT_HEIGHT}px`,
+                  opacity: isZeroUpdate ? 0.55 : 1
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.62rem' }}>
+                  <span style={{ color: '#94a3b8' }}>
+                    {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <span style={{ color: isZeroUpdate ? '#64748b' : '#60a5fa' }}>
+                    C {entry.callAdded > 0 ? '+' : ''}{entry.callAdded.toLocaleString()}
+                  </span>
+                  <span style={{ color: isZeroUpdate ? '#64748b' : '#fbbf24' }}>
+                    P {entry.putAdded > 0 ? '+' : ''}{entry.putAdded.toLocaleString()}
+                  </span>
+                </div>
+                <div style={{ position: 'relative', height: '8px', borderRadius: '999px', background: 'rgba(15,23,42,0.45)', overflow: 'hidden' }}>
+                  <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', background: 'rgba(148,163,184,0.3)' }} />
+                  {callWidth > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        right: '50%',
+                        top: 0,
+                        bottom: 0,
+                        width: `${callWidth}%`,
+                        background: entry.callAdded >= 0 ? 'rgba(59,130,246,0.7)' : 'rgba(239,68,68,0.75)'
+                      }}
+                    />
+                  )}
+                  {putWidth > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: 0,
+                        bottom: 0,
+                        width: `${putWidth}%`,
+                        background: entry.putAdded >= 0 ? 'rgba(245,158,11,0.7)' : 'rgba(239,68,68,0.75)'
+                      }}
+                    />
+                  )}
+                  {callOiWidth > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        right: '50%',
+                        top: '50%',
+                        height: '2px',
+                        marginTop: '-1px',
+                        width: `${callOiWidth}%`,
+                        background: 'rgba(74, 222, 128, 0.9)'
+                      }}
+                    />
+                  )}
+                  {putOiWidth > 0 && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: '50%',
+                        top: '50%',
+                        height: '2px',
+                        marginTop: '-1px',
+                        width: `${putOiWidth}%`,
+                        background: 'rgba(251, 113, 133, 0.9)'
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const VolumeFlowGrid: React.FC<{
+  columns: Array<{
+    expiry: number;
+    expiryLabel: string;
+    chainRows: ChainRow[];
+    volumeFlowHistory: VolumeFlowUpdate[];
+    spot: number | null;
+  }>;
+  referenceSpot: number | null;
+}> = ({ columns, referenceSpot }) => {
+  const models = columns.map((column) =>
+    buildFlowColumnModel(column.expiryLabel, column.chainRows, column.volumeFlowHistory, column.spot)
+  );
+
+  const referenceRows =
+    columns.find((column) => column.chainRows.length > 0)?.chainRows ??
+    columns[0]?.chainRows ??
+    [];
+  const spotForAlignment =
+    referenceSpot ??
+    columns.find((column) => column.spot)?.spot ??
+    referenceRows[Math.floor(referenceRows.length / 2)]?.strike ??
+    0;
+  const alignedStrikes = getAtmWindowRows(
+    [...referenceRows].sort((a, b) => a.strike - b.strike),
+    spotForAlignment
+  ).map((row) => row.strike);
+
+  const maxUpdatesPerStrike = new Map<number, number>();
+  alignedStrikes.forEach((strike) => {
+    let maxSlots = 0;
+    models.forEach((model) => {
+      const count = getFlowUpdatesForStrike(model.updatesByStrike, strike).length;
+      maxSlots = Math.max(maxSlots, count);
+    });
+    maxUpdatesPerStrike.set(strike, maxSlots);
+  });
+
+  const atmStrike = spotForAlignment > 0 ? getAtmStrike(alignedStrikes, spotForAlignment) : null;
+  const isSpotOnStrike =
+    atmStrike != null && spotForAlignment > 0 && Math.abs(atmStrike - spotForAlignment) < 0.005;
+  const spotMarkerAfterStrike =
+    spotForAlignment > 0 ? getSpotMarkerAfterStrike(alignedStrikes, spotForAlignment) : null;
+
+  const columnCount = columns.length;
+  const gridTemplate = `42px repeat(${columnCount}, minmax(0, 1fr))`;
+
+  if (alignedStrikes.length === 0) {
+    return (
+      <p className="yahoo-muted">
+        Run analysis to load current volumes, then updates will accumulate per strike here.
+      </p>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        border: '1px solid rgba(148, 163, 184, 0.2)',
+        borderRadius: '10px',
+        padding: '10px',
+        background: 'rgba(15, 23, 42, 0.45)'
+      }}
+    >
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: gridTemplate,
+          gap: '8px 12px',
+          marginBottom: '12px',
+          alignItems: 'stretch'
+        }}
+      >
+        <div />
+        {models.map((model, idx) => (
+          <div
+            key={`flow-header-${columns[idx].expiry}`}
+            style={{
+              border: '1px solid rgba(148, 163, 184, 0.15)',
+              borderRadius: '8px',
+              padding: '8px',
+              background: 'rgba(15, 23, 42, 0.35)',
+              minWidth: 0
+            }}
+          >
+            <div style={{ textAlign: 'center', marginBottom: '6px', fontWeight: 700, fontSize: '0.82rem', color: '#e2e8f0' }}>
+              {model.expiryLabel}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', gap: '8px' }}>
+              <strong style={{ fontSize: '0.68rem', color: '#e2e8f0' }}>Current + Updates</strong>
+              <span
+                style={{
+                  fontSize: '0.64rem',
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: '999px',
+                  color:
+                    model.windowDominant === 'CALL'
+                      ? '#bfdbfe'
+                      : model.windowDominant === 'PUT'
+                        ? '#fde68a'
+                        : '#e2e8f0',
+                  background:
+                    model.windowDominant === 'CALL'
+                      ? 'rgba(59,130,246,0.25)'
+                      : model.windowDominant === 'PUT'
+                        ? 'rgba(245,158,11,0.25)'
+                        : 'rgba(100,116,139,0.25)'
+                }}
+              >
+                {model.windowDominant === 'CALL'
+                  ? 'CALLS'
+                  : model.windowDominant === 'PUT'
+                    ? 'PUTS'
+                    : 'BALANCED'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem' }}>
+              <span style={{ color: '#60a5fa' }}>C {model.windowCallTotal.toLocaleString()}</span>
+              <span style={{ color: '#fbbf24' }}>P {model.windowPutTotal.toLocaleString()}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gap: '8px' }}>
+        {alignedStrikes.map((strike) => {
+          const updateSlots = maxUpdatesPerStrike.get(strike) ?? 0;
+          const isAtmRow = isSpotOnStrike && strike === atmStrike;
+          return (
+            <React.Fragment key={`flow-row-${strike}`}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: gridTemplate,
+                  gap: '8px 12px',
+                  borderTop: '1px dashed rgba(148, 163, 184, 0.25)',
+                  paddingTop: '6px',
+                  paddingBottom: isAtmRow ? '6px' : undefined,
+                  alignItems: 'start',
+                  background: isAtmRow ? 'rgba(56, 189, 248, 0.1)' : undefined,
+                  borderLeft: isAtmRow ? '3px solid #38bdf8' : undefined,
+                  borderRadius: isAtmRow ? '6px' : undefined,
+                  boxShadow: isAtmRow ? '0 0 8px rgba(56, 189, 248, 0.2)' : undefined
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '0.74rem',
+                    color: isAtmRow ? '#38bdf8' : '#cbd5e1',
+                    textAlign: 'right',
+                    fontWeight: 700,
+                    paddingTop: '2px',
+                    lineHeight: 1.2
+                  }}
+                >
+                  {isAtmRow && (
+                    <div style={{ fontSize: '0.58rem', marginBottom: '2px' }}>📍</div>
+                  )}
+                  {strike.toFixed(0)}
+                  {isAtmRow && spotForAlignment > 0 && (
+                    <div style={{ fontSize: '0.58rem', color: '#7dd3fc', marginTop: '2px', fontWeight: 600 }}>
+                      ${spotForAlignment.toFixed(2)}
+                    </div>
+                  )}
+                </div>
+                {models.map((model, idx) => (
+                  <div
+                    key={`flow-cell-${columns[idx].expiry}-${strike}`}
+                    style={{
+                      borderLeft: idx > 0 ? '1px solid rgba(148, 163, 184, 0.12)' : undefined,
+                      paddingLeft: idx > 0 ? '10px' : undefined,
+                      minWidth: 0
+                    }}
+                  >
+                    <VolumeFlowStrikeCell strike={strike} model={model} updateSlots={updateSlots} />
+                  </div>
+                ))}
+              </div>
+              {spotMarkerAfterStrike === strike && spotForAlignment > 0 && (
+                <SpotPriceMarkerRow
+                  spot={spotForAlignment}
+                  gridTemplate={gridTemplate}
+                  columnCount={columnCount}
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> = ({
   activeDashboard,
   setActiveDashboard
@@ -354,13 +962,16 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [mostActiveRows, setMostActiveRows] = useState<YahooMostActiveOptionRow[]>([]);
   const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
-  const [volumeFlowHistory, setVolumeFlowHistory] = useState<VolumeFlowUpdate[]>([]);
+  const [flowDataByExpiry, setFlowDataByExpiry] = useState<Record<number, FlowExpiryState>>({});
   const selectedExpiryDays = selectedExpiry ? daysUntilExpiry(selectedExpiry) : null;
+  const flowExpiries = useMemo(
+    () => getFlowExpiries(selectedExpiry, availableExpiries, 3),
+    [selectedExpiry, availableExpiries]
+  );
   const chainStorageBase = useMemo(
     () => getChainStorageBase(symbol, selectedExpiry),
     [symbol, selectedExpiry]
   );
-  const flowStorageKey = `${chainStorageBase}:flow`;
   const snapshotStorageKey = `${chainStorageBase}:snapshot`;
 
   // Refs for auto-scrolling to ATM strike
@@ -370,19 +981,130 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const didInitialButterflyScrollRef = useRef(false);
   const latestLoadChainRequestRef = useRef(0);
   const parsedRef = useRef(parsed);
+  const flowDataByExpiryRef = useRef(flowDataByExpiry);
 
   useEffect(() => {
     parsedRef.current = parsed;
   }, [parsed]);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const storedFlow = readStoredJson<VolumeFlowUpdate[]>(flowStorageKey);
-    setVolumeFlowHistory(Array.isArray(storedFlow) ? storedFlow.slice(0, 25) : []);
+    flowDataByExpiryRef.current = flowDataByExpiry;
+  }, [flowDataByExpiry]);
 
-    const storedSnapshot = readStoredChainSnapshot(snapshotStorageKey);
-    parsedRef.current = storedSnapshot ?? { rows: [], spotPrice: null };
-  }, [flowStorageKey, snapshotStorageKey]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const expiries = getFlowExpiries(selectedExpiry, availableExpiries, 3);
+    if (expiries.length === 0) {
+      setFlowDataByExpiry({});
+      parsedRef.current = { rows: [], spotPrice: null };
+      return;
+    }
+
+    const restored: Record<number, FlowExpiryState> = {};
+    expiries.forEach((expiry) => {
+      const storageBase = getChainStorageBase(symbol, expiry);
+      const storedFlow = readStoredJson<VolumeFlowUpdate[]>(`${storageBase}:flow`);
+      const storedSnapshot = readStoredChainSnapshot(`${storageBase}:snapshot`);
+      restored[expiry] = {
+        parsed: storedSnapshot ?? { rows: [], spotPrice: null },
+        history: Array.isArray(storedFlow) ? storedFlow.slice(0, 25) : []
+      };
+    });
+    setFlowDataByExpiry(restored);
+
+    const selectedSnapshot = selectedExpiry ? restored[selectedExpiry]?.parsed : null;
+    parsedRef.current = selectedSnapshot ?? { rows: [], spotPrice: null };
+  }, [symbol, selectedExpiry, availableExpiries]);
+
+  useEffect(() => {
+    if (!symbol.trim() || !selectedExpiry || availableExpiries.length === 0 || parsed.rows.length === 0) {
+      return;
+    }
+
+    const expiries = getFlowExpiries(selectedExpiry, availableExpiries, 3);
+    const missing = expiries.filter((expiry) => !flowDataByExpiryRef.current[expiry]?.parsed?.rows?.length);
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    const ticker = symbol.trim().toUpperCase();
+
+    (async () => {
+      const results = await Promise.allSettled(
+        missing.map((expiry) => fetchYahooOptionChain(ticker, expiry))
+      );
+      if (cancelled) return;
+
+      setFlowDataByExpiry((prev) => {
+        const next = { ...prev };
+        missing.forEach((expiry, idx) => {
+          const result = results[idx];
+          if (!result || result.status !== 'fulfilled') return;
+
+          const chain = result.value;
+          const expirySpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
+          const expiryNormalized = buildChainFromYahoo(chain.contracts, expirySpot);
+          const storageBase = getChainStorageBase(ticker, expiry);
+          const storedHistory = readStoredJson<VolumeFlowUpdate[]>(`${storageBase}:flow`) ?? [];
+
+          writeStoredJson(`${storageBase}:snapshot`, expiryNormalized);
+          next[expiry] = {
+            parsed: expiryNormalized,
+            history: prev[expiry]?.history ?? storedHistory.slice(0, 25)
+          };
+        });
+        return next;
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol, selectedExpiry, availableExpiries, parsed.rows.length]);
+
+  useEffect(() => {
+    if (!symbol.trim() || !selectedExpiry || availableExpiries.length === 0 || parsed.rows.length === 0) {
+      return;
+    }
+
+    const expiries = getFlowExpiries(selectedExpiry, availableExpiries, 3);
+    const missing = expiries.filter((expiry) => !flowDataByExpiryRef.current[expiry]?.parsed?.rows?.length);
+    if (missing.length === 0) return;
+
+    let cancelled = false;
+    const ticker = symbol.trim().toUpperCase();
+
+    (async () => {
+      const results = await Promise.allSettled(
+        missing.map((expiry) => fetchYahooOptionChain(ticker, expiry))
+      );
+      if (cancelled) return;
+
+      setFlowDataByExpiry((prev) => {
+        const next = { ...prev };
+        missing.forEach((expiry, idx) => {
+          const result = results[idx];
+          if (!result || result.status !== 'fulfilled') return;
+
+          const chain = result.value;
+          const expirySpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
+          const expiryNormalized = buildChainFromYahoo(chain.contracts, expirySpot);
+          const storageBase = getChainStorageBase(ticker, expiry);
+          const storedHistory = readStoredJson<VolumeFlowUpdate[]>(`${storageBase}:flow`) ?? [];
+
+          writeStoredJson(`${storageBase}:snapshot`, expiryNormalized);
+          next[expiry] = {
+            parsed: expiryNormalized,
+            history: prev[expiry]?.history ?? storedHistory.slice(0, 25)
+          };
+        });
+        return next;
+      });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol, selectedExpiry, availableExpiries, parsed.rows.length]);
 
   // Debounce chart symbol updates to avoid reloading iframe on every keystroke.
   useEffect(() => {
@@ -834,109 +1556,111 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     setIsRefreshing(isRefresh);
     setError('');
     try {
-      const [chainResult, mostActiveResult] = await Promise.allSettled([
-        fetchYahooOptionChain(ticker, selectedExpiry || undefined),
+      const expiriesToLoad = getFlowExpiries(selectedExpiry, availableExpiries, 3);
+      const primaryExpiry = selectedExpiry ?? expiriesToLoad[0] ?? null;
+
+      const [chainResults, mostActiveResult] = await Promise.all([
+        Promise.allSettled(expiriesToLoad.map((expiry) => fetchYahooOptionChain(ticker, expiry))),
         fetchYahooMostActiveOptions(ticker)
       ]);
-      if (chainResult.status !== 'fulfilled') {
-        throw chainResult.reason;
-      }
+
       if (requestId !== latestLoadChainRequestRef.current) {
         return;
       }
-      const chain = chainResult.value;
-      const detectedSpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
-      const normalized = buildChainFromYahoo(chain.contracts, detectedSpot);
 
-      // Compare against in-memory chain, or restore the last saved snapshot after reload.
+      const primaryIndex = primaryExpiry ? expiriesToLoad.indexOf(primaryExpiry) : 0;
+      const primaryChainResult = chainResults[primaryIndex] ?? chainResults[0];
+      if (!primaryChainResult || primaryChainResult.status !== 'fulfilled') {
+        throw primaryChainResult?.status === 'rejected'
+          ? primaryChainResult.reason
+          : new Error('Failed to load Yahoo chain.');
+      }
+
+      const primaryChain = primaryChainResult.value;
+      const detectedSpot =
+        primaryChain.underlyingPrice ?? estimateSpotFromContracts(primaryChain.contracts);
+      const normalized = buildChainFromYahoo(primaryChain.contracts, detectedSpot);
+
       const previousParsed =
         parsedRef.current.rows.length > 0
           ? parsedRef.current
           : readStoredChainSnapshot(snapshotStorageKey) ?? parsedRef.current;
-      if (previousParsed.rows.length > 0) {
-        const prevByStrike = new Map<number, ChainRow>(previousParsed.rows.map((row) => [row.strike, row]));
-        const spotForWindow = detectedSpot ?? normalized.spotPrice ?? previousParsed.spotPrice ?? 0;
-        const windowRows = getAtmWindowRows(normalized.rows, spotForWindow);
-        const strikeDiffs: VolumeFlowStrikeDelta[] = windowRows.map((row) => {
-          const prev = prevByStrike.get(row.strike);
-          return {
-            strike: row.strike,
-            callAdded: row.callVolume - (prev?.callVolume ?? 0),
-            putAdded: row.putVolume - (prev?.putVolume ?? 0),
-            callOiAdded: row.callOi - (prev?.callOi ?? 0),
-            putOiAdded: row.putOi - (prev?.putOi ?? 0)
-          };
+
+      setFlowDataByExpiry((prev) => {
+        const next = { ...prev };
+
+        expiriesToLoad.forEach((expiry, idx) => {
+          const result = chainResults[idx];
+          if (!result || result.status !== 'fulfilled') return;
+
+          const chain = result.value;
+          const expirySpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
+          const expiryNormalized = buildChainFromYahoo(chain.contracts, expirySpot);
+          const storageBase = getChainStorageBase(ticker, expiry);
+          const isPrimary = expiry === primaryExpiry;
+
+          const expiryPrevious =
+            isPrimary && previousParsed.rows.length > 0
+              ? previousParsed
+              : next[expiry]?.parsed?.rows.length
+                ? next[expiry].parsed
+                : flowDataByExpiryRef.current[expiry]?.parsed?.rows.length
+                  ? flowDataByExpiryRef.current[expiry].parsed
+                  : readStoredChainSnapshot(`${storageBase}:snapshot`) ?? { rows: [], spotPrice: null };
+
+          const prevHistory =
+            next[expiry]?.history ??
+            flowDataByExpiryRef.current[expiry]?.history ??
+            readStoredJson<VolumeFlowUpdate[]>(`${storageBase}:flow`) ??
+            [];
+
+          const flowUpdate = buildVolumeFlowUpdate(
+            ticker,
+            expiry,
+            expiryNormalized,
+            expiryPrevious,
+            expirySpot
+          );
+          const nextHistory = flowUpdate
+            ? [flowUpdate, ...prevHistory].slice(0, 25)
+            : prevHistory;
+
+          writeStoredJson(`${storageBase}:flow`, nextHistory);
+          writeStoredJson(`${storageBase}:snapshot`, expiryNormalized);
+          next[expiry] = { parsed: expiryNormalized, history: nextHistory };
         });
 
-        const totalCallAdded = strikeDiffs.reduce((sum, row) => sum + row.callAdded, 0);
-        const totalPutAdded = strikeDiffs.reduce((sum, row) => sum + row.putAdded, 0);
-
-        const changedStrikes = strikeDiffs.filter((row) => row.callAdded !== 0 || row.putAdded !== 0);
-        if (changedStrikes.length > 0) {
-          const positiveCall = Math.max(0, totalCallAdded);
-          const positivePut = Math.max(0, totalPutAdded);
-          const dominant: 'CALL' | 'PUT' | 'BALANCED' =
-            positiveCall > positivePut * 1.1 ? 'CALL' : positivePut > positiveCall * 1.1 ? 'PUT' : 'BALANCED';
-
-          const flowUpdate: VolumeFlowUpdate = {
-            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            timestamp: new Date().toISOString(),
-            symbol: ticker,
-            expiry: selectedExpiry ?? null,
-            expiryLabel: selectedExpiry ? toExpiryLabel(selectedExpiry) : 'Nearest expiry',
-            spot: detectedSpot ?? normalized.spotPrice,
-            totalCallAdded,
-            totalPutAdded,
-            dominant,
-            strikes: changedStrikes
-          };
-
-          setVolumeFlowHistory((prev) => {
-            const next = [flowUpdate, ...prev].slice(0, 25);
-            writeStoredJson(flowStorageKey, next);
-            return next;
-          });
-        }
-      }
+        return next;
+      });
 
       writeStoredJson(snapshotStorageKey, normalized);
-      
-      // Save current data to history before updating (for delta calculation)
-      // Keep history for every successful fetch (manual + auto refresh),
-      // so heatmap deltas reflect each update cycle.
+
       if (previousParsed.rows.length > 0) {
-        setDataHistory(prev => {
-          const newHistory = [previousParsed, ...prev].slice(0, 5); // Keep last 5 snapshots
+        setDataHistory((prev) => {
+          const newHistory = [previousParsed, ...prev].slice(0, 5);
           return newHistory;
         });
       }
 
       parsedRef.current = normalized;
       setParsed(normalized);
-      if (mostActiveResult.status === 'fulfilled') {
-        setMostActiveRows(mostActiveResult.value);
-      } else {
-        setMostActiveRows([]);
-      }
+      setMostActiveRows(mostActiveResult);
       if ((!spotOverride || Number(spotOverride) <= 0) && detectedSpot && detectedSpot > 0) {
         setSpotOverride(detectedSpot.toFixed(2));
       }
       if (selectedExpiry) {
         setDaysToExpiry(daysUntilExpiry(selectedExpiry));
       }
-      
-      // Update last refresh time
+
       setLastUpdateTime(new Date());
-      
-      // Reset countdown to 5 minutes on refresh
+
       if (isRefresh) {
         setNextRefreshIn(300);
       }
-      
-      // Start auto-refresh on first load (not on subsequent refreshes)
+
       if (!isRefresh && !autoRefreshActive) {
         setAutoRefreshActive(true);
-        setNextRefreshIn(300); // Start 5-minute countdown
+        setNextRefreshIn(300);
       }
     } catch (err) {
       if (requestId === latestLoadChainRequestRef.current) {
@@ -1130,7 +1854,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     setParsed({ rows: [], spotPrice: null });
     parsedRef.current = { rows: [], spotPrice: null };
     setDataHistory([]);
-    setVolumeFlowHistory([]);
+    setFlowDataByExpiry({});
     setMostActiveRows([]);
     setSpotOverride('');
     setDaysToExpiry(7);
@@ -1493,302 +2217,31 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         </div>
         <p className="yahoo-muted" style={{ marginTop: '-2px', marginBottom: '8px', fontSize: '0.8rem' }}>
           Top row shows current volumes. Each update below shows only the change since the previous fetch (0 if unchanged).
+          Showing selected expiry plus the next 2 available expiries.
         </p>
 
-        {(() => {
-          const updatesByStrike = new Map<
-            number,
-            Array<{
-              id: string;
-              timestamp: string;
-              callAdded: number;
-              putAdded: number;
-              callOiAdded: number;
-              putOiAdded: number;
-            }>
-          >();
-          volumeFlowHistory.forEach((update) => {
-            update.strikes.forEach((entry) => {
-              if (entry.callAdded === 0 && entry.putAdded === 0) return;
-              const list = updatesByStrike.get(entry.strike) || [];
-              list.push({
-                id: update.id,
-                timestamp: update.timestamp,
-                callAdded: entry.callAdded,
-                putAdded: entry.putAdded,
-                callOiAdded: entry.callOiAdded ?? 0,
-                putOiAdded: entry.putOiAdded ?? 0
-              });
-              updatesByStrike.set(entry.strike, list);
-            });
-          });
-
-          const sortedRows = [...parsed.rows].sort((a, b) => a.strike - b.strike);
-          const spotForWindow = effectiveSpot ?? sortedRows[Math.floor(sortedRows.length / 2)]?.strike ?? 0;
-          const windowRows = getAtmWindowRows(sortedRows, spotForWindow);
-          const strikes = windowRows.map((row) => row.strike);
-          const currentByStrike = new Map(
-            windowRows.map((row) => [
-              row.strike,
-              {
-                strike: row.strike,
-                callValue: row.callVolume,
-                putValue: row.putVolume,
-                callOiValue: row.callOi,
-                putOiValue: row.putOi
-              }
-            ] as const)
-          );
-
-          if (strikes.length === 0) {
-            return (
-              <p className="yahoo-muted">
-                Run analysis to load current volumes, then updates will accumulate per strike here.
-              </p>
-            );
-          }
-
-          const windowCallTotal = windowRows.reduce((sum, row) => sum + row.callVolume, 0);
-          const windowPutTotal = windowRows.reduce((sum, row) => sum + row.putVolume, 0);
-          const windowDominant: 'CALL' | 'PUT' | 'BALANCED' =
-            windowCallTotal > windowPutTotal * 1.05
-              ? 'CALL'
-              : windowPutTotal > windowCallTotal * 1.05
-                ? 'PUT'
-                : 'BALANCED';
-
-          const maxCurrentTotal = Math.max(
-            1,
-            ...strikes.map((strike) => {
-              const current = currentByStrike.get(strike);
-              return (current?.callValue ?? 0) + (current?.putValue ?? 0);
-            })
-          );
-          const maxCurrentOiTotal = Math.max(
-            1,
-            ...strikes.map((strike) => {
-              const current = currentByStrike.get(strike);
-              return (current?.callOiValue ?? 0) + (current?.putOiValue ?? 0);
-            })
-          );
-          return (
-            <div
-              style={{
-                border: '1px solid rgba(148, 163, 184, 0.2)',
-                borderRadius: '10px',
-                padding: '10px',
-                background: 'rgba(15, 23, 42, 0.45)'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', gap: '10px' }}>
-                <strong style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>Current Available Volumes + Update Timeline</strong>
-                <span
-                  style={{
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: '999px',
-                    color:
-                      windowDominant === 'CALL'
-                        ? '#bfdbfe'
-                        : windowDominant === 'PUT'
-                          ? '#fde68a'
-                          : '#e2e8f0',
-                    background:
-                      windowDominant === 'CALL'
-                        ? 'rgba(59,130,246,0.25)'
-                        : windowDominant === 'PUT'
-                          ? 'rgba(245,158,11,0.25)'
-                          : 'rgba(100,116,139,0.25)'
-                  }}
-                >
-                  {windowDominant === 'CALL'
-                    ? 'CALLS DOMINATING'
-                    : windowDominant === 'PUT'
-                      ? 'PUTS DOMINATING'
-                      : 'BALANCED'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', marginBottom: '10px' }}>
-                <span style={{ color: '#60a5fa' }}>Call Vol {windowCallTotal.toLocaleString()}</span>
-                <span style={{ color: '#fbbf24' }}>Put Vol {windowPutTotal.toLocaleString()}</span>
-              </div>
-
-              <div style={{ display: 'grid', gap: '8px' }}>
-                {strikes.map((strike) => {
-                  const current = currentByStrike.get(strike);
-                  const updates = (updatesByStrike.get(strike) || [])
-                    .filter((entry) => entry.callAdded !== 0 || entry.putAdded !== 0)
-                    .slice(0, 6);
-                  const currentCall = current?.callValue ?? 0;
-                  const currentPut = current?.putValue ?? 0;
-                  const callCurrentWidth = (currentCall / maxCurrentTotal) * 50;
-                  const putCurrentWidth = (currentPut / maxCurrentTotal) * 50;
-                  const currentCallOi = current?.callOiValue ?? 0;
-                  const currentPutOi = current?.putOiValue ?? 0;
-                  const callCurrentOiWidth = (currentCallOi / maxCurrentOiTotal) * 50;
-                  const putCurrentOiWidth = (currentPutOi / maxCurrentOiTotal) * 50;
-
-                  return (
-                    <div
-                      key={`flow-strike-${strike}`}
-                      style={{
-                        borderTop: '1px dashed rgba(148, 163, 184, 0.25)',
-                        paddingTop: '6px'
-                      }}
-                    >
-                      <div style={{ display: 'grid', gridTemplateColumns: '54px 120px 1fr 120px', alignItems: 'center', gap: '8px', marginBottom: updates.length > 0 ? '4px' : 0 }}>
-                        <span style={{ fontSize: '0.74rem', color: '#cbd5e1', textAlign: 'right', fontWeight: 600 }}>
-                          {strike.toFixed(0)}
-                        </span>
-                        <div style={{ fontSize: '0.72rem', color: '#60a5fa', textAlign: 'left', fontWeight: 600 }}>
-                          C {current?.callValue.toLocaleString() ?? '-'}
-                        </div>
-                        <div style={{ position: 'relative', height: '12px', borderRadius: '999px', background: 'rgba(15,23,42,0.65)', overflow: 'hidden' }}>
-                          <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', background: 'rgba(148,163,184,0.45)' }} />
-                          {callCurrentWidth > 0 && (
-                            <div style={{ position: 'absolute', right: '50%', top: 0, bottom: 0, width: `${callCurrentWidth}%`, background: 'rgba(59,130,246,0.9)' }} />
-                          )}
-                          {putCurrentWidth > 0 && (
-                            <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: `${putCurrentWidth}%`, background: 'rgba(245,158,11,0.9)' }} />
-                          )}
-                          {callCurrentOiWidth > 0 && (
-                            <div
-                              style={{
-                                position: 'absolute',
-                                right: '50%',
-                                top: '50%',
-                                height: '3px',
-                                marginTop: '-1.5px',
-                                width: `${callCurrentOiWidth}%`,
-                                border: '1px solid black',
-                                background: 'rgba(74, 222, 128, 0.95)'
-                              }}
-                            />
-                          )}
-                          {putCurrentOiWidth > 0 && (
-                            <div
-                              style={{
-                                position: 'absolute',
-                                left: '50%',
-                                top: '50%',
-                                height: '3px',
-                                marginTop: '-1.5px',
-                                width: `${putCurrentOiWidth}%`,
-                                border: '1px solid black',
-                                background: 'rgba(251, 113, 133, 0.95)'
-                              }}
-                            />
-                          )}
-                        </div>
-                        <div style={{ fontSize: '0.72rem', color: '#fbbf24', textAlign: 'right', fontWeight: 600 }}>
-                          P {current?.putValue.toLocaleString() ?? '-'}
-                        </div>
-                      </div>
-
-                      {updates.length > 0 && (
-                        <div style={{ display: 'grid', gap: '4px', marginLeft: '62px' }}>
-                          {updates.map((entry) => {
-                            const absCall = Math.abs(entry.callAdded);
-                            const absPut = Math.abs(entry.putAdded);
-                            const updateTotal = absCall + absPut;
-                            const isZeroUpdate = updateTotal === 0;
-                            // Scale delta bars against the same baseline as current volume bars
-                            // so +34 renders much smaller than a 7,393 total.
-                            const callWidth = (absCall / maxCurrentTotal) * 50;
-                            const putWidth = (absPut / maxCurrentTotal) * 50;
-                            const absCallOi = Math.abs(entry.callOiAdded ?? 0);
-                            const absPutOi = Math.abs(entry.putOiAdded ?? 0);
-                            const callOiWidth = (absCallOi / maxCurrentOiTotal) * 50;
-                            const putOiWidth = (absPutOi / maxCurrentOiTotal) * 50;
-                            return (
-                              <div
-                                key={`${entry.id}-${strike}`}
-                                style={{
-                                  display: 'grid',
-                                  gridTemplateColumns: '120px 1fr 120px',
-                                  alignItems: 'center',
-                                  gap: '8px',
-                                  opacity: isZeroUpdate ? 0.55 : 1
-                                }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.66rem' }}>
-                                  <span style={{ color: '#94a3b8', minWidth: '38px' }}>
-                                    {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </span>
-                                  <span style={{ color: isZeroUpdate ? '#64748b' : '#60a5fa', textAlign: 'left' }}>
-                                    C {entry.callAdded > 0 ? '+' : entry.callAdded < 0 ? '' : ''}{entry.callAdded.toLocaleString()}
-                                  </span>
-                                </div>
-                                <div style={{ position: 'relative', height: '8px', borderRadius: '999px', background: 'rgba(15,23,42,0.45)', overflow: 'hidden' }}>
-                                  <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', background: 'rgba(148,163,184,0.3)' }} />
-                                  {callWidth > 0 && (
-                                    <div
-                                      style={{
-                                        position: 'absolute',
-                                        right: '50%',
-                                        top: 0,
-                                        bottom: 0,
-                                        width: `${callWidth}%`,
-                                        background: entry.callAdded >= 0 ? 'rgba(59,130,246,0.7)' : 'rgba(239,68,68,0.75)'
-                                      }}
-                                    />
-                                  )}
-                                  {putWidth > 0 && (
-                                    <div
-                                      style={{
-                                        position: 'absolute',
-                                        left: '50%',
-                                        top: 0,
-                                        bottom: 0,
-                                        width: `${putWidth}%`,
-                                        background: entry.putAdded >= 0 ? 'rgba(245,158,11,0.7)' : 'rgba(239,68,68,0.75)'
-                                      }}
-                                    />
-                                  )}
-                                  {callOiWidth > 0 && (
-                                    <div
-                                      style={{
-                                        position: 'absolute',
-                                        right: '50%',
-                                        top: '50%',
-                                        height: '2px',
-                                        marginTop: '-1px',
-                                        width: `${callOiWidth}%`,
-                                        background: 'rgba(74, 222, 128, 0.9)'
-                                      }}
-                                    />
-                                  )}
-                                  {putOiWidth > 0 && (
-                                    <div
-                                      style={{
-                                        position: 'absolute',
-                                        left: '50%',
-                                        top: '50%',
-                                        height: '2px',
-                                        marginTop: '-1px',
-                                        width: `${putOiWidth}%`,
-                                        background: 'rgba(251, 113, 133, 0.9)'
-                                      }}
-                                    />
-                                  )}
-                                </div>
-                                <div style={{ fontSize: '0.66rem', color: isZeroUpdate ? '#64748b' : '#fbbf24', textAlign: 'right' }}>
-                                  P {entry.putAdded > 0 ? '+' : ''}{entry.putAdded.toLocaleString()}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
+        {flowExpiries.length === 0 ? (
+          <p className="yahoo-muted">
+            Select an expiry and run analysis to load current volumes, then updates will accumulate per strike here.
+          </p>
+        ) : (
+          <VolumeFlowGrid
+            referenceSpot={effectiveSpot}
+            columns={flowExpiries.map((expiry) => {
+              const flowState = flowDataByExpiry[expiry];
+              const columnSpot =
+                flowState?.parsed.spotPrice ??
+                (expiry === selectedExpiry ? effectiveSpot : null);
+              return {
+                expiry,
+                expiryLabel: toExpiryLabel(expiry),
+                chainRows: flowState?.parsed.rows ?? (expiry === selectedExpiry ? parsed.rows : []),
+                volumeFlowHistory: flowState?.history ?? [],
+                spot: columnSpot
+              };
+            })}
+          />
+        )}
       </section>
 
       <section className="yahoo-table-section">
