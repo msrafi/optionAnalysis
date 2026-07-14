@@ -91,10 +91,53 @@ function writeStoredJson(key: string, value: unknown): void {
   }
 }
 
+function getLocalDateKey(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function isTimestampToday(timestamp: string): boolean {
+  const parsed = new Date(timestamp);
+  if (Number.isNaN(parsed.getTime())) return false;
+  return getLocalDateKey(parsed) === getLocalDateKey();
+}
+
+function filterVolumeFlowToToday(history: VolumeFlowUpdate[]): VolumeFlowUpdate[] {
+  return history.filter((update) => isTimestampToday(update.timestamp));
+}
+
+interface StoredChainSnapshot extends ParsedChainData {
+  savedAt?: string;
+}
+
 function readStoredChainSnapshot(key: string): ParsedChainData | null {
-  const snapshot = readStoredJson<ParsedChainData>(key);
+  const snapshot = readStoredJson<StoredChainSnapshot>(key);
   if (!snapshot || !Array.isArray(snapshot.rows)) return null;
-  return snapshot;
+  if (!snapshot.savedAt || snapshot.savedAt !== getLocalDateKey()) {
+    return null;
+  }
+  const { savedAt: _savedAt, ...parsed } = snapshot;
+  return parsed;
+}
+
+function writeStoredChainSnapshot(key: string, data: ParsedChainData): void {
+  writeStoredJson(key, { ...data, savedAt: getLocalDateKey() });
+}
+
+function readStoredFlowHistory(key: string): VolumeFlowUpdate[] {
+  const stored = readStoredJson<VolumeFlowUpdate[]>(key);
+  if (!Array.isArray(stored)) return [];
+  const todayOnly = filterVolumeFlowToToday(stored);
+  if (todayOnly.length !== stored.length) {
+    writeStoredJson(key, todayOnly);
+  }
+  return todayOnly.slice(0, 25);
+}
+
+function writeStoredFlowHistory(key: string, history: VolumeFlowUpdate[]): void {
+  writeStoredJson(key, filterVolumeFlowToToday(history).slice(0, 25));
 }
 
 function getChainStorageBase(symbol: string, expiry: number | null): string {
@@ -437,7 +480,8 @@ function buildFlowColumnModel(
   spot: number | null
 ): FlowColumnModel {
   const updatesByStrike = new Map<number, FlowStrikeUpdateEntry[]>();
-  volumeFlowHistory.forEach((update) => {
+  const todayHistory = filterVolumeFlowToToday(volumeFlowHistory);
+  todayHistory.forEach((update) => {
     update.strikes.forEach((entry) => {
       if (entry.callAdded === 0 && entry.putAdded === 0) return;
       const list = updatesByStrike.get(entry.strike) || [];
@@ -1003,11 +1047,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     const restored: Record<number, FlowExpiryState> = {};
     expiries.forEach((expiry) => {
       const storageBase = getChainStorageBase(symbol, expiry);
-      const storedFlow = readStoredJson<VolumeFlowUpdate[]>(`${storageBase}:flow`);
+      const storedFlow = readStoredFlowHistory(`${storageBase}:flow`);
       const storedSnapshot = readStoredChainSnapshot(`${storageBase}:snapshot`);
       restored[expiry] = {
         parsed: storedSnapshot ?? { rows: [], spotPrice: null },
-        history: Array.isArray(storedFlow) ? storedFlow.slice(0, 25) : []
+        history: storedFlow
       };
     });
     setFlowDataByExpiry(restored);
@@ -1044,57 +1088,12 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
           const expirySpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
           const expiryNormalized = buildChainFromYahoo(chain.contracts, expirySpot);
           const storageBase = getChainStorageBase(ticker, expiry);
-          const storedHistory = readStoredJson<VolumeFlowUpdate[]>(`${storageBase}:flow`) ?? [];
+          const storedHistory = readStoredFlowHistory(`${storageBase}:flow`);
 
-          writeStoredJson(`${storageBase}:snapshot`, expiryNormalized);
+          writeStoredChainSnapshot(`${storageBase}:snapshot`, expiryNormalized);
           next[expiry] = {
             parsed: expiryNormalized,
-            history: prev[expiry]?.history ?? storedHistory.slice(0, 25)
-          };
-        });
-        return next;
-      });
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [symbol, selectedExpiry, availableExpiries, parsed.rows.length]);
-
-  useEffect(() => {
-    if (!symbol.trim() || !selectedExpiry || availableExpiries.length === 0 || parsed.rows.length === 0) {
-      return;
-    }
-
-    const expiries = getFlowExpiries(selectedExpiry, availableExpiries, 3);
-    const missing = expiries.filter((expiry) => !flowDataByExpiryRef.current[expiry]?.parsed?.rows?.length);
-    if (missing.length === 0) return;
-
-    let cancelled = false;
-    const ticker = symbol.trim().toUpperCase();
-
-    (async () => {
-      const results = await Promise.allSettled(
-        missing.map((expiry) => fetchYahooOptionChain(ticker, expiry))
-      );
-      if (cancelled) return;
-
-      setFlowDataByExpiry((prev) => {
-        const next = { ...prev };
-        missing.forEach((expiry, idx) => {
-          const result = results[idx];
-          if (!result || result.status !== 'fulfilled') return;
-
-          const chain = result.value;
-          const expirySpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
-          const expiryNormalized = buildChainFromYahoo(chain.contracts, expirySpot);
-          const storageBase = getChainStorageBase(ticker, expiry);
-          const storedHistory = readStoredJson<VolumeFlowUpdate[]>(`${storageBase}:flow`) ?? [];
-
-          writeStoredJson(`${storageBase}:snapshot`, expiryNormalized);
-          next[expiry] = {
-            parsed: expiryNormalized,
-            history: prev[expiry]?.history ?? storedHistory.slice(0, 25)
+            history: prev[expiry]?.history ?? storedHistory
           };
         });
         return next;
@@ -1608,11 +1607,11 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   ? flowDataByExpiryRef.current[expiry].parsed
                   : readStoredChainSnapshot(`${storageBase}:snapshot`) ?? { rows: [], spotPrice: null };
 
-          const prevHistory =
+          const prevHistory = filterVolumeFlowToToday(
             next[expiry]?.history ??
             flowDataByExpiryRef.current[expiry]?.history ??
-            readStoredJson<VolumeFlowUpdate[]>(`${storageBase}:flow`) ??
-            [];
+            readStoredFlowHistory(`${storageBase}:flow`)
+          );
 
           const flowUpdate = buildVolumeFlowUpdate(
             ticker,
@@ -1625,15 +1624,15 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             ? [flowUpdate, ...prevHistory].slice(0, 25)
             : prevHistory;
 
-          writeStoredJson(`${storageBase}:flow`, nextHistory);
-          writeStoredJson(`${storageBase}:snapshot`, expiryNormalized);
+          writeStoredFlowHistory(`${storageBase}:flow`, nextHistory);
+          writeStoredChainSnapshot(`${storageBase}:snapshot`, expiryNormalized);
           next[expiry] = { parsed: expiryNormalized, history: nextHistory };
         });
 
         return next;
       });
 
-      writeStoredJson(snapshotStorageKey, normalized);
+      writeStoredChainSnapshot(snapshotStorageKey, normalized);
 
       if (previousParsed.rows.length > 0) {
         setDataHistory((prev) => {
@@ -2217,7 +2216,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         </div>
         <p className="yahoo-muted" style={{ marginTop: '-2px', marginBottom: '8px', fontSize: '0.8rem' }}>
           Top row shows current volumes. Each update below shows only the change since the previous fetch (0 if unchanged).
-          Showing selected expiry plus the next 2 available expiries.
+          Showing selected expiry plus the next 2 available expiries. Flow history resets each calendar day.
         </p>
 
         {flowExpiries.length === 0 ? (
