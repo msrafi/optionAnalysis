@@ -8,6 +8,9 @@ import {
   fetchRobinhoodOptions,
   hasOptionContracts,
   isRobinhoodConfigured,
+  isRobinhoodTradingEnabled,
+  placeRobinhoodOptionOrder,
+  previewRobinhoodOptionOrder,
 } from './robinhoodClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -54,6 +57,7 @@ app.use(cors({
   credentials: false,
   exposedHeaders: ['X-Cache', 'X-Data-Source'],
 }));
+app.use(express.json({ limit: '64kb' }));
 
 function unwrapNumeric(field, fallback = 0) {
   if (field && typeof field === 'object' && typeof field.raw === 'number') {
@@ -294,11 +298,15 @@ app.get('/', (_req, res) => {
     status: 'running',
     robinhoodConfigured: isRobinhoodConfigured(),
     robinhoodPrimary: isRobinhoodPrimary(),
+    robinhoodTradingEnabled: isRobinhoodTradingEnabled(),
     optionsSource: getOptionsSourceLabel(),
     endpoints: {
       health: '/health',
       options: '/api/yahoo/options/:symbol',
       robinhoodOptions: '/api/robinhood/options/:symbol',
+      robinhoodTradingStatus: '/api/robinhood/trading/status',
+      robinhoodOrderPreview: '/api/robinhood/orders/preview',
+      robinhoodPlaceOrder: '/api/robinhood/orders/options',
       mostActive: '/api/yahoo/most-active'
     }
   });
@@ -311,8 +319,9 @@ app.get('/health', (_req, res) => {
       ok: true, 
       service: 'options-data-api',
       robinhoodConfigured: isRobinhoodConfigured(),
-    robinhoodPrimary: isRobinhoodPrimary(),
-    optionsSource: getOptionsSourceLabel(),
+      robinhoodPrimary: isRobinhoodPrimary(),
+      robinhoodTradingEnabled: isRobinhoodTradingEnabled(),
+      optionsSource: getOptionsSourceLabel(),
       timestamp: new Date().toISOString(),
       uptime: process.uptime()
     });
@@ -381,6 +390,84 @@ app.get('/api/yahoo/options/:symbol', (req, res) => {
 
 app.get('/api/robinhood/options/:symbol', (req, res) => {
   handleOptionsRequest(req, res, { forceRobinhood: true });
+});
+
+app.get('/api/robinhood/trading/status', (_req, res) => {
+  res.json({
+    configured: isRobinhoodConfigured(),
+    tradingEnabled: isRobinhoodTradingEnabled(),
+    message: isRobinhoodTradingEnabled()
+      ? 'Live Robinhood trading is enabled'
+      : 'Set ROBINHOOD_BROKERAGE_TOKEN and ROBINHOOD_TRADING_ENABLED=true to place live orders',
+  });
+});
+
+function parseTradeRequestBody(body = {}) {
+  const symbol = String(body.symbol || '').trim().toUpperCase();
+  const expirationUnix = Number(body.expirationUnix ?? body.expiry);
+  const strike = Number(body.strike);
+  const optionType = String(body.optionType || '').toLowerCase() === 'put' ? 'Put' : 'Call';
+
+  if (!symbol) throw new Error('symbol is required');
+  if (!Number.isFinite(expirationUnix) || expirationUnix <= 0) throw new Error('expirationUnix is required');
+  if (!Number.isFinite(strike) || strike <= 0) throw new Error('strike is required');
+
+  return { symbol, expirationUnix, strike, optionType };
+}
+
+app.post('/api/robinhood/orders/preview', async (req, res) => {
+  if (!isRobinhoodConfigured()) {
+    res.status(400).json({
+      error: 'robinhood_not_configured',
+      message: 'Set ROBINHOOD_BROKERAGE_TOKEN in .env.local',
+    });
+    return;
+  }
+
+  try {
+    const trade = parseTradeRequestBody(req.body);
+    const preview = await previewRobinhoodOptionOrder(trade);
+    res.json(preview);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to preview order';
+    console.error('[robinhood] preview failed:', message);
+    res.status(400).json({ error: 'preview_failed', message });
+  }
+});
+
+app.post('/api/robinhood/orders/options', async (req, res) => {
+  if (!isRobinhoodTradingEnabled()) {
+    res.status(403).json({
+      error: 'trading_disabled',
+      message: 'Live trading is disabled. Set ROBINHOOD_TRADING_ENABLED=true in .env.local.',
+    });
+    return;
+  }
+
+  try {
+    const trade = parseTradeRequestBody(req.body);
+    const quantity = Number(req.body.quantity ?? 1);
+    const side = String(req.body.side || 'buy');
+    const orderType = String(req.body.orderType || 'limit');
+    const limitPrice = req.body.limitPrice != null ? Number(req.body.limitPrice) : undefined;
+
+    const result = await placeRobinhoodOptionOrder({
+      ...trade,
+      quantity,
+      side,
+      orderType,
+      limitPrice,
+    });
+
+    console.log(
+      `[robinhood] LIVE order placed: ${result.side} ${result.quantity} ${result.contractSymbol} @ ${result.limitPrice ?? 'market'}`
+    );
+    res.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to place order';
+    console.error('[robinhood] order failed:', message);
+    res.status(400).json({ error: 'order_failed', message });
+  }
 });
 
 app.get('/api/yahoo/most-active', async (req, res) => {

@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+
 const RH_BASE = 'https://api.robinhood.com';
 const RH_MIN_GAP_MS = parseInt(process.env.ROBINHOOD_MIN_GAP_MS || '200', 10);
 const RH_MARKETDATA_BATCH_SIZE = parseInt(process.env.ROBINHOOD_MARKETDATA_BATCH_SIZE || '40', 10);
@@ -17,6 +19,10 @@ const RH_HEADERS_BASE = {
 
 export function isRobinhoodConfigured() {
   return Boolean(getRobinhoodToken().trim());
+}
+
+export function isRobinhoodTradingEnabled() {
+  return process.env.ROBINHOOD_TRADING_ENABLED === 'true' && isRobinhoodConfigured();
 }
 
 async function waitForRobinhoodSlot() {
@@ -59,6 +65,45 @@ async function rhFetch(url, { retryOnUnauthorized = true } = {}) {
   }
 
   return body;
+}
+
+async function rhPost(path, body) {
+  if (!isRobinhoodConfigured()) {
+    throw new Error('ROBINHOOD_BROKERAGE_TOKEN is not configured');
+  }
+
+  await waitForRobinhoodSlot();
+
+  const response = await fetch(`${RH_BASE}${path}`, {
+    method: 'POST',
+    headers: {
+      ...RH_HEADERS_BASE,
+      Authorization: `Bearer ${getRobinhoodToken()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const bodyText = await response.text();
+  let parsed;
+  try {
+    parsed = bodyText ? JSON.parse(bodyText) : {};
+  } catch {
+    throw new Error(`Robinhood returned non-JSON (${response.status}): ${bodyText.slice(0, 200)}`);
+  }
+
+  if (response.status === 401) {
+    throw new Error(
+      'Robinhood token expired or invalid. Log into robinhood.com in Chrome, copy a fresh Bearer token, and update ROBINHOOD_BROKERAGE_TOKEN in .env.local.'
+    );
+  }
+
+  if (!response.ok) {
+    const detail = parsed?.detail || parsed?.error || bodyText.slice(0, 200);
+    throw new Error(`Robinhood ${response.status}: ${detail}`);
+  }
+
+  return parsed;
 }
 
 async function rhGet(path, params = {}) {
@@ -286,5 +331,177 @@ export async function fetchRobinhoodOptions(symbol, dateUnix) {
         },
       ],
     },
+  };
+}
+
+async function getChainContext(symbol) {
+  const normalizedSymbol = String(symbol || '').trim().toUpperCase();
+  if (!normalizedSymbol) {
+    throw new Error('Missing symbol');
+  }
+
+  const instrument = (await rhGet('/instruments/', { symbol: normalizedSymbol })).results?.[0];
+  const chainId = instrument?.tradable_chain_id;
+  if (!chainId) {
+    throw new Error(`No options chain found for ${normalizedSymbol}`);
+  }
+
+  const chain = await rhGet(`/options/chains/${chainId}/`);
+  return { normalizedSymbol, chainId, chain };
+}
+
+async function findOptionInstrument(symbol, expirationUnix, strike, optionType) {
+  const { normalizedSymbol, chainId, chain } = await getChainContext(symbol);
+  const expirationStrings = (chain.expiration_dates || []).slice().sort();
+  const expirationDates = normalizeExpirationList(expirationStrings);
+  if (!expirationDates.length) {
+    throw new Error(`No option expirations returned for ${normalizedSymbol}`);
+  }
+
+  const selected = pickExpiration(expirationDates, expirationUnix, expirationStrings);
+  const normalizedType = String(optionType || '').toLowerCase();
+  const targetStrike = Number(strike);
+  if (!Number.isFinite(targetStrike) || targetStrike <= 0) {
+    throw new Error('Invalid strike');
+  }
+
+  const optionInstruments = await rhGetPaginated('/options/instruments/', {
+    chain_id: chainId,
+    chain_symbol: normalizedSymbol,
+    expiration_dates: selected.iso,
+    state: 'active',
+  });
+
+  const instrument = optionInstruments.find(
+    (item) =>
+      String(item.type).toLowerCase() === normalizedType &&
+      Math.abs(Number(item.strike_price) - targetStrike) < 0.001
+  );
+
+  if (!instrument) {
+    throw new Error(
+      `No ${optionType} contract found for ${normalizedSymbol} ${selected.iso} strike ${targetStrike}`
+    );
+  }
+
+  return {
+    instrument,
+    symbol: normalizedSymbol,
+    expirationUnix: selected.unix,
+    expirationIso: selected.iso,
+    optionType: normalizedType === 'call' ? 'Call' : 'Put',
+    strike: targetStrike,
+  };
+}
+
+async function getDefaultAccountUrl() {
+  const payload = await rhGet('/accounts/');
+  const account = payload.results?.find((item) => item.active) || payload.results?.[0];
+  if (!account?.url) {
+    throw new Error('No active Robinhood account found');
+  }
+  return account.url;
+}
+
+async function getOptionMarketQuote(instrumentUrl) {
+  const payload = await rhFetch(`${RH_BASE}/marketdata/options/?instruments=${encodeURIComponent(instrumentUrl)}`);
+  return payload.results?.[0] || null;
+}
+
+export async function previewRobinhoodOptionOrder({
+  symbol,
+  expirationUnix,
+  strike,
+  optionType,
+}) {
+  const resolved = await findOptionInstrument(symbol, expirationUnix, strike, optionType);
+  const market = await getOptionMarketQuote(resolved.instrument.url);
+
+  return {
+    symbol: resolved.symbol,
+    expirationUnix: resolved.expirationUnix,
+    expirationIso: resolved.expirationIso,
+    strike: resolved.strike,
+    optionType: resolved.optionType,
+    contractSymbol: toOccSymbol(
+      resolved.symbol,
+      resolved.expirationIso,
+      resolved.optionType,
+      resolved.strike
+    ),
+    instrumentUrl: resolved.instrument.url,
+    bid: Number(market?.bid_price ?? 0) || 0,
+    ask: Number(market?.ask_price ?? 0) || 0,
+    mark: Number(market?.mark_price ?? 0) || 0,
+    lastTrade: Number(market?.last_trade_price ?? 0) || 0,
+    tradingEnabled: isRobinhoodTradingEnabled(),
+  };
+}
+
+export async function placeRobinhoodOptionOrder({
+  symbol,
+  expirationUnix,
+  strike,
+  optionType,
+  quantity = 1,
+  side = 'buy',
+  orderType = 'limit',
+  limitPrice,
+}) {
+  if (!isRobinhoodTradingEnabled()) {
+    throw new Error(
+      'Robinhood trading is disabled. Set ROBINHOOD_TRADING_ENABLED=true in .env.local to allow live orders.'
+    );
+  }
+
+  const qty = Math.max(1, Math.min(100, Math.floor(Number(quantity) || 1)));
+  const normalizedSide = String(side).toLowerCase() === 'sell' ? 'sell' : 'buy';
+  const normalizedOrderType = String(orderType).toLowerCase() === 'market' ? 'market' : 'limit';
+
+  const resolved = await findOptionInstrument(symbol, expirationUnix, strike, optionType);
+  const account = await getDefaultAccountUrl();
+
+  const body = {
+    account,
+    instrument: resolved.instrument.url,
+    quantity: String(qty),
+    side: normalizedSide,
+    type: normalizedOrderType,
+    time_in_force: 'gfd',
+    trigger: 'immediate',
+    override_day_trade_checks: false,
+    override_dtbp_checks: false,
+    ref_id: crypto.randomUUID(),
+  };
+
+  if (normalizedOrderType === 'limit') {
+    const price = Number(limitPrice);
+    if (!Number.isFinite(price) || price <= 0) {
+      throw new Error('Limit price is required for limit orders');
+    }
+    body.price = price.toFixed(2);
+  }
+
+  const order = await rhPost('/options/orders/', body);
+
+  return {
+    orderId: order.id || null,
+    state: order.state || null,
+    symbol: resolved.symbol,
+    expirationUnix: resolved.expirationUnix,
+    expirationIso: resolved.expirationIso,
+    strike: resolved.strike,
+    optionType: resolved.optionType,
+    contractSymbol: toOccSymbol(
+      resolved.symbol,
+      resolved.expirationIso,
+      resolved.optionType,
+      resolved.strike
+    ),
+    quantity: qty,
+    side: normalizedSide,
+    orderType: normalizedOrderType,
+    limitPrice: normalizedOrderType === 'limit' ? Number(body.price) : null,
+    createdAt: new Date().toISOString(),
   };
 }

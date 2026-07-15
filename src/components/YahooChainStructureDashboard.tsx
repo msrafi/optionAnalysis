@@ -1,6 +1,11 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { BarChart3, RefreshCw } from 'lucide-react';
 import { fetchYahooMostActiveOptions, fetchYahooOptionChain, YahooMostActiveOptionRow } from '../utils/yahooOptions';
+import RobinhoodTradeConfirmModal from './RobinhoodTradeConfirmModal';
+import {
+  fetchRobinhoodTradingStatus,
+  RobinhoodTradeDraft,
+} from '../utils/robinhoodTrading';
 
 type DashboardType =
   | 'options'
@@ -459,6 +464,8 @@ interface FlowColumnModel {
       putValue: number;
       callOiValue: number;
       putOiValue: number;
+      callLast: number;
+      putLast: number;
     }
   >;
   updatesByStrike: Map<number, FlowStrikeUpdateEntry[]>;
@@ -585,6 +592,8 @@ const FlowDataRow: React.FC<{
   fontWeight?: number;
   minHeight?: number;
   opacity?: number;
+  onCallClick?: () => void;
+  onPutClick?: () => void;
 }> = ({
   timeLabel = null,
   callLabel,
@@ -601,7 +610,9 @@ const FlowDataRow: React.FC<{
   fontSize = '0.62rem',
   fontWeight = 600,
   minHeight = FLOW_UPDATE_SLOT_HEIGHT,
-  opacity = 1
+  opacity = 1,
+  onCallClick,
+  onPutClick
 }) => (
   <div
     style={{
@@ -624,17 +635,39 @@ const FlowDataRow: React.FC<{
     >
       {timeLabel ?? ''}
     </span>
-    <span
-      style={{
-        color: callLabelColor,
-        whiteSpace: 'nowrap',
-        lineHeight: 1,
-        fontWeight,
-        textAlign: 'left'
-      }}
-    >
-      {callLabel}
-    </span>
+    {onCallClick ? (
+      <button
+        type="button"
+        className="rh-trade-clickable"
+        onClick={onCallClick}
+        title="Send Call trade to Robinhood"
+        style={{
+          color: callLabelColor,
+          whiteSpace: 'nowrap',
+          lineHeight: 1,
+          fontWeight,
+          textAlign: 'left',
+          background: 'transparent',
+          border: 'none',
+          padding: 0,
+          fontSize: 'inherit'
+        }}
+      >
+        {callLabel}
+      </button>
+    ) : (
+      <span
+        style={{
+          color: callLabelColor,
+          whiteSpace: 'nowrap',
+          lineHeight: 1,
+          fontWeight,
+          textAlign: 'left'
+        }}
+      >
+        {callLabel}
+      </span>
+    )}
     <FlowVolumeBar
       callWidth={callWidth}
       putWidth={putWidth}
@@ -644,18 +677,41 @@ const FlowDataRow: React.FC<{
       putBarColor={putBarColor}
       height={barHeight}
     />
-    <span
-      style={{
-        color: putLabelColor,
-        whiteSpace: 'nowrap',
-        textAlign: 'right',
-        lineHeight: 1,
-        fontWeight,
-        justifySelf: 'stretch'
-      }}
-    >
-      {putLabel}
-    </span>
+    {onPutClick ? (
+      <button
+        type="button"
+        className="rh-trade-clickable"
+        onClick={onPutClick}
+        title="Send Put trade to Robinhood"
+        style={{
+          color: putLabelColor,
+          whiteSpace: 'nowrap',
+          textAlign: 'right',
+          lineHeight: 1,
+          fontWeight,
+          justifySelf: 'stretch',
+          background: 'transparent',
+          border: 'none',
+          padding: 0,
+          fontSize: 'inherit'
+        }}
+      >
+        {putLabel}
+      </button>
+    ) : (
+      <span
+        style={{
+          color: putLabelColor,
+          whiteSpace: 'nowrap',
+          textAlign: 'right',
+          lineHeight: 1,
+          fontWeight,
+          justifySelf: 'stretch'
+        }}
+      >
+        {putLabel}
+      </span>
+    )}
   </div>
 );
 
@@ -713,7 +769,9 @@ function buildFlowColumnModel(
         callValue: row.callVolume,
         putValue: row.putVolume,
         callOiValue: row.callOi,
-        putOiValue: row.putOi
+        putOiValue: row.putOi,
+        callLast: row.callLast,
+        putLast: row.putLast
       }
     ] as const)
   );
@@ -828,7 +886,10 @@ const VolumeFlowStrikeCell: React.FC<{
   strike: number;
   model: FlowColumnModel;
   updateSlots: number;
-}> = ({ strike, model, updateSlots }) => {
+  symbol: string;
+  expiry: number;
+  onTradeSelect?: (draft: RobinhoodTradeDraft) => void;
+}> = ({ strike, model, updateSlots, symbol, expiry, onTradeSelect }) => {
   const current = model.currentByStrike.get(strike);
   const updates = getFlowUpdatesForStrike(model.updatesByStrike, strike);
   const paddedUpdates: Array<FlowStrikeUpdateEntry | null> = [
@@ -845,6 +906,19 @@ const VolumeFlowStrikeCell: React.FC<{
   const callCurrentOiWidth = (currentCallOi / model.maxCurrentOiTotal) * 50;
   const putCurrentOiWidth = (currentPutOi / model.maxCurrentOiTotal) * 50;
 
+  const openTrade = (optionType: 'Call' | 'Put') => {
+    if (!onTradeSelect || !symbol.trim() || !expiry) return;
+    const premium = optionType === 'Call' ? current?.callLast ?? 0 : current?.putLast ?? 0;
+    onTradeSelect({
+      source: 'flow',
+      symbol: symbol.trim().toUpperCase(),
+      expirationUnix: expiry,
+      strike,
+      optionType,
+      premium
+    });
+  };
+
   return (
     <div style={{ minWidth: 0, height: '100%' }}>
       <FlowDataRow
@@ -857,6 +931,8 @@ const VolumeFlowStrikeCell: React.FC<{
         barHeight={10}
         fontSize="0.66rem"
         minHeight={24}
+        onCallClick={onTradeSelect ? () => openTrade('Call') : undefined}
+        onPutClick={onTradeSelect ? () => openTrade('Put') : undefined}
       />
 
       {updateSlots > 0 && (
@@ -916,7 +992,9 @@ const VolumeFlowGrid: React.FC<{
     spot: number | null;
   }>;
   referenceSpot: number | null;
-}> = ({ columns, referenceSpot }) => {
+  symbol: string;
+  onTradeSelect?: (draft: RobinhoodTradeDraft) => void;
+}> = ({ columns, referenceSpot, symbol, onTradeSelect }) => {
   const models = columns.map((column) =>
     buildFlowColumnModel(column.expiryLabel, column.chainRows, column.volumeFlowHistory, column.spot)
   );
@@ -1088,7 +1166,14 @@ const VolumeFlowGrid: React.FC<{
                       minWidth: 0
                     }}
                   >
-                    <VolumeFlowStrikeCell strike={strike} model={model} updateSlots={updateSlots} />
+                    <VolumeFlowStrikeCell
+                      strike={strike}
+                      model={model}
+                      updateSlots={updateSlots}
+                      symbol={symbol}
+                      expiry={columns[idx].expiry}
+                      onTradeSelect={onTradeSelect}
+                    />
                   </div>
                 ))}
               </div>
@@ -1132,6 +1217,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [mostActiveRows, setMostActiveRows] = useState<YahooMostActiveOptionRow[]>([]);
   const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
   const [flowDataByExpiry, setFlowDataByExpiry] = useState<Record<number, FlowExpiryState>>({});
+  const [tradeDraft, setTradeDraft] = useState<RobinhoodTradeDraft | null>(null);
+  const [rhTradingEnabled, setRhTradingEnabled] = useState(false);
+  const [rhTradingConfigured, setRhTradingConfigured] = useState(false);
   const selectedExpiryDays = selectedExpiry ? daysUntilExpiry(selectedExpiry) : null;
   const flowExpiries = useMemo(
     () => getFlowExpiries(selectedExpiry, availableExpiries, 3),
@@ -1159,6 +1247,26 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   useEffect(() => {
     flowDataByExpiryRef.current = flowDataByExpiry;
   }, [flowDataByExpiry]);
+
+  useEffect(() => {
+    fetchRobinhoodTradingStatus()
+      .then((status) => {
+        setRhTradingConfigured(status.configured);
+        setRhTradingEnabled(status.tradingEnabled);
+      })
+      .catch(() => {
+        setRhTradingConfigured(false);
+        setRhTradingEnabled(false);
+      });
+  }, []);
+
+  const openRobinhoodTrade = useCallback((draft: RobinhoodTradeDraft) => {
+    if (!rhTradingConfigured) {
+      setError('Robinhood is not configured. Set ROBINHOOD_BROKERAGE_TOKEN in .env.local.');
+      return;
+    }
+    setTradeDraft(draft);
+  }, [rhTradingConfigured]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -1989,6 +2097,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   };
 
   return (
+    <>
     <div className="options-dashboard yahoo-options-dashboard">
       <header className="dashboard-header">
         <div className="header-left">
@@ -2307,7 +2416,22 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                         {r.callOi.toLocaleString()}
                         {renderRecentDeltas(callOiDeltas)}
                       </td>
-                      <td style={{ background: 'rgba(34,197,94,0.1)', fontWeight: 500, color: '#22c55e' }}>
+                      <td
+                        style={{ background: 'rgba(34,197,94,0.1)', fontWeight: 500, color: '#22c55e' }}
+                        className={rhTradingConfigured ? 'rh-trade-clickable' : undefined}
+                        title={rhTradingConfigured ? 'Click to trade this Call on Robinhood' : undefined}
+                        onClick={() => {
+                          if (!rhTradingConfigured || !selectedExpiry) return;
+                          openRobinhoodTrade({
+                            source: 'heatmap',
+                            symbol: symbol.trim().toUpperCase(),
+                            expirationUnix: selectedExpiry,
+                            strike: r.strike,
+                            optionType: 'Call',
+                            premium: r.callLast
+                          });
+                        }}
+                      >
                         ${r.callLast > 0 ? r.callLast.toFixed(2) : '-'}
                       </td>
                       <td style={{ background: `rgba(239,68,68,${0.1 + pv * 0.7})` }}>
@@ -2318,7 +2442,22 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                         {r.putOi.toLocaleString()}
                         {renderRecentDeltas(putOiDeltas)}
                       </td>
-                      <td style={{ background: 'rgba(239,68,68,0.1)', fontWeight: 500, color: '#ef4444' }}>
+                      <td
+                        style={{ background: 'rgba(239,68,68,0.1)', fontWeight: 500, color: '#ef4444' }}
+                        className={rhTradingConfigured ? 'rh-trade-clickable' : undefined}
+                        title={rhTradingConfigured ? 'Click to trade this Put on Robinhood' : undefined}
+                        onClick={() => {
+                          if (!rhTradingConfigured || !selectedExpiry) return;
+                          openRobinhoodTrade({
+                            source: 'heatmap',
+                            symbol: symbol.trim().toUpperCase(),
+                            expirationUnix: selectedExpiry,
+                            strike: r.strike,
+                            optionType: 'Put',
+                            premium: r.putLast
+                          });
+                        }}
+                      >
                         ${r.putLast > 0 ? r.putLast.toFixed(2) : '-'}
                       </td>
                     </tr>
@@ -2342,6 +2481,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         <p className="yahoo-muted" style={{ marginTop: '-2px', marginBottom: '8px', fontSize: '0.8rem' }}>
           Top row shows current volumes. Each update below shows only the change since the previous fetch (0 if unchanged).
           Showing selected expiry plus the next 2 available expiries. Flow history resets each calendar day.
+          {rhTradingConfigured && ' Click C or P on the strike total row to send a Robinhood trade.'}
         </p>
 
         {flowExpiries.length === 0 ? (
@@ -2351,6 +2491,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         ) : (
           <VolumeFlowGrid
             referenceSpot={effectiveSpot}
+            symbol={symbol}
+            onTradeSelect={rhTradingConfigured ? openRobinhoodTrade : undefined}
             columns={flowExpiries.map((expiry) => {
               const flowState = flowDataByExpiry[expiry];
               const columnSpot =
@@ -2839,6 +2981,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             );
           })()}
     </div>
+    {tradeDraft && (
+      <RobinhoodTradeConfirmModal
+        draft={tradeDraft}
+        tradingEnabled={rhTradingEnabled}
+        onClose={() => setTradeDraft(null)}
+      />
+    )}
+    </>
   );
 };
 

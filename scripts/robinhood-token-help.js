@@ -17,8 +17,12 @@ Robinhood session token setup (no new signup — uses your existing account)
 Test:
    curl -i "http://localhost:8788/api/robinhood/options/SPY"
 
+Live trading (optional, disabled by default):
+   ROBINHOOD_TRADING_ENABLED=true
+
 Notes:
 - Tokens expire like a normal web session. Refresh when you get 401 errors.
-- Keep the token private — it grants access to your Robinhood account reads.
+- Keep the token private — it grants access to your Robinhood account reads and trades.
 - This uses Robinhood's unofficial private API. Use for personal analysis only.
+- Trades require confirmation in the UI before they are sent.
 `);
