@@ -173,16 +173,21 @@ export async function fetchYahooOptionChain(symbol: string, expiry?: number): Pr
 
     if (errorBody.error === 'yahoo_rate_limited' || /429|rate.?limit|too many requests/i.test(backendMessage)) {
       throw new Error(
-        `Yahoo is rate-limiting the data server (${response.status}). Wait 1–2 minutes and retry. For reliable access, run locally: npm start`
+        `Yahoo is rate-limiting the data server (${response.status}). Robinhood fallback will be used if ROBINHOOD_BROKERAGE_TOKEN is configured. Wait 1–2 minutes and retry.`
       );
     }
 
     if (response.status === 404 || response.status === 502 || response.status === 503 || response.status === 504) {
       throw new Error(
-        `Failed to reach Yahoo API backend (${response.status}). Backend URL: ${baseUrl}. ${backendMessage}`
+        `Failed to reach options API backend (${response.status}). Backend URL: ${baseUrl}. ${backendMessage}`
       );
     }
-    throw new Error(`Yahoo request failed for ${symbol}: ${response.status} ${backendMessage}`);
+    throw new Error(`Options request failed for ${symbol}: ${response.status} ${backendMessage}`);
+  }
+
+  const dataSource = response.headers.get('X-Data-Source');
+  if (dataSource) {
+    console.log(`[YahooOptions] Loaded ${symbol} from ${dataSource}`);
   }
 
   const json = (await response.json()) as YahooApiResponse;

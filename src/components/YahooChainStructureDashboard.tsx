@@ -471,7 +471,212 @@ interface FlowColumnModel {
 }
 
 const MAX_FLOW_UPDATES_PER_STRIKE = 6;
-const FLOW_UPDATE_SLOT_HEIGHT = 30;
+const FLOW_UPDATE_SLOT_HEIGHT = 22;
+const FLOW_TIME_COL = '52px';
+const FLOW_CALL_COL = '82px';
+const FLOW_PUT_COL = '82px';
+const FLOW_CELL_ROW_GRID = `${FLOW_TIME_COL} ${FLOW_CALL_COL} minmax(48px, 1fr) ${FLOW_PUT_COL}`;
+
+function getFlowProportionalWidths(callValue: number, putValue: number): { callWidth: number; putWidth: number } {
+  const total = Math.abs(callValue) + Math.abs(putValue);
+  if (total <= 0) return { callWidth: 0, putWidth: 0 };
+  return {
+    callWidth: (Math.abs(callValue) / total) * 50,
+    putWidth: (Math.abs(putValue) / total) * 50
+  };
+}
+
+const FlowVolumeBar: React.FC<{
+  callWidth: number;
+  putWidth: number;
+  callOiWidth?: number;
+  putOiWidth?: number;
+  callBarColor?: string;
+  putBarColor?: string;
+  height?: number;
+}> = ({
+  callWidth,
+  putWidth,
+  callOiWidth = 0,
+  putOiWidth = 0,
+  callBarColor = 'rgba(59,130,246,0.85)',
+  putBarColor = 'rgba(245,158,11,0.85)',
+  height = 8
+}) => (
+  <div
+    style={{
+      position: 'relative',
+      height: `${height}px`,
+      borderRadius: '999px',
+      background: 'rgba(15,23,42,0.45)',
+      overflow: 'hidden',
+      minWidth: 0,
+      width: '100%'
+    }}
+  >
+    <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', background: 'rgba(148,163,184,0.35)' }} />
+    {callWidth > 0 && (
+      <div
+        style={{
+          position: 'absolute',
+          right: '50%',
+          top: 0,
+          bottom: 0,
+          width: `${callWidth}%`,
+          background: callBarColor
+        }}
+      />
+    )}
+    {putWidth > 0 && (
+      <div
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: 0,
+          bottom: 0,
+          width: `${putWidth}%`,
+          background: putBarColor
+        }}
+      />
+    )}
+    {callOiWidth > 0 && (
+      <div
+        style={{
+          position: 'absolute',
+          right: '50%',
+          top: '50%',
+          height: '2px',
+          marginTop: '-1px',
+          width: `${callOiWidth}%`,
+          background: 'rgba(74, 222, 128, 0.9)'
+        }}
+      />
+    )}
+    {putOiWidth > 0 && (
+      <div
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: '50%',
+          height: '2px',
+          marginTop: '-1px',
+          width: `${putOiWidth}%`,
+          background: 'rgba(251, 113, 133, 0.9)'
+        }}
+      />
+    )}
+  </div>
+);
+
+const FlowDataRow: React.FC<{
+  timeLabel?: string | null;
+  callLabel: string;
+  putLabel: string;
+  callWidth: number;
+  putWidth: number;
+  callOiWidth?: number;
+  putOiWidth?: number;
+  callBarColor?: string;
+  putBarColor?: string;
+  callLabelColor?: string;
+  putLabelColor?: string;
+  barHeight?: number;
+  fontSize?: string;
+  fontWeight?: number;
+  minHeight?: number;
+  opacity?: number;
+}> = ({
+  timeLabel = null,
+  callLabel,
+  putLabel,
+  callWidth,
+  putWidth,
+  callOiWidth = 0,
+  putOiWidth = 0,
+  callBarColor,
+  putBarColor,
+  callLabelColor = '#60a5fa',
+  putLabelColor = '#fbbf24',
+  barHeight = 8,
+  fontSize = '0.62rem',
+  fontWeight = 600,
+  minHeight = FLOW_UPDATE_SLOT_HEIGHT,
+  opacity = 1
+}) => (
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: FLOW_CELL_ROW_GRID,
+      gap: '6px',
+      alignItems: 'center',
+      minHeight: `${minHeight}px`,
+      fontSize,
+      opacity
+    }}
+  >
+    <span
+      style={{
+        color: '#94a3b8',
+        whiteSpace: 'nowrap',
+        lineHeight: 1,
+        textAlign: 'left'
+      }}
+    >
+      {timeLabel ?? ''}
+    </span>
+    <span
+      style={{
+        color: callLabelColor,
+        whiteSpace: 'nowrap',
+        lineHeight: 1,
+        fontWeight,
+        textAlign: 'left'
+      }}
+    >
+      {callLabel}
+    </span>
+    <FlowVolumeBar
+      callWidth={callWidth}
+      putWidth={putWidth}
+      callOiWidth={callOiWidth}
+      putOiWidth={putOiWidth}
+      callBarColor={callBarColor}
+      putBarColor={putBarColor}
+      height={barHeight}
+    />
+    <span
+      style={{
+        color: putLabelColor,
+        whiteSpace: 'nowrap',
+        textAlign: 'right',
+        lineHeight: 1,
+        fontWeight,
+        justifySelf: 'stretch'
+      }}
+    >
+      {putLabel}
+    </span>
+  </div>
+);
+
+const FlowOptionsDivider: React.FC<{ label?: string }> = ({ label = 'Options' }) => (
+  <div
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '6px',
+      marginBottom: '6px',
+      fontSize: '0.58rem',
+      color: '#64748b',
+      letterSpacing: '0.08em',
+      textTransform: 'uppercase'
+    }}
+  >
+    <div style={{ flex: 1, height: '1px', background: 'rgba(148,163,184,0.28)' }} />
+    <span style={{ whiteSpace: 'nowrap' }}>{label}</span>
+    <div style={{ flex: 1, height: '1px', background: 'rgba(148,163,184,0.28)' }} />
+  </div>
+);
 
 function buildFlowColumnModel(
   expiryLabel: string,
@@ -642,50 +847,20 @@ const VolumeFlowStrikeCell: React.FC<{
 
   return (
     <div style={{ minWidth: 0, height: '100%' }}>
-      <div style={{ position: 'relative', height: '12px', borderRadius: '999px', background: 'rgba(15,23,42,0.65)', overflow: 'hidden', marginBottom: '4px' }}>
-        <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', background: 'rgba(148,163,184,0.45)' }} />
-        {callCurrentWidth > 0 && (
-          <div style={{ position: 'absolute', right: '50%', top: 0, bottom: 0, width: `${callCurrentWidth}%`, background: 'rgba(59,130,246,0.9)' }} />
-        )}
-        {putCurrentWidth > 0 && (
-          <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: `${putCurrentWidth}%`, background: 'rgba(245,158,11,0.9)' }} />
-        )}
-        {callCurrentOiWidth > 0 && (
-          <div
-            style={{
-              position: 'absolute',
-              right: '50%',
-              top: '50%',
-              height: '3px',
-              marginTop: '-1.5px',
-              width: `${callCurrentOiWidth}%`,
-              border: '1px solid black',
-              background: 'rgba(74, 222, 128, 0.95)'
-            }}
-          />
-        )}
-        {putCurrentOiWidth > 0 && (
-          <div
-            style={{
-              position: 'absolute',
-              left: '50%',
-              top: '50%',
-              height: '3px',
-              marginTop: '-1.5px',
-              width: `${putCurrentOiWidth}%`,
-              border: '1px solid black',
-              background: 'rgba(251, 113, 133, 0.95)'
-            }}
-          />
-        )}
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.66rem', marginBottom: updateSlots > 0 ? '4px' : 0 }}>
-        <span style={{ color: '#60a5fa', fontWeight: 600 }}>C {current ? current.callValue.toLocaleString() : '-'}</span>
-        <span style={{ color: '#fbbf24', fontWeight: 600 }}>P {current ? current.putValue.toLocaleString() : '-'}</span>
-      </div>
+      <FlowDataRow
+        callLabel={`C ${current ? current.callValue.toLocaleString() : '-'}`}
+        putLabel={`P ${current ? current.putValue.toLocaleString() : '-'}`}
+        callWidth={callCurrentWidth}
+        putWidth={putCurrentWidth}
+        callOiWidth={callCurrentOiWidth}
+        putOiWidth={putCurrentOiWidth}
+        barHeight={10}
+        fontSize="0.66rem"
+        minHeight={24}
+      />
 
       {updateSlots > 0 && (
-        <div style={{ display: 'grid', gap: '4px' }}>
+        <div style={{ display: 'grid', gap: '3px', marginTop: '4px' }}>
           {paddedUpdates.map((entry, idx) => {
             if (!entry) {
               return (
@@ -709,80 +884,21 @@ const VolumeFlowStrikeCell: React.FC<{
             const putOiWidth = (absPutOi / model.maxCurrentOiTotal) * 50;
 
             return (
-              <div
+              <FlowDataRow
                 key={`${entry.id}-${strike}`}
-                style={{
-                  display: 'grid',
-                  gap: '2px',
-                  minHeight: `${FLOW_UPDATE_SLOT_HEIGHT}px`,
-                  opacity: isZeroUpdate ? 0.55 : 1
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.62rem' }}>
-                  <span style={{ color: '#94a3b8' }}>
-                    {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <span style={{ color: isZeroUpdate ? '#64748b' : '#60a5fa' }}>
-                    C {entry.callAdded > 0 ? '+' : ''}{entry.callAdded.toLocaleString()}
-                  </span>
-                  <span style={{ color: isZeroUpdate ? '#64748b' : '#fbbf24' }}>
-                    P {entry.putAdded > 0 ? '+' : ''}{entry.putAdded.toLocaleString()}
-                  </span>
-                </div>
-                <div style={{ position: 'relative', height: '8px', borderRadius: '999px', background: 'rgba(15,23,42,0.45)', overflow: 'hidden' }}>
-                  <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: '1px', background: 'rgba(148,163,184,0.3)' }} />
-                  {callWidth > 0 && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        right: '50%',
-                        top: 0,
-                        bottom: 0,
-                        width: `${callWidth}%`,
-                        background: entry.callAdded >= 0 ? 'rgba(59,130,246,0.7)' : 'rgba(239,68,68,0.75)'
-                      }}
-                    />
-                  )}
-                  {putWidth > 0 && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        left: '50%',
-                        top: 0,
-                        bottom: 0,
-                        width: `${putWidth}%`,
-                        background: entry.putAdded >= 0 ? 'rgba(245,158,11,0.7)' : 'rgba(239,68,68,0.75)'
-                      }}
-                    />
-                  )}
-                  {callOiWidth > 0 && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        right: '50%',
-                        top: '50%',
-                        height: '2px',
-                        marginTop: '-1px',
-                        width: `${callOiWidth}%`,
-                        background: 'rgba(74, 222, 128, 0.9)'
-                      }}
-                    />
-                  )}
-                  {putOiWidth > 0 && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        left: '50%',
-                        top: '50%',
-                        height: '2px',
-                        marginTop: '-1px',
-                        width: `${putOiWidth}%`,
-                        background: 'rgba(251, 113, 133, 0.9)'
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
+                timeLabel={new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                callLabel={`C ${entry.callAdded > 0 ? '+' : ''}${entry.callAdded.toLocaleString()}`}
+                putLabel={`P ${entry.putAdded > 0 ? '+' : ''}${entry.putAdded.toLocaleString()}`}
+                callWidth={callWidth}
+                putWidth={putWidth}
+                callOiWidth={callOiWidth}
+                putOiWidth={putOiWidth}
+                callBarColor={entry.callAdded >= 0 ? 'rgba(59,130,246,0.7)' : 'rgba(239,68,68,0.75)'}
+                putBarColor={entry.putAdded >= 0 ? 'rgba(245,158,11,0.7)' : 'rgba(239,68,68,0.75)'}
+                callLabelColor={isZeroUpdate ? '#64748b' : '#60a5fa'}
+                putLabelColor={isZeroUpdate ? '#64748b' : '#fbbf24'}
+                opacity={isZeroUpdate ? 0.55 : 1}
+              />
             );
           })}
         </div>
@@ -836,7 +952,7 @@ const VolumeFlowGrid: React.FC<{
     spotForAlignment > 0 ? getSpotMarkerAfterStrike(alignedStrikes, spotForAlignment) : null;
 
   const columnCount = columns.length;
-  const gridTemplate = `42px repeat(${columnCount}, minmax(0, 1fr))`;
+  const gridTemplate = `48px repeat(${columnCount}, minmax(0, 1fr))`;
 
   if (alignedStrikes.length === 0) {
     return (
@@ -908,10 +1024,16 @@ const VolumeFlowGrid: React.FC<{
                     : 'BALANCED'}
               </span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem' }}>
-              <span style={{ color: '#60a5fa' }}>C {model.windowCallTotal.toLocaleString()}</span>
-              <span style={{ color: '#fbbf24' }}>P {model.windowPutTotal.toLocaleString()}</span>
-            </div>
+            <FlowOptionsDivider label="Total Options" />
+            <FlowDataRow
+              callLabel={`C ${model.windowCallTotal.toLocaleString()}`}
+              putLabel={`P ${model.windowPutTotal.toLocaleString()}`}
+              callWidth={getFlowProportionalWidths(model.windowCallTotal, model.windowPutTotal).callWidth}
+              putWidth={getFlowProportionalWidths(model.windowCallTotal, model.windowPutTotal).putWidth}
+              barHeight={10}
+              fontSize="0.68rem"
+              minHeight={24}
+            />
           </div>
         ))}
       </div>
@@ -985,6 +1107,9 @@ const VolumeFlowGrid: React.FC<{
   );
 };
 
+const AUTO_REFRESH_INTERVAL_MS = 3 * 60 * 1000;
+const AUTO_REFRESH_INTERVAL_SEC = AUTO_REFRESH_INTERVAL_MS / 1000;
+
 const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> = ({
   activeDashboard,
   setActiveDashboard
@@ -1002,7 +1127,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [error, setError] = useState('');
   const [autoRefreshActive, setAutoRefreshActive] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
-  const [nextRefreshIn, setNextRefreshIn] = useState<number>(300); // seconds until next refresh
+  const [nextRefreshIn, setNextRefreshIn] = useState<number>(AUTO_REFRESH_INTERVAL_SEC);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [mostActiveRows, setMostActiveRows] = useState<YahooMostActiveOptionRow[]>([]);
   const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
@@ -1654,12 +1779,12 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       setLastUpdateTime(new Date());
 
       if (isRefresh) {
-        setNextRefreshIn(300);
+        setNextRefreshIn(AUTO_REFRESH_INTERVAL_SEC);
       }
 
       if (!isRefresh && !autoRefreshActive) {
         setAutoRefreshActive(true);
-        setNextRefreshIn(300);
+        setNextRefreshIn(AUTO_REFRESH_INTERVAL_SEC);
       }
     } catch (err) {
       if (requestId === latestLoadChainRequestRef.current) {
@@ -1794,7 +1919,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     return () => clearInterval(countdownInterval);
   }, [autoRefreshActive, nextRefreshIn]);
 
-  // Auto-refresh every 5 minutes after initial 5-minute wait
+  // Auto-refresh every 3 minutes after initial 3-minute wait
   useEffect(() => {
     if (!autoRefreshActive || !symbol.trim()) {
       return;
@@ -1806,8 +1931,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       loadChain(true);
       intervalId = setInterval(() => {
         loadChain(true);
-      }, 5 * 60 * 1000);
-    }, 5 * 60 * 1000);
+      }, AUTO_REFRESH_INTERVAL_MS);
+    }, AUTO_REFRESH_INTERVAL_MS);
 
     return () => {
       clearTimeout(initialTimer);
@@ -1875,7 +2000,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             <span className="header-stat">Confidence: {stats.confidence.toFixed(0)}%</span>
             {autoRefreshActive && (
               <span className="header-stat" style={{ color: '#4ade80' }}>
-                🔄 Auto-refresh: ON (every 5min)
+                🔄 Auto-refresh: ON (every 3min)
               </span>
             )}
             {lastUpdateTime && (
@@ -2090,7 +2215,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             Volume/OI Heatmap (by strike)
             {autoRefreshActive && dataHistory.length === 0 && (
               <span style={{ marginLeft: '12px', fontSize: '0.85em', color: '#94a3b8', fontWeight: 400 }}>
-                • Changes will appear after first refresh (5min)
+                • Changes will appear after first refresh (3min)
               </span>
             )}
             {topMovers.top3.length > 0 && (
