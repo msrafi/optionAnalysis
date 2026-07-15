@@ -4,6 +4,11 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import YahooFinance from 'yahoo-finance2';
+import {
+  fetchRobinhoodOptions,
+  hasOptionContracts,
+  isRobinhoodConfigured,
+} from './robinhoodClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -47,6 +52,7 @@ app.use(cors({
     callback(allowed ? null : new Error(`CORS blocked: ${origin}`), allowed);
   },
   credentials: false,
+  exposedHeaders: ['X-Cache', 'X-Data-Source'],
 }));
 
 function unwrapNumeric(field, fallback = 0) {
@@ -61,7 +67,7 @@ const CACHE_TTL_MS = parseInt(process.env.YAHOO_CACHE_TTL_MS || '120000', 10);
 const STALE_MAX_MS = parseInt(process.env.YAHOO_STALE_MAX_MS || '900000', 10);
 const YAHOO_MIN_GAP_MS = parseInt(process.env.YAHOO_MIN_GAP_MS || '1500', 10);
 
-/** @type {Map<string, { data: object, fetchedAt: number }>} */
+/** @type {Map<string, { data: object, fetchedAt: number, source: string }>} */
 const optionsCache = new Map();
 /** @type {Map<string, Promise<object>>} */
 const inFlightOptions = new Map();
@@ -75,13 +81,17 @@ function getCachedOptions(key, allowStale = false) {
   const entry = optionsCache.get(key);
   if (!entry) return null;
   const age = Date.now() - entry.fetchedAt;
-  if (age <= CACHE_TTL_MS) return { data: entry.data, stale: false, ageMs: age };
-  if (allowStale && age <= STALE_MAX_MS) return { data: entry.data, stale: true, ageMs: age };
+  if (age <= CACHE_TTL_MS) {
+    return { data: entry.data, stale: false, ageMs: age, source: entry.source };
+  }
+  if (allowStale && age <= STALE_MAX_MS) {
+    return { data: entry.data, stale: true, ageMs: age, source: entry.source };
+  }
   return null;
 }
 
-function setCachedOptions(key, data) {
-  optionsCache.set(key, { data, fetchedAt: Date.now() });
+function setCachedOptions(key, data, source = 'yahoo') {
+  optionsCache.set(key, { data, fetchedAt: Date.now(), source });
   if (optionsCache.size > 200) {
     const oldestKey = optionsCache.keys().next().value;
     if (oldestKey) optionsCache.delete(oldestKey);
@@ -160,18 +170,18 @@ async function fetchYahooOptions(symbol, date, attempt = 1) {
   }
 }
 
-async function getOptionsPayload(symbol, date) {
+async function getYahooOptionsPayload(symbol, date) {
   const key = cacheKey(symbol, date);
   const fresh = getCachedOptions(key, false);
   if (fresh) {
-    return { payload: fresh.data, cache: 'HIT' };
+    return { payload: fresh.data, cache: 'HIT', source: fresh.source || 'cache' };
   }
 
   let pending = inFlightOptions.get(key);
   if (!pending) {
     pending = fetchYahooOptions(symbol, date)
       .then((payload) => {
-        setCachedOptions(key, payload);
+        setCachedOptions(key, payload, 'yahoo');
         return payload;
       })
       .finally(() => {
@@ -181,18 +191,114 @@ async function getOptionsPayload(symbol, date) {
   }
 
   const payload = await pending;
-  return { payload, cache: 'MISS' };
+  return { payload, cache: 'MISS', source: 'yahoo' };
+}
+
+async function getRobinhoodOptionsPayload(symbol, date) {
+  const key = cacheKey(symbol, date);
+  const payload = await fetchRobinhoodOptions(symbol, date);
+  setCachedOptions(key, payload, 'robinhood');
+  return { payload, cache: 'MISS', source: 'robinhood' };
+}
+
+function isRobinhoodPrimary() {
+  const value = (process.env.ROBINHOOD_PRIMARY || '').trim().toLowerCase();
+  return value === 'true' || value === '1' || value === 'yes';
+}
+
+function getOptionsSourceLabel() {
+  if (isRobinhoodPrimary() && isRobinhoodConfigured()) {
+    return 'robinhood-primary+yahoo-fallback';
+  }
+  if (isRobinhoodConfigured()) {
+    return 'yahoo-primary+robinhood-fallback';
+  }
+  return 'yahoo-only';
+}
+
+async function getOptionsPayloadWithFallback(symbol, date) {
+  const key = cacheKey(symbol, date);
+  const fresh = getCachedOptions(key, false);
+  if (fresh) {
+    return { payload: fresh.data, cache: 'HIT', source: fresh.source || 'cache' };
+  }
+
+  const robinhoodFirst = isRobinhoodPrimary() && isRobinhoodConfigured();
+  let primaryError = null;
+
+  if (robinhoodFirst) {
+    try {
+      const robinhoodResult = await getRobinhoodOptionsPayload(symbol, date);
+      if (hasOptionContracts(robinhoodResult.payload)) {
+        return robinhoodResult;
+      }
+      primaryError = new Error('Robinhood returned an empty options chain');
+      console.warn(`[options] Robinhood empty chain for ${symbol}, trying Yahoo fallback`);
+    } catch (error) {
+      primaryError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[options] Robinhood failed for ${symbol}: ${message}`);
+    }
+  } else {
+    try {
+      const yahooResult = await getYahooOptionsPayload(symbol, date);
+      if (hasOptionContracts(yahooResult.payload)) {
+        return yahooResult;
+      }
+      primaryError = new Error('Yahoo returned an empty options chain');
+      console.warn(`[options] Yahoo empty chain for ${symbol}, trying Robinhood fallback`);
+    } catch (error) {
+      primaryError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn(`[options] Yahoo failed for ${symbol}: ${message}`);
+    }
+  }
+
+  if (robinhoodFirst) {
+    try {
+      console.log(`[options] Fetching ${symbol} from Yahoo (fallback)`);
+      const yahooResult = await getYahooOptionsPayload(symbol, date);
+      if (hasOptionContracts(yahooResult.payload)) {
+        return yahooResult;
+      }
+      primaryError = new Error('Yahoo fallback returned an empty options chain');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[options] Yahoo fallback failed for ${symbol}: ${message}`);
+      primaryError = error;
+    }
+  } else if (isRobinhoodConfigured()) {
+    try {
+      console.log(`[options] Fetching ${symbol} from Robinhood (fallback)`);
+      return await getRobinhoodOptionsPayload(symbol, date);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[options] Robinhood fallback failed for ${symbol}: ${message}`);
+      primaryError = error;
+    }
+  }
+
+  const stale = getCachedOptions(key, true);
+  if (stale) {
+    return { payload: stale.data, cache: 'STALE', source: stale.source || 'cache' };
+  }
+
+  throw primaryError || new Error(`Failed to fetch options for ${symbol}`);
 }
 
 // Root endpoint
 app.get('/', (_req, res) => {
   res.json({ 
-    service: 'yahoo-options-api',
-    version: '1.0.0',
+    service: 'options-data-api',
+    version: '1.1.0',
     status: 'running',
+    robinhoodConfigured: isRobinhoodConfigured(),
+    robinhoodPrimary: isRobinhoodPrimary(),
+    optionsSource: getOptionsSourceLabel(),
     endpoints: {
       health: '/health',
       options: '/api/yahoo/options/:symbol',
+      robinhoodOptions: '/api/robinhood/options/:symbol',
       mostActive: '/api/yahoo/most-active'
     }
   });
@@ -203,7 +309,10 @@ app.get('/health', (_req, res) => {
   try {
     res.status(200).json({ 
       ok: true, 
-      service: 'yahoo-options-api',
+      service: 'options-data-api',
+      robinhoodConfigured: isRobinhoodConfigured(),
+    robinhoodPrimary: isRobinhoodPrimary(),
+    optionsSource: getOptionsSourceLabel(),
       timestamp: new Date().toISOString(),
       uptime: process.uptime()
     });
@@ -213,7 +322,7 @@ app.get('/health', (_req, res) => {
   }
 });
 
-app.get('/api/yahoo/options/:symbol', async (req, res) => {
+async function handleOptionsRequest(req, res, { forceRobinhood = false } = {}) {
   const symbol = String(req.params.symbol || '').trim().toUpperCase();
   const rawDate = req.query.date;
   const date = rawDate ? Number(rawDate) : undefined;
@@ -223,37 +332,55 @@ app.get('/api/yahoo/options/:symbol', async (req, res) => {
     return;
   }
 
-  const key = cacheKey(symbol, date);
+  if (forceRobinhood && !isRobinhoodConfigured()) {
+    res.status(503).json({
+      error: 'robinhood_not_configured',
+      message:
+        'Set ROBINHOOD_BROKERAGE_TOKEN in .env.local. Run: npm run robinhood-token-help',
+      symbol,
+    });
+    return;
+  }
 
   try {
-    console.log(`[options] Fetching options for ${symbol}${date ? ` (date: ${date})` : ''}`);
-    const { payload, cache } = await getOptionsPayload(symbol, date);
+    console.log(
+      `[options] Fetching options for ${symbol}${date ? ` (date: ${date})` : ''} via ${forceRobinhood ? 'robinhood' : getOptionsSourceLabel()}`
+    );
+
+    const { payload, cache, source } = forceRobinhood
+      ? await getRobinhoodOptionsPayload(symbol, date)
+      : await getOptionsPayloadWithFallback(symbol, date);
+
     res.setHeader('X-Cache', cache);
-    console.log(`[options] Successfully fetched options for ${symbol} (${cache})`);
+    res.setHeader('X-Data-Source', source);
+    console.log(`[options] Successfully fetched options for ${symbol} (${cache}, ${source})`);
     res.json(payload);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown Yahoo options fetch error';
+    const message = error instanceof Error ? error.message : 'Unknown options fetch error';
     const rateLimited = isRateLimitError(error);
-    const stale = getCachedOptions(key, true);
-
-    if (stale) {
-      console.warn(`[options] Serving stale cache for ${symbol} after Yahoo error: ${message}`);
-      res.setHeader('X-Cache', 'STALE');
-      res.json(stale.data);
-      return;
-    }
 
     console.error(`[options] ❌ ERROR fetching ${symbol}:`, message);
     res.status(rateLimited ? 503 : 502).json({
       error: rateLimited ? 'yahoo_rate_limited' : 'fetch failed',
       message: rateLimited
-        ? 'Yahoo Finance is rate-limiting this server. Wait a minute and retry.'
+        ? 'Yahoo Finance is rate-limiting this server. Configure ROBINHOOD_BROKERAGE_TOKEN for automatic live fallback.'
         : message,
       symbol,
+      robinhoodConfigured: isRobinhoodConfigured(),
+    robinhoodPrimary: isRobinhoodPrimary(),
+    optionsSource: getOptionsSourceLabel(),
       timestamp: new Date().toISOString(),
       details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined,
     });
   }
+}
+
+app.get('/api/yahoo/options/:symbol', (req, res) => {
+  handleOptionsRequest(req, res);
+});
+
+app.get('/api/robinhood/options/:symbol', (req, res) => {
+  handleOptionsRequest(req, res, { forceRobinhood: true });
 });
 
 app.get('/api/yahoo/most-active', async (req, res) => {
@@ -332,7 +459,8 @@ process.on('uncaughtException', (error) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`[startup] ✅ Server successfully started`);
-  console.log(`[startup] 📈 Yahoo options API listening on http://0.0.0.0:${PORT}`);
+  console.log(`[startup] 📈 Options API listening on http://0.0.0.0:${PORT}`);
+  console.log(`[startup] Options source mode: ${getOptionsSourceLabel()}`);
   console.log(`[startup] Health check available at: http://0.0.0.0:${PORT}/health`);
   
   // More aggressive keep-alive strategy for Railway free tier

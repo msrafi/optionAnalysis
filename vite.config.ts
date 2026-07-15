@@ -99,6 +99,11 @@ export default defineConfig(({ mode }) => {
         target: `http://localhost:${YAHOO_PORT}`,
         changeOrigin: true,
         secure: false
+      },
+      '/api/robinhood': {
+        target: `http://localhost:${YAHOO_PORT}`,
+        changeOrigin: true,
+        secure: false
       }
     }
   },
