@@ -847,7 +847,6 @@ const VolumeFlowStrikeCell: React.FC<{
 
   return (
     <div style={{ minWidth: 0, height: '100%' }}>
-      <FlowOptionsDivider />
       <FlowDataRow
         callLabel={`C ${current ? current.callValue.toLocaleString() : '-'}`}
         putLabel={`P ${current ? current.putValue.toLocaleString() : '-'}`}
@@ -1108,6 +1107,9 @@ const VolumeFlowGrid: React.FC<{
   );
 };
 
+const AUTO_REFRESH_INTERVAL_MS = 3 * 60 * 1000;
+const AUTO_REFRESH_INTERVAL_SEC = AUTO_REFRESH_INTERVAL_MS / 1000;
+
 const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> = ({
   activeDashboard,
   setActiveDashboard
@@ -1125,7 +1127,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [error, setError] = useState('');
   const [autoRefreshActive, setAutoRefreshActive] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
-  const [nextRefreshIn, setNextRefreshIn] = useState<number>(300); // seconds until next refresh
+  const [nextRefreshIn, setNextRefreshIn] = useState<number>(AUTO_REFRESH_INTERVAL_SEC);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [mostActiveRows, setMostActiveRows] = useState<YahooMostActiveOptionRow[]>([]);
   const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
@@ -1777,12 +1779,12 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       setLastUpdateTime(new Date());
 
       if (isRefresh) {
-        setNextRefreshIn(300);
+        setNextRefreshIn(AUTO_REFRESH_INTERVAL_SEC);
       }
 
       if (!isRefresh && !autoRefreshActive) {
         setAutoRefreshActive(true);
-        setNextRefreshIn(300);
+        setNextRefreshIn(AUTO_REFRESH_INTERVAL_SEC);
       }
     } catch (err) {
       if (requestId === latestLoadChainRequestRef.current) {
@@ -1917,7 +1919,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     return () => clearInterval(countdownInterval);
   }, [autoRefreshActive, nextRefreshIn]);
 
-  // Auto-refresh every 5 minutes after initial 5-minute wait
+  // Auto-refresh every 3 minutes after initial 3-minute wait
   useEffect(() => {
     if (!autoRefreshActive || !symbol.trim()) {
       return;
@@ -1929,8 +1931,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       loadChain(true);
       intervalId = setInterval(() => {
         loadChain(true);
-      }, 5 * 60 * 1000);
-    }, 5 * 60 * 1000);
+      }, AUTO_REFRESH_INTERVAL_MS);
+    }, AUTO_REFRESH_INTERVAL_MS);
 
     return () => {
       clearTimeout(initialTimer);
@@ -1998,7 +2000,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             <span className="header-stat">Confidence: {stats.confidence.toFixed(0)}%</span>
             {autoRefreshActive && (
               <span className="header-stat" style={{ color: '#4ade80' }}>
-                🔄 Auto-refresh: ON (every 5min)
+                🔄 Auto-refresh: ON (every 3min)
               </span>
             )}
             {lastUpdateTime && (
@@ -2213,7 +2215,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             Volume/OI Heatmap (by strike)
             {autoRefreshActive && dataHistory.length === 0 && (
               <span style={{ marginLeft: '12px', fontSize: '0.85em', color: '#94a3b8', fontWeight: 400 }}>
-                • Changes will appear after first refresh (5min)
+                • Changes will appear after first refresh (3min)
               </span>
             )}
             {topMovers.top3.length > 0 && (
