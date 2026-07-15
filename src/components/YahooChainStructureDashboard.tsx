@@ -477,6 +477,15 @@ const FLOW_CALL_COL = '82px';
 const FLOW_PUT_COL = '82px';
 const FLOW_CELL_ROW_GRID = `${FLOW_TIME_COL} ${FLOW_CALL_COL} minmax(48px, 1fr) ${FLOW_PUT_COL}`;
 
+function getFlowProportionalWidths(callValue: number, putValue: number): { callWidth: number; putWidth: number } {
+  const total = Math.abs(callValue) + Math.abs(putValue);
+  if (total <= 0) return { callWidth: 0, putWidth: 0 };
+  return {
+    callWidth: (Math.abs(callValue) / total) * 50,
+    putWidth: (Math.abs(putValue) / total) * 50
+  };
+}
+
 const FlowVolumeBar: React.FC<{
   callWidth: number;
   putWidth: number;
@@ -1020,8 +1029,8 @@ const VolumeFlowGrid: React.FC<{
             <FlowDataRow
               callLabel={`C ${model.windowCallTotal.toLocaleString()}`}
               putLabel={`P ${model.windowPutTotal.toLocaleString()}`}
-              callWidth={(model.windowCallTotal / model.maxCurrentTotal) * 50}
-              putWidth={(model.windowPutTotal / model.maxCurrentTotal) * 50}
+              callWidth={getFlowProportionalWidths(model.windowCallTotal, model.windowPutTotal).callWidth}
+              putWidth={getFlowProportionalWidths(model.windowCallTotal, model.windowPutTotal).putWidth}
               barHeight={10}
               fontSize="0.68rem"
               minHeight={24}
