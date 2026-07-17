@@ -1232,10 +1232,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const snapshotStorageKey = `${chainStorageBase}:snapshot`;
 
   // Refs for auto-scrolling to ATM strike
+  const heatmapSectionRef = useRef<HTMLElement>(null);
   const heatmapAtmRowRef = useRef<HTMLTableRowElement>(null);
-  const butterflyAtmRowRef = useRef<HTMLDivElement>(null);
   const didInitialHeatmapScrollRef = useRef(false);
-  const didInitialButterflyScrollRef = useRef(false);
   const latestLoadChainRequestRef = useRef(0);
   const parsedRef = useRef(parsed);
   const flowDataByExpiryRef = useRef(flowDataByExpiry);
@@ -2050,32 +2049,24 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     };
   }, [autoRefreshActive, symbol, selectedExpiry]);
 
-  // Auto-scroll to ATM strike in Volume/OI Heatmap
+  // Auto-scroll to Volume/OI Heatmap section on initial load
   useEffect(() => {
     if (didInitialHeatmapScrollRef.current) return;
-    if (heatmapAtmRowRef.current && effectiveSpot) {
-      setTimeout(() => {
-        heatmapAtmRowRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
-        didInitialHeatmapScrollRef.current = true;
-      }, 100);
-    }
-  }, [effectiveSpot, parsed.rows]);
+    if (!effectiveSpot || parsed.rows.length === 0) return;
 
-  // Auto-scroll to ATM strike in Butterfly Workspace
-  useEffect(() => {
-    if (didInitialButterflyScrollRef.current) return;
-    if (butterflyAtmRowRef.current && effectiveSpot) {
-      setTimeout(() => {
-        butterflyAtmRowRef.current?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
-        didInitialButterflyScrollRef.current = true;
-      }, 100);
-    }
+    const timer = window.setTimeout(() => {
+      heatmapSectionRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+      heatmapAtmRowRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+      didInitialHeatmapScrollRef.current = true;
+    }, 150);
+
+    return () => window.clearTimeout(timer);
   }, [effectiveSpot, parsed.rows]);
 
   const handleSymbolChange = (nextRawSymbol: string) => {
@@ -2091,6 +2082,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     setSpotOverride('');
     setDaysToExpiry(7);
     setSelectedButterflyCell(null);
+    didInitialHeatmapScrollRef.current = false;
     setError('');
     setAutoRefreshActive(false);
     setLastUpdateTime(null);
@@ -2314,7 +2306,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
 
       {error && <p className="chain-inline-error">{error}</p>}
 
-      <section className="yahoo-table-section" style={{ gridColumn: '1 / -1' }}>
+      <section ref={heatmapSectionRef} className="yahoo-table-section" style={{ gridColumn: '1 / -1' }}>
         <div className="yahoo-table-title">
           <BarChart3 size={18} />
           <h3>
@@ -2557,7 +2549,6 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
                   return (
                   <div 
                     key={`hm-row-${row.middleStrike}`} 
-                    ref={isClosestToSpot ? butterflyAtmRowRef : null}
                     className="butterfly-heatmap-row"
                     style={{
                       background: isClosestToSpot ? 'rgba(56, 189, 248, 0.08)' : undefined,

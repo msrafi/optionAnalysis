@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "start": "concurrently --names \"APP,YAHOO\" --prefix-colors \"cyan,yellow\" \"npm run dev\" \"npm run yahoo-server\"",
+    "start": "node scripts/start-with-token-sync.js",
+    "sync-robinhood-token": "node scripts/sync-robinhood-token.js",
     "yahoo-server": "node server/yahooServer.js",
     "robinhood-token-help": "node scripts/robinhood-token-help.js",
     "prebuild": "npm run combine-data && npm run update-all-data",
