@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { BarChart3, RefreshCw } from 'lucide-react';
-import { fetchYahooMostActiveOptions, fetchYahooOptionChain, YahooMostActiveOptionRow } from '../utils/yahooOptions';
+import { fetchYahooMostActiveOptions, fetchYahooOptionChain, YahooMostActiveOptionRow, YahooOptionChainResult } from '../utils/yahooOptions';
 import RobinhoodTradeConfirmModal from './RobinhoodTradeConfirmModal';
 import RobinhoodTradeLogModal from './RobinhoodTradeLogModal';
 import {
@@ -373,6 +373,11 @@ function estimateSpotFromContracts(
   const totalWeight = weighted.reduce((sum, row) => sum + row.weight, 0);
   if (totalWeight <= 0) return null;
   return weighted.reduce((sum, row) => sum + row.strike * row.weight, 0) / totalWeight;
+}
+
+function resolveChainSpotPrice(chain: YahooOptionChainResult): number | null {
+  const detected = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
+  return detected && detected > 0 ? detected : null;
 }
 
 function toExpiryLabel(expirySeconds: number): string {
@@ -1243,6 +1248,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const latestLoadChainRequestRef = useRef(0);
   const parsedRef = useRef(parsed);
   const flowDataByExpiryRef = useRef(flowDataByExpiry);
+  const spotManuallyEditedRef = useRef(false);
 
   useEffect(() => {
     parsedRef.current = parsed;
@@ -1278,6 +1284,12 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     setTradeLogCount(getRobinhoodTradeLog().length);
   }, [tradeDraft]);
 
+  const applyLiveSpotPrice = useCallback((detectedSpot: number | null) => {
+    if (!detectedSpot || detectedSpot <= 0) return;
+    spotManuallyEditedRef.current = false;
+    setSpotOverride(detectedSpot.toFixed(2));
+  }, []);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const expiries = getFlowExpiries(selectedExpiry, availableExpiries, 3);
@@ -1301,6 +1313,9 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
 
     const selectedSnapshot = selectedExpiry ? restored[selectedExpiry]?.parsed : null;
     parsedRef.current = selectedSnapshot ?? { rows: [], spotPrice: null };
+    if (selectedSnapshot?.spotPrice && selectedSnapshot.spotPrice > 0) {
+      setSpotOverride(selectedSnapshot.spotPrice.toFixed(2));
+    }
   }, [symbol, selectedExpiry, availableExpiries]);
 
   useEffect(() => {
@@ -1328,7 +1343,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
           if (!result || result.status !== 'fulfilled') return;
 
           const chain = result.value;
-          const expirySpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
+          const expirySpot = resolveChainSpotPrice(chain);
           const expiryNormalized = buildChainFromYahoo(chain.contracts, expirySpot);
           const storageBase = getChainStorageBase(ticker, expiry);
           const storedHistory = readStoredFlowHistory(`${storageBase}:flow`);
@@ -1341,12 +1356,20 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         });
         return next;
       });
+
+      if (selectedExpiry && missing.includes(selectedExpiry)) {
+        const selectedIdx = missing.indexOf(selectedExpiry);
+        const selectedResult = results[selectedIdx];
+        if (selectedResult?.status === 'fulfilled') {
+          applyLiveSpotPrice(resolveChainSpotPrice(selectedResult.value));
+        }
+      }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [symbol, selectedExpiry, availableExpiries, parsed.rows.length]);
+  }, [applyLiveSpotPrice, symbol, selectedExpiry, availableExpiries, parsed.rows.length]);
 
   // Debounce chart symbol updates to avoid reloading iframe on every keystroke.
   useEffect(() => {
@@ -1391,10 +1414,19 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   };
 
   const effectiveSpot = useMemo(() => {
+    if (spotManuallyEditedRef.current) {
+      const overrideNum = Number(spotOverride);
+      if (Number.isFinite(overrideNum) && overrideNum > 0) return overrideNum;
+    }
+
+    const liveSpot = parsed.spotPrice;
+    if (liveSpot && liveSpot > 0) return liveSpot;
+
     const overrideNum = Number(spotOverride);
     if (Number.isFinite(overrideNum) && overrideNum > 0) return overrideNum;
-    return parsed.spotPrice || null;
-  }, [spotOverride, parsed.spotPrice]);
+
+    return null;
+  }, [parsed.spotPrice, spotOverride]);
 
   const stats = useMemo(() => {
     const rows = parsed.rows;
@@ -1770,16 +1802,14 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     try {
       const chain = await fetchYahooOptionChain(ticker);
       const expiries = chain.expirations || [];
-      const detectedSpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
+      const detectedSpot = resolveChainSpotPrice(chain);
       setAvailableExpiries(expiries);
       const first = expiries[0] ?? null;
       setSelectedExpiry(first);
       if (first) {
         setDaysToExpiry(daysUntilExpiry(first));
       }
-      if ((!spotOverride || Number(spotOverride) <= 0) && detectedSpot && detectedSpot > 0) {
-        setSpotOverride(detectedSpot.toFixed(2));
-      }
+      applyLiveSpotPrice(detectedSpot);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load expiries.');
     } finally {
@@ -1819,8 +1849,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       }
 
       const primaryChain = primaryChainResult.value;
-      const detectedSpot =
-        primaryChain.underlyingPrice ?? estimateSpotFromContracts(primaryChain.contracts);
+      const detectedSpot = resolveChainSpotPrice(primaryChain);
       const normalized = buildChainFromYahoo(primaryChain.contracts, detectedSpot);
 
       const previousParsed =
@@ -1836,7 +1865,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
           if (!result || result.status !== 'fulfilled') return;
 
           const chain = result.value;
-          const expirySpot = chain.underlyingPrice ?? estimateSpotFromContracts(chain.contracts);
+          const expirySpot = resolveChainSpotPrice(chain);
           const expiryNormalized = buildChainFromYahoo(chain.contracts, expirySpot);
           const storageBase = getChainStorageBase(ticker, expiry);
           const isPrimary = expiry === primaryExpiry;
@@ -1887,9 +1916,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       parsedRef.current = normalized;
       setParsed(normalized);
       setMostActiveRows(mostActiveResult);
-      if ((!spotOverride || Number(spotOverride) <= 0) && detectedSpot && detectedSpot > 0) {
-        setSpotOverride(detectedSpot.toFixed(2));
-      }
+      applyLiveSpotPrice(detectedSpot);
       if (selectedExpiry) {
         setDaysToExpiry(daysUntilExpiry(selectedExpiry));
       }
@@ -2091,6 +2118,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     setFlowDataByExpiry({});
     setMostActiveRows([]);
     setSpotOverride('');
+    spotManuallyEditedRef.current = false;
     setDaysToExpiry(7);
     setSelectedButterflyCell(null);
     didInitialHeatmapScrollRef.current = false;
@@ -2160,7 +2188,15 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             </div>
             <div className="chain-flow-field">
               <label htmlFor="spot-override-yahoo">Spot Price</label>
-              <input id="spot-override-yahoo" value={spotOverride} onChange={(e) => setSpotOverride(e.target.value)} className="search-input" />
+              <input
+                id="spot-override-yahoo"
+                value={spotOverride}
+                onChange={(e) => {
+                  spotManuallyEditedRef.current = true;
+                  setSpotOverride(e.target.value);
+                }}
+                className="search-input"
+              />
             </div>
 
             <div className="chain-flow-field">
@@ -2507,9 +2543,7 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
             onTradeSelect={rhTradingConfigured ? openRobinhoodTrade : undefined}
             columns={flowExpiries.map((expiry) => {
               const flowState = flowDataByExpiry[expiry];
-              const columnSpot =
-                flowState?.parsed.spotPrice ??
-                (expiry === selectedExpiry ? effectiveSpot : null);
+              const columnSpot = effectiveSpot ?? flowState?.parsed.spotPrice ?? null;
               return {
                 expiry,
                 expiryLabel: toExpiryLabel(expiry),
@@ -2525,7 +2559,12 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
       <section className="yahoo-table-section">
         <div className="yahoo-table-title">
           <BarChart3 size={18} />
-          <h3>Butterfly Strategy Workspace</h3>
+          <h3>
+            {symbol && <span style={{ color: '#60a5fa', fontWeight: 700 }}>{symbol}</span>}
+            {effectiveSpot && <span style={{ marginLeft: '8px', color: '#94a3b8', fontSize: '0.9em' }}>${effectiveSpot.toFixed(2)}</span>}
+            {(symbol || effectiveSpot) && <span style={{ margin: '0 8px', color: '#475569' }}>•</span>}
+            Butterfly Strategy Workspace
+          </h3>
         </div>
         <div className="butterfly-toolbar">
           <div className="butterfly-chip-group">
