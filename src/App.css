@@ -10123,3 +10123,91 @@
 .rh-trade-clickable:hover {
   filter: brightness(1.15);
 }
+
+.rh-trade-log-button {
+  border-color: rgba(34, 197, 94, 0.45);
+  color: #86efac;
+}
+
+.rh-trade-log-modal {
+  width: min(960px, 96vw);
+}
+
+.rh-trade-log-empty {
+  margin: 1rem 0 0;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.rh-trade-log-table-wrap {
+  margin-top: 1rem;
+  max-height: 420px;
+  overflow: auto;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 8px;
+}
+
+.rh-trade-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.rh-trade-log-table th,
+.rh-trade-log-table td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  text-align: left;
+  vertical-align: top;
+}
+
+.rh-trade-log-table th {
+  position: sticky;
+  top: 0;
+  background: #0f172a;
+  color: #cbd5e1;
+  font-weight: 600;
+  z-index: 1;
+}
+
+.rh-trade-log-table tbody tr:hover {
+  background: rgba(56, 189, 248, 0.06);
+}
+
+.rh-trade-log-contract {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.rh-trade-log-contract strong {
+  color: #e2e8f0;
+}
+
+.rh-trade-log-contract span {
+  color: #94a3b8;
+  font-size: 0.78rem;
+}
+
+.rh-trade-log-occ {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.rh-trade-log-state {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+  font-size: 0.75rem;
+  text-transform: lowercase;
+}
+
+.rh-trade-log-order-id {
+  display: block;
+  margin-top: 0.25rem;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  word-break: break-all;
+}

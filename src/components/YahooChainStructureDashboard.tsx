@@ -2,10 +2,13 @@ import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import { BarChart3, RefreshCw } from 'lucide-react';
 import { fetchYahooMostActiveOptions, fetchYahooOptionChain, YahooMostActiveOptionRow } from '../utils/yahooOptions';
 import RobinhoodTradeConfirmModal from './RobinhoodTradeConfirmModal';
+import RobinhoodTradeLogModal from './RobinhoodTradeLogModal';
 import {
   fetchRobinhoodTradingStatus,
+  RobinhoodOrderResult,
   RobinhoodTradeDraft,
 } from '../utils/robinhoodTrading';
+import { appendRobinhoodTradeLog, getRobinhoodTradeLog } from '../utils/robinhoodTradeLog';
 
 type DashboardType =
   | 'options'
@@ -1218,6 +1221,8 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
   const [selectedButterflyCell, setSelectedButterflyCell] = useState<SelectedButterflyCell | null>(null);
   const [flowDataByExpiry, setFlowDataByExpiry] = useState<Record<number, FlowExpiryState>>({});
   const [tradeDraft, setTradeDraft] = useState<RobinhoodTradeDraft | null>(null);
+  const [showTradeLog, setShowTradeLog] = useState(false);
+  const [tradeLogCount, setTradeLogCount] = useState(() => getRobinhoodTradeLog().length);
   const [rhTradingEnabled, setRhTradingEnabled] = useState(false);
   const [rhTradingConfigured, setRhTradingConfigured] = useState(false);
   const selectedExpiryDays = selectedExpiry ? daysUntilExpiry(selectedExpiry) : null;
@@ -1266,6 +1271,12 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
     }
     setTradeDraft(draft);
   }, [rhTradingConfigured]);
+
+  const handleRobinhoodTradePlaced = useCallback((result: RobinhoodOrderResult) => {
+    if (!tradeDraft) return;
+    appendRobinhoodTradeLog(result, tradeDraft.source);
+    setTradeLogCount(getRobinhoodTradeLog().length);
+  }, [tradeDraft]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -2113,6 +2124,15 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         </div>
         <div className="header-right">
           <div className="nav-buttons">
+            {rhTradingConfigured && (
+              <button
+                type="button"
+                className="nav-button rh-trade-log-button"
+                onClick={() => setShowTradeLog(true)}
+              >
+                Trade Log{tradeLogCount > 0 ? ` (${tradeLogCount})` : ''}
+              </button>
+            )}
             <button className={`nav-button ${activeDashboard === 'chainStructureYahoo' ? 'active' : ''}`} onClick={() => setActiveDashboard('chainStructureYahoo')}>Chain Structure (Yahoo)</button>
             <button className={`nav-button ${activeDashboard === 'yahooExpiryHighlights' ? 'active' : ''}`} onClick={() => setActiveDashboard('yahooExpiryHighlights')}>High Vol &amp; OI</button>
           </div>
@@ -2977,6 +2997,13 @@ const YahooChainStructureDashboard: React.FC<YahooChainStructureDashboardProps> 
         draft={tradeDraft}
         tradingEnabled={rhTradingEnabled}
         onClose={() => setTradeDraft(null)}
+        onPlaced={handleRobinhoodTradePlaced}
+      />
+    )}
+    {showTradeLog && (
+      <RobinhoodTradeLogModal
+        onClose={() => setShowTradeLog(false)}
+        onClear={() => setTradeLogCount(0)}
       />
     )}
     </>
