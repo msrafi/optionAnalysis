@@ -46,17 +46,17 @@ async function rhFetch(url, { retryOnUnauthorized = true } = {}) {
   });
 
   const bodyText = await response.text();
+  if (response.status === 401) {
+    throw new Error(
+      'Robinhood token expired or invalid. Log into robinhood.com in Chrome, copy a fresh Bearer token, and update ROBINHOOD_BROKERAGE_TOKEN in .env.local.'
+    );
+  }
+
   let body;
   try {
     body = bodyText ? JSON.parse(bodyText) : {};
   } catch {
     throw new Error(`Robinhood returned non-JSON (${response.status}): ${bodyText.slice(0, 200)}`);
-  }
-
-  if (response.status === 401) {
-    throw new Error(
-      'Robinhood token expired or invalid. Log into robinhood.com in Chrome, copy a fresh Bearer token, and update ROBINHOOD_BROKERAGE_TOKEN in .env.local.'
-    );
   }
 
   if (!response.ok) {
@@ -85,17 +85,17 @@ async function rhPost(path, body) {
   });
 
   const bodyText = await response.text();
+  if (response.status === 401) {
+    throw new Error(
+      'Robinhood token expired or invalid. Log into robinhood.com in Chrome, copy a fresh Bearer token, and update ROBINHOOD_BROKERAGE_TOKEN in .env.local.'
+    );
+  }
+
   let parsed;
   try {
     parsed = bodyText ? JSON.parse(bodyText) : {};
   } catch {
     throw new Error(`Robinhood returned non-JSON (${response.status}): ${bodyText.slice(0, 200)}`);
-  }
-
-  if (response.status === 401) {
-    throw new Error(
-      'Robinhood token expired or invalid. Log into robinhood.com in Chrome, copy a fresh Bearer token, and update ROBINHOOD_BROKERAGE_TOKEN in .env.local.'
-    );
   }
 
   if (!response.ok) {

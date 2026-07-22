@@ -1,55 +1,25 @@
 #!/usr/bin/env node
 
-import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  getRobinhoodTokenFromEnvLocal,
+  writeRobinhoodTokenToEnvLocal,
+} from './lib/robinhoodEnv.js';
 import {
   maskToken,
   readRobinhoodTokenFromBrowsers,
   validateRobinhoodToken,
 } from './lib/robinhoodTokenReader.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const projectRoot = path.join(__dirname, '..');
-const envLocalPath = path.join(projectRoot, '.env.local');
-const envExamplePath = path.join(projectRoot, '.env.example');
 const TOKEN_KEY = 'ROBINHOOD_BROKERAGE_TOKEN';
 
-function readEnvLines(filePath) {
-  if (!fs.existsSync(filePath)) return [];
-  return fs.readFileSync(filePath, 'utf8').split('\n');
-}
-
-function getTokenFromEnvFile(filePath) {
-  for (const line of readEnvLines(filePath)) {
-    if (!line.startsWith(`${TOKEN_KEY}=`)) continue;
-    return line.slice(TOKEN_KEY.length + 1).trim();
-  }
-  return '';
+function getTokenFromEnvFile() {
+  return getRobinhoodTokenFromEnvLocal();
 }
 
 function writeTokenToEnvLocal(token) {
-  const sourceLines = fs.existsSync(envLocalPath)
-    ? readEnvLines(envLocalPath)
-    : readEnvLines(envExamplePath);
-
-  let found = false;
-  const updatedLines = sourceLines.map((line) => {
-    if (!line.startsWith(`${TOKEN_KEY}=`)) return line;
-    found = true;
-    return `${TOKEN_KEY}=${token}`;
-  });
-
-  if (!found) {
-    if (updatedLines.length > 0 && updatedLines[updatedLines.length - 1] !== '') {
-      updatedLines.push('');
-    }
-    updatedLines.push(`${TOKEN_KEY}=${token}`);
-  }
-
-  const content = updatedLines.join('\n');
-  fs.writeFileSync(envLocalPath, content.endsWith('\n') ? content : `${content}\n`, 'utf8');
+  writeRobinhoodTokenToEnvLocal(token);
 }
 
 export async function syncRobinhoodToken({ quiet = false } = {}) {
@@ -61,7 +31,7 @@ export async function syncRobinhoodToken({ quiet = false } = {}) {
     if (!quiet) console.warn('[robinhood-token]', ...args);
   };
 
-  const existingToken = getTokenFromEnvFile(envLocalPath);
+  const existingToken = getTokenFromEnvFile();
   const browserResult = readRobinhoodTokenFromBrowsers();
   const browserToken = browserResult.token?.trim() || '';
 
@@ -105,6 +75,8 @@ export async function syncRobinhoodToken({ quiet = false } = {}) {
 
   return { updated: changed, token: tokenToUse, source };
 }
+
+const __filename = fileURLToPath(import.meta.url);
 
 const isMainModule =
   process.argv[1] && path.resolve(process.argv[1]) === path.resolve(__filename);

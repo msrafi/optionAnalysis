@@ -5,9 +5,9 @@ Robinhood session token setup (no new signup — uses your existing account)
 
 Automatic sync (recommended on macOS):
 1. Log into https://robinhood.com in Chrome or Brave.
-2. Run: npm start
-   The startup script reads your browser session cookie and updates .env.local.
-   You can also run just the sync step: npm run sync-robinhood-token
+2. Run: npm run start   (or npm run dev)
+   Token sync from your browser runs automatically before the app starts.
+   Manual update anytime: npm run update-robinhood-token
 
 Manual fallback:
 1. Open https://robinhood.com in Chrome and make sure you are logged in.

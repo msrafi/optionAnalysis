@@ -3,7 +3,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { syncRobinhoodToken } from './sync-robinhood-token.js';
+import { updateRobinhoodTokenForStartup } from './update-robinhood-token.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,7 +11,7 @@ const projectRoot = path.join(__dirname, '..');
 
 async function main() {
   try {
-    await syncRobinhoodToken();
+    await updateRobinhoodTokenForStartup();
   } catch (error) {
     console.warn('[robinhood-token] Sync failed, continuing startup:', error.message);
   }
@@ -24,7 +24,7 @@ async function main() {
       'APP,YAHOO',
       '--prefix-colors',
       'cyan,yellow',
-      'npm run dev',
+      'vite',
       'npm run yahoo-server',
     ],
     {

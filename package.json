@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/start-with-token-sync.js",
     "start": "node scripts/start-with-token-sync.js",
     "sync-robinhood-token": "node scripts/sync-robinhood-token.js",
+    "update-robinhood-token": "node scripts/update-robinhood-token.js",
     "yahoo-server": "node server/yahooServer.js",
     "robinhood-token-help": "node scripts/robinhood-token-help.js",
     "prebuild": "npm run combine-data && npm run update-all-data",
